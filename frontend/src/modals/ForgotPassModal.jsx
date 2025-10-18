@@ -22,7 +22,7 @@ const ForgotPassModal = ({ isOpen, onClose }) => {
     }
   };
 
-  // Reset fields on close
+  //reset field
   const closeAndReset = () => {
     setEmail('');
     setInfo('');

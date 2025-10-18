@@ -45,7 +45,6 @@ const RegisterModal = ({ isOpen, onClose }) => {
     }
   };
 
-  // Reset fields on close
   const closeAndReset = () => {
     setEmail('');
     setPassword('');

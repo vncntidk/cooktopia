@@ -27,7 +27,6 @@ export const AuthProvider = ({ children }) => {
     return () => unsubscribe();
   }, []);
 
-  // Automatic verification detection for authenticated but unverified users
   useEffect(() => {
     if (user && !isVerified) {
       const checkVerificationStatus = async () => {
@@ -43,10 +42,8 @@ export const AuthProvider = ({ children }) => {
         }
       };
 
-      // Check immediately
       checkVerificationStatus();
 
-      // Set up polling to check verification status every 2 seconds
       const verificationInterval = setInterval(checkVerificationStatus, 2000);
 
       return () => clearInterval(verificationInterval);

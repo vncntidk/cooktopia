@@ -21,7 +21,6 @@ const LoginModal = ({ isOpen, onClose, onForgotPassword }) => {
     try {
       const user = await signIn(email, password);
       if (!user.emailVerified && !verificationSent) {
-        // Automatically send verification email for unverified users
         try {
           await sendVerificationEmail();
           setVerificationSent(true);
@@ -51,7 +50,6 @@ const LoginModal = ({ isOpen, onClose, onForgotPassword }) => {
     }
   };
 
-  // Reset fields on close
   const closeAndReset = () => {
     setEmail('');
     setPassword('');
