@@ -1,28 +1,35 @@
 import React, { useState } from 'react';
-import { signIn, signInWithGoogle, signUp } from '../services/auth';
+import { signIn, signInWithGoogle, sendVerificationEmail } from '../services/auth';
+import { useAuth } from '../contexts/AuthContext';
 
-const AuthModal = ({ mode = 'login', isOpen, onClose }) => {
-  
+const LoginModal = ({ isOpen, onClose, onForgotPassword }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [displayName, setDisplayName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-
-  const isLogin = mode === 'login';
+  const [info, setInfo] = useState('');
+  const [verificationSent, setVerificationSent] = useState(false);
+  const { reloadUser } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError('');
+    setInfo('');
+    setVerificationSent(false);
 
     try {
-      if (isLogin) {
-        await signIn(email, password);
-      } else {
-        await signUp(email, password, displayName);
+      const user = await signIn(email, password);
+      if (!user.emailVerified && !verificationSent) {
+        // Automatically send verification email for unverified users
+        try {
+          await sendVerificationEmail();
+          setVerificationSent(true);
+          setInfo('A new verification email has been sent to your address. Please verify before logging in.');
+        } catch (verificationErr) {
+          setInfo('Your email is not verified. Please check your inbox for a verification email.');
+        }
       }
-      onClose();  
     } catch (err) {
       setError(err.message);
     } finally {
@@ -33,14 +40,26 @@ const AuthModal = ({ mode = 'login', isOpen, onClose }) => {
   const handleGoogle = async () => {
     setLoading(true);
     setError('');
+    setInfo('');
     try {
       await signInWithGoogle();
-      onClose();
+      await reloadUser();
     } catch (err) {
       setError(err.message);
     } finally {
       setLoading(false);
     }
+  };
+
+  // Reset fields on close
+  const closeAndReset = () => {
+    setEmail('');
+    setPassword('');
+    setError('');
+    setInfo('');
+    setVerificationSent(false);
+    setLoading(false);
+    onClose();
   };
 
   if (!isOpen) return null;
@@ -49,9 +68,9 @@ const AuthModal = ({ mode = 'login', isOpen, onClose }) => {
     <div className="fixed inset-0 z-50 flex items-start justify-center pt-12 bg-black/30 backdrop-blur-sm">
       <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-md mx-4">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold">{isLogin ? 'Login' : 'Register'}</h2>
+          <h2 className="text-xl font-semibold">Login</h2>
           <button
-            onClick={onClose}
+            onClick={closeAndReset}
             className="text-gray-400 hover:text-gray-600 text-xl"
           >
             ×
@@ -59,18 +78,6 @@ const AuthModal = ({ mode = 'login', isOpen, onClose }) => {
         </div>
         
         <form onSubmit={handleSubmit} className="space-y-4">
-          {!isLogin && (
-            <div>
-              <input
-                type="text"
-                placeholder="Display Name"
-                value={displayName}
-                onChange={e => setDisplayName(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                required
-              />
-            </div>
-          )}
           <div>
             <input
               type="email"
@@ -97,13 +104,18 @@ const AuthModal = ({ mode = 'login', isOpen, onClose }) => {
               {error}
             </div>
           )}
+          {info && (
+            <div className="text-blue-700 text-sm bg-blue-50 p-2 rounded">
+              {info}
+            </div>
+          )}
           
           <button
             type="submit"
             className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-md transition-colors disabled:opacity-50"
             disabled={loading}
           >
-            {loading ? 'Loading...' : isLogin ? 'Login' : 'Register'}
+            {loading ? 'Loading...' : 'Login'}
           </button>
         </form>
         
@@ -116,9 +128,18 @@ const AuthModal = ({ mode = 'login', isOpen, onClose }) => {
             {loading ? 'Loading...' : 'Continue with Google'}
           </button>
         </div>
+
+        <div className="mt-3 text-sm text-center">
+          <button 
+            onClick={onForgotPassword} 
+            className="text-blue-600 hover:underline"
+          >
+            Forgot Password?
+          </button>
+        </div>
       </div>
     </div>
   );
 };
 
-export default AuthModal;
+export default LoginModal;
