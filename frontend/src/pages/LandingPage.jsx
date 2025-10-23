@@ -97,14 +97,26 @@ export default function LandingPage() {
           setLoginModalOpen(false);
           setForgotPassModalOpen(true);
         }}
+        onSignUp={() => {
+          setLoginModalOpen(false);
+          setRegisterModalOpen(true);
+        }}
       />
       <RegisterModal
         isOpen={registerModalOpen}
         onClose={() => setRegisterModalOpen(false)}
+        onSignIn={() => {
+          setRegisterModalOpen(false);
+          setLoginModalOpen(true);
+        }}
       />
       <ForgotPassModal
         isOpen={forgotPassModalOpen}
         onClose={() => setForgotPassModalOpen(false)}
+        onSignIn={() => {
+          setForgotPassModalOpen(false);
+          setLoginModalOpen(true);
+        }}
       />
     </div>
   );
