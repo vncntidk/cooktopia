@@ -6,10 +6,12 @@ import CreateRecipe from './pages/CreateRecipe';
 import FloatingActionButton from './components/FloatingActionButton';
 import { Toaster } from 'react-hot-toast';
 
+import { useState } from 'react'
 import './App.css'
 import Header from "./components/Header/Header";
 import Sidebar from "./components/Sidebar/Sidebar";
 
+import LandingPage from './pages/LandingPage'
 
 function App() {
   return (
@@ -65,6 +67,10 @@ function AppContent() {
       />
     </>
   );
+    <div>
+      <LandingPage />
+    </div>
+  )
 }
 
 export default App
