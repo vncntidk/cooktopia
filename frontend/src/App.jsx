@@ -15,7 +15,7 @@ function App() {
       <Router>
         <Routes>
           <Route path="/" element={<LandingPage />} />
-          <Route path="/home" element={<Protected><HomePage /></Protected>} />
+          <Route path="/home" element={<HomePage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
         <Toaster 
