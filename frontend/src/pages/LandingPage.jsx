@@ -87,6 +87,7 @@ export default function LandingPage() {
           >
             Register
           </button>
+          
         </div>
       </div>
 
