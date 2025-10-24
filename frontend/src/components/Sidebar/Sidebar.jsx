@@ -9,7 +9,7 @@ const Sidebar = () => {
       className={`fixed top-0 right-0 h-full w-16 bg-white shadow-lg flex flex-col items-center py-6 z-40 ${styles.sidebar}`}
       aria-label="Sidebar"
     >
-      {/* Profile - moved down INSIDE the sidebar container via CSS module (20px) */}
+      {/* Profile */}
       <div className={`${styles.profileWrapper} flex flex-col items-center`}>
         <img
           src="/profile.png"
@@ -18,7 +18,7 @@ const Sidebar = () => {
         />
       </div>
 
-      {/* Icons - stack from the top of the remaining space, not squeezed in the middle */}
+      {/* Icons */}
       <div className="flex flex-col items-center gap-8 mt-2 flex-1 w-full">
         {/* Home */}
         <button
