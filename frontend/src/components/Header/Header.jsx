@@ -8,7 +8,7 @@ const Header = () => {
       style={{ boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)" }}
     >
       {/* Logo Section */}
-      <div className="flex items-center space-x-2">
+      <div className={`flex items-center space-x-2 ${styles.logoWrapper}`}>
         <img
           src="/logo.png"
           alt="Cooktopia Logo"

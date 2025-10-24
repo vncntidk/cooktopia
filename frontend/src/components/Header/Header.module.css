@@ -6,8 +6,13 @@
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
 }
 
+.logoWrapper {
+  margin-left: 12px;
+  margin-right: 12px;
+}
+
 .searchBar {
-  margin-right: 24px;
+  margin-right: 12px;
   width: clamp(240px, 40vw, 560px);
   max-width: 90%;
   min-height: 40px;
