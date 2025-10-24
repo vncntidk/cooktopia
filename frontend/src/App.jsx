@@ -6,12 +6,7 @@ import CreateRecipe from './pages/CreateRecipe';
 import FloatingActionButton from './components/FloatingActionButton';
 import { Toaster } from 'react-hot-toast';
 
-import { useState } from 'react'
-import './App.css'
-import Header from "./components/Header/Header";
-import Sidebar from "./components/Sidebar/Sidebar";
-
-import LandingPage from './pages/LandingPage'
+import './App.css';
 
 function App() {
   return (
@@ -20,7 +15,7 @@ function App() {
         <AppContent />
       </Router>
     </AuthProvider>
-  )
+  );
 }
 
 function AppContent() {
@@ -67,26 +62,31 @@ function AppContent() {
       />
     </>
   );
-    <div>
-      <LandingPage />
-    </div>
-  )
 }
-
-export default App
 
 function Protected({ children }) {
   const { loading, isAuthenticated, isVerified } = useAuth();
 
-  if (loading) return null;
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!isAuthenticated) {
-    return <Navigate to="/" replace />
+    return <Navigate to="/" replace />;
   }
 
   if (!isVerified) {
-    return <Navigate to="/" replace state={{ needsVerification: true }} />
+    return <Navigate to="/" replace state={{ needsVerification: true }} />;
   }
 
   return children;
 }
+
+export default App;
