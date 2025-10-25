@@ -2,11 +2,11 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'r
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import LandingPage from './pages/LandingPage';
 import HomePage from './pages/HomePage';
-import CreateRecipe from './pages/CreateRecipe';
 import FloatingActionButton from './components/FloatingActionButton';
 import { Toaster } from 'react-hot-toast';
 
 import './App.css';
+import CreateRecipe from './pages/CreateRecipe.jsx';
 
 function App() {
   return (
@@ -21,7 +21,6 @@ function App() {
 function AppContent() {
   const location = useLocation();
   
-  // Hide FAB on create-recipe page
   const shouldShowFAB = location.pathname !== '/create-recipe';
 
   return (

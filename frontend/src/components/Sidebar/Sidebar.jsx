@@ -68,15 +68,6 @@ const Sidebar = () => {
           />
         </button>
       </div>
-
-      {/* Bottom action - stay at bottom of sidebar */}
-      <div className="flex flex-col items-center mt-auto">
-        <img
-          src="/icons/createIcon.png"
-          alt="Add Recipe"
-          className="w-12 h-12 cursor-pointer hover:rotate-90 transition-transform"
-        />
-      </div>
     </aside>
   );
 };

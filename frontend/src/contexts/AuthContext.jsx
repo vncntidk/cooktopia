@@ -38,6 +38,11 @@ export const AuthProvider = ({ children }) => {
             setIsVerified(true);
           }
         } catch (error) {
+          // Handle token expiration gracefully
+          if (error.code === 'auth/user-token-expired') {
+            console.log('User token expired, will be handled by auth state change');
+            return;
+          }
           console.error('Error checking verification status:', error);
         }
       };
@@ -59,12 +64,30 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
+  const checkEmailVerification = useCallback(async () => {
+    if (auth.currentUser) {
+      try {
+        await auth.currentUser.reload();
+        const refreshed = auth.currentUser;
+        const verified = !!refreshed?.emailVerified;
+        setUser(refreshed);
+        setIsVerified(verified);
+        return verified;
+      } catch (error) {
+        console.error('Error checking email verification:', error);
+        return false;
+      }
+    }
+    return false;
+  }, []);
+
   const value = {
     user,
     loading,
     isAuthenticated: !!user,
     isVerified,
-    reloadUser
+    reloadUser,
+    checkEmailVerification
   };
 
   return (

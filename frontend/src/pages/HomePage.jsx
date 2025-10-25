@@ -5,7 +5,7 @@ import HeaderSidebarLayout from '../components/HeaderSidebarLayout';
 
 export default function HomePage() {
   const { user } = useAuth();
-  const navigate = useNavigate();
+  // const navigate = useNavigate();
 
   const name = user?.displayName || user?.email || 'Guest';
 

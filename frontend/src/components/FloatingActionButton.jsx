@@ -13,8 +13,7 @@ const FloatingActionButton = ({
 }) => {
   const navigate = useNavigate();
   const { isAuthenticated, isVerified } = useAuth();
-
-  // Don't show FAB if user is not authenticated and verified
+ 
   if (!isAuthenticated || !isVerified) {
     return null;
   }
@@ -22,28 +21,24 @@ const FloatingActionButton = ({
   const handleClick = () => {
     if (onClick) {
       onClick();
-    } else {
-      // Default behavior: navigate to create recipe
+    } else { 
       navigate('/create-recipe');
     }
   };
-
-  // Size variants
+ 
   const sizeClasses = {
     small: 'w-12 h-12',
     medium: 'w-14 h-14',
     large: 'w-16 h-16'
   };
-
-  // Color variants
+ 
   const variantClasses = {
     primary: 'bg-orange-500 hover:bg-orange-600 active:bg-orange-700',
     secondary: 'bg-gray-600 hover:bg-gray-700 active:bg-gray-800',
     success: 'bg-green-500 hover:bg-green-600 active:bg-green-700',
     danger: 'bg-red-500 hover:bg-red-600 active:bg-red-700'
   };
-
-  // Icon sizes based on button size
+ 
   const iconSizes = {
     small: 'w-5 h-5',
     medium: 'w-6 h-6',
@@ -51,7 +46,7 @@ const FloatingActionButton = ({
   };
 
   return (
-    <div className="fixed bottom-6 right-6 z-50">
+    <div className="fixed bottom-6 right-20 z-50">
       {/* Tooltip */}
       <div className="absolute right-full mr-3 top-1/2 -translate-y-1/2 bg-gray-900 text-white text-sm px-3 py-2 rounded-lg whitespace-nowrap pointer-events-none opacity-0 hover:opacity-100 transition-opacity duration-200">
         {tooltip}
