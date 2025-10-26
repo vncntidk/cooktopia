@@ -7,6 +7,7 @@ import { Toaster } from 'react-hot-toast';
 
 import './App.css';
 import CreateRecipe from './pages/CreateRecipe.jsx';
+import Messages from './pages/Messages.jsx';
 
 function App() {
   return (
@@ -21,7 +22,7 @@ function App() {
 function AppContent() {
   const location = useLocation();
   
-  const shouldShowFAB = location.pathname !== '/create-recipe';
+  const shouldShowFAB = location.pathname !== '/create-recipe' && location.pathname !== '/messages';
 
   return (
     <>
@@ -29,6 +30,7 @@ function AppContent() {
         <Route path="/" element={<LandingPage />} />
         <Route path="/home" element={<Protected><HomePage /></Protected>} />
         <Route path="/create-recipe" element={<Protected><CreateRecipe /></Protected>} />
+        <Route path="/messages" element={<Protected><Messages /></Protected>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       
