@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Search, Paperclip, Send } from 'lucide-react';
 import HeaderSidebarLayout from '../components/HeaderSidebarLayout';
+import MessengerReactions from '../components/MessengerReactions';
 
 // Load Freeman font
 if (typeof document !== 'undefined') {
@@ -68,31 +69,36 @@ const mockMessagesData = {
       id: 1,
       sender: 'other',
       text: 'Hey! Do you have any good pasta recipes?',
-      time: '10:30 AM'
+      time: '10:30 AM',
+      reactions: { heart: 2, like: 1 }
     },
     {
       id: 2,
       sender: 'me',
       text: 'Yes! I have a great carbonara recipe. Would you like me to share it?',
-      time: '10:32 AM'
+      time: '10:32 AM',
+      reactions: { appetite: 3, like: 2 }
     },
     {
       id: 3,
       sender: 'other',
       text: 'That would be awesome! Is it difficult to make?',
-      time: '10:35 AM'
+      time: '10:35 AM',
+      reactions: { yeah: 1 }
     },
     {
       id: 4,
       sender: 'me',
       text: 'Not at all! It\'s actually quite simple. You\'ll need eggs, bacon, parmesan, and pasta.',
-      time: '10:37 AM'
+      time: '10:37 AM',
+      reactions: { heart: 5, appetite: 4, like: 3 }
     },
     {
       id: 5,
       sender: 'other',
       text: 'That sounds perfect! I\'ll try it this weekend.',
-      time: '10:40 AM'
+      time: '10:40 AM',
+      reactions: { yeah: 2, like: 1 }
     }
   ],
   2: [
@@ -217,6 +223,12 @@ export default function Messages() {
       e.preventDefault();
       handleSendMessage();
     }
+  };
+
+  const handleReactionClick = (messageId, emojiId, newReactions) => {
+    console.log(`Message ${messageId}: Updated reactions`, newReactions);
+    // Future: Add backend integration here
+    // In the future, you would update the mockMessagesData state here
   };
 
   return (
@@ -349,25 +361,38 @@ export default function Messages() {
                 return (
                   <div
                     key={message.id}
-                    className={`flex ${message.sender === 'me' ? 'justify-end' : 'justify-start'}`}
+                    className={`group w-full`}
                     style={{ marginBottom: marginBottom }}
                   >
-                    <div className={`flex items-end gap-4 max-w-[85%] ${message.sender === 'me' ? 'flex-row-reverse' : ''}`}>
-                      {message.sender === 'other' && (
-                        <img
-                          src={selectedChat.avatar}
-                          alt={selectedChat.name}
-                          className="w-8 h-8 rounded-full object-cover flex-shrink-0"
-                        />
-                      )}
-                      <div 
-                        className="text-white rounded-2xl" 
-                        style={{ 
-                          padding: '15px 20px',
-                          backgroundColor: message.sender === 'me' ? '#e67e22' : '#fe982a'
-                        }}
-                      >
-                        <p className="text-sm leading-relaxed break-words">{message.text}</p>
+                    <div className={`flex ${message.sender === 'me' ? 'justify-end' : 'justify-start'}`}>
+                      <div className={`flex items-start gap-4 max-w-[85%] ${message.sender === 'me' ? 'flex-row-reverse' : ''}`}>
+                        {message.sender === 'other' && (
+                          <img
+                            src={selectedChat.avatar}
+                            alt={selectedChat.name}
+                            className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+                          />
+                        )}
+                        <div className="flex flex-col gap-2">
+                          <div 
+                            className="text-white rounded-2xl" 
+                            style={{ 
+                              padding: '15px 20px',
+                              backgroundColor: message.sender === 'me' ? '#e67e22' : '#fe982a'
+                            }}
+                          >
+                            <p className="text-sm leading-relaxed break-words">{message.text}</p>
+                          </div>
+                          
+                          {/* Messenger-style Reactions */}
+                          <div className={`flex items-center gap-2 ${message.sender === 'me' ? 'justify-end' : 'justify-start'}`}>
+                            <MessengerReactions
+                              messageId={message.id}
+                              reactions={message.reactions || {}}
+                              onReactionUpdate={handleReactionClick}
+                            />
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
