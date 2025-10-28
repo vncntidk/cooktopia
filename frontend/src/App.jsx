@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'r
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import LandingPage from './pages/LandingPage';
 import HomePage from './pages/HomePage';
+import ProfilePage from './pages/ProfilePage';
 import FloatingActionButton from './components/FloatingActionButton';
 import { Toaster } from 'react-hot-toast';
 
@@ -28,6 +29,7 @@ function AppContent() {
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/home" element={<Protected><HomePage /></Protected>} />
+        <Route path="/profile" element={<Protected><ProfilePage /></Protected>} />
         <Route path="/create-recipe" element={<Protected><CreateRecipe /></Protected>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
