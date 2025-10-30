@@ -14,6 +14,11 @@ const initialPosts = [
 
 export default function HomeFeed() {
   const [posts, setPosts] = useState(initialPosts);
+  const [savedItems, setSavedItems] = useState({});
+
+  const toggleSave = (id) => {
+    setSavedItems(prev => ({ ...prev, [id]: !prev[id] }));
+  };
 
   useEffect(() => {
     const scroller = document.querySelector(".scroll-container");
@@ -35,31 +40,42 @@ export default function HomeFeed() {
 
   return (
     <main className={`${styles.contentWrapper} px-4 w-24/25 flex justify-evenly`}>
-        <div className="columns-2 md:columns-3 lg:columns-4 gap-6 space-y-6 w-full max-w-[1350px] mt-16">
+        <div className= "columns-2 md:columns-3 lg:columns-4 gap-2 space-y-6 w-full max-w-[1350px]">
             {posts.map((post, idx) => (
             <article
                 key={post.id}
-                className="break-inside-avoid group relative rounded-xl hover:shadow-xl transition-all duration-300 overflow-hidden"
+                className={`${styles.recipeCards} break-inside-avoid group relative rounded-xl transition-all duration-300 overflow-hidden`}
                 style={{ animationDelay: `${idx * 0.07}s` }}
             >
-                <div className="overflow-hidden rounded-xl">
+                <div className={`${styles.recipeCards} overflow-hidden rounded-xl`}>
                 <img
                     src={post.img}
                     loading="lazy"
-                    className="w-full h-auto object-cover transform group-hover:scale-105 transition-transform duration-500"
+                    className="w-full h-auto object-cover transform group-hover:scale-105 group-hover:brightness-60 transition-transform duration-500"
                     alt="Food Post"
                 />
+
                 </div>
 
-                {/* Hover Action Buttons */}
-                <div className="absolute top-2 right-2 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                <button className="bg-white/90 p-2 rounded-full shadow hover:scale-110">
-                    <img src="/icons/heartIcon.png" className="w-4" />
+                
+                {/* SAVE BUTTON */}
+                <button
+                  onClick={() => toggleSave(post.id)}
+                  className="absolute top-4 right-5 opacity-0 group-hover:opacity-100 transition"
+                >
+                  <img
+                    src={savedItems[post.id] ? "/icons/saveActive.png" : "/icons/saveIcon.png"}
+                    className="w-6 drop-shadow"
+                  />
                 </button>
-                <button className="bg-white/90 p-2 rounded-full shadow hover:scale-110">
-                    <img src="/icons/saveIcon.png" className="w-4" />
+
+                {/* VIEW RECIPE BUTTON */}
+                <button
+                  className="absolute bottom-10 left-1/2 -translate-x-1/2 w-10/13 shadow-md h-8 text-sm font-medium bg-white rounded-md opacity-0 group-hover:opacity-100 transition
+                    group-hover:translate-y-0 translate-y-2 hover:shadow-md hover:rounded-md hover:bg-[#6BC4A6] hover:text-white duration-300"
+                >
+                  View Recipe
                 </button>
-                </div>
 
                 {/* Username tag below */}
                 <div className="p-6 flex items-center gap-2 text-gray-700 text-sm bg-white/50 backdrop-blur-sm">

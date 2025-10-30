@@ -2,9 +2,12 @@
   transition: all 0.3s ease;
 }
 
-/* Optional hover glow */
 .sidebar:hover {
   box-shadow: 0 0 15px rgba(0, 0, 0, 0.08);
+}
+
+.icons {
+  margin-left: 0;
 }
 
 .profileWrapper {

@@ -6,7 +6,7 @@ const Sidebar = () => {
 
   return (
     <aside
-      className={`fixed top-0 right-0 h-full w-16 bg-white shadow-lg flex flex-col items-center py-6 z-40 ${styles.sidebar}`}
+      className={`fixed top-0 right-0 h-full w-16 bg-white shadow-lg flex flex-col items-center z-40 ${styles.sidebar}`}
       aria-label="Sidebar"
     >
       {/* Profile */}
@@ -27,7 +27,7 @@ const Sidebar = () => {
           aria-label="Home"
         >
           {active === "home" && (
-            <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-orange-500 rounded-r"></span>
+            <span className={`${styles.icons} absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-orange-500 rounded-r`}></span>
           )}
           <img
             src={active === "home" ? "/icons/homeActive.png" : "/icons/homeIcon.png"}
