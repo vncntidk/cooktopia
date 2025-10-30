@@ -92,6 +92,39 @@ export const sendVerificationEmail = async () => {
   }
 };
 
+// Enhanced verification email with better error handling
+export const sendVerificationEmailWithRetry = async (maxRetries = 3) => {
+  let lastError;
+  
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      if (auth.currentUser) {
+        await sendEmailVerification(auth.currentUser);
+        return; // Success
+      } else {
+        throw new Error('No user is currently signed in.');
+      }
+    } catch (error) {
+      lastError = error;
+      
+      // Don't retry for certain errors
+      if (error.code === 'auth/too-many-requests' || 
+          error.code === 'auth/user-not-found' ||
+          error.code === 'auth/invalid-credential') {
+        break;
+      }
+      
+      // Wait before retry (exponential backoff)
+      if (attempt < maxRetries) {
+        await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
+      }
+    }
+  }
+  
+  const errorMessage = getAuthErrorMessage(lastError.code);
+  throw new Error(errorMessage);
+};
+
 //checking the state 
 export const onAuthStateChange = (callback) => {
   return onAuthStateChanged(auth, callback);
@@ -100,6 +133,9 @@ export const onAuthStateChange = (callback) => {
 export const getCurrentUser = () => {
   return auth.currentUser;
 };
+
+// Export sendEmailVerification for direct use
+export { sendEmailVerification };
 
 // generated error msg
 const getAuthErrorMessage = (errorCode) => {
@@ -115,7 +151,15 @@ const getAuthErrorMessage = (errorCode) => {
     'auth/network-request-failed': 'Network error. Please check your connection.',
     'auth/popup-closed-by-user': 'Sign-in was cancelled.',
     'auth/popup-blocked': 'Popup was blocked. Please allow popups for this site.',
-    'auth/requires-recent-login': 'Please sign in again to perform this action.'
+    'auth/requires-recent-login': 'Please sign in again to perform this action.',
+    'auth/invalid-action-code': 'The verification link is invalid or has expired.',
+    'auth/expired-action-code': 'The verification link has expired. Please request a new one.',
+    'auth/invalid-credential': 'Invalid credentials. Please check your email and password.',
+    'auth/email-already-verified': 'This email is already verified.',
+    'auth/invalid-verification-code': 'Invalid verification code.',
+    'auth/invalid-verification-id': 'Invalid verification ID.',
+    'auth/missing-verification-code': 'Missing verification code.',
+    'auth/missing-verification-id': 'Missing verification ID.'
   };
 
   return errorMessages[errorCode] || 'An unexpected error occurred. Please try again.';

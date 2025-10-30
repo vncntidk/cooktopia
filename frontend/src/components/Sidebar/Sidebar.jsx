@@ -1,8 +1,22 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import styles from "./Sidebar.module.css";
 
 const Sidebar = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
   const [active, setActive] = useState("home");
+
+  // Update active state based on current route
+  useEffect(() => {
+    if (location.pathname === "/home") {
+      setActive("home");
+    } else if (location.pathname === "/messages") {
+      setActive("messages");
+    } else if (location.pathname.includes("notifications")) {
+      setActive("notifications");
+    }
+  }, [location]);
 
   return (
     <aside
@@ -22,7 +36,10 @@ const Sidebar = () => {
       <div className="flex flex-col items-center gap-8 mt-2 flex-1 w-full">
         {/* Home */}
         <button
-          onClick={() => setActive("home")}
+          onClick={() => {
+            setActive("home");
+            navigate("/home");
+          }}
           className="relative p-3 transition-all duration-200"
           aria-label="Home"
         >
@@ -38,7 +55,10 @@ const Sidebar = () => {
 
         {/* Notifications */}
         <button
-          onClick={() => setActive("notifications")}
+          onClick={() => {
+            setActive("notifications");
+            // navigate("/notifications"); // Uncomment when notifications page is ready
+          }}
           className="relative p-3 transition-all duration-200"
           aria-label="Notifications"
         >
@@ -54,7 +74,10 @@ const Sidebar = () => {
 
         {/* Messages */}
         <button
-          onClick={() => setActive("messages")}
+          onClick={() => {
+            setActive("messages");
+            navigate("/messages");
+          }}
           className="relative p-3 transition-all duration-200"
           aria-label="Messages"
         >
@@ -67,15 +90,6 @@ const Sidebar = () => {
             className="w-10 h-10"
           />
         </button>
-      </div>
-
-      {/* Bottom action - stay at bottom of sidebar */}
-      <div className="flex flex-col items-center mt-auto">
-        <img
-          src="/icons/createIcon.png"
-          alt="Add Recipe"
-          className="w-12 h-12 cursor-pointer hover:rotate-90 transition-transform"
-        />
       </div>
     </aside>
   );

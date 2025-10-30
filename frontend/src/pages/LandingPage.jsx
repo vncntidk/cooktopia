@@ -1,5 +1,44 @@
-import React from "react";
+import React, { useEffect, useState } from 'react';
+import { useAuth } from '../contexts/AuthContext';
+import LoginModal from '../modals/LoginModal';
+import RegisterModal from '../modals/RegisterModal';
+import ForgotPassModal from '../modals/ForgotPassModal';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { sendVerificationEmail } from '../services/auth';
 import Header from "../components/Header";
+
+export default function LandingPage() {
+  const [loginModalOpen, setLoginModalOpen] = useState(false);
+  const [registerModalOpen, setRegisterModalOpen] = useState(false);
+  const [forgotPassModalOpen, setForgotPassModalOpen] = useState(false);
+  const { user, isAuthenticated, isVerified, loading } = useAuth();
+  const [notice, setNotice] = useState('');
+  const [sending, setSending] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    if (!loading && isAuthenticated && isVerified) {
+      navigate('/home', { replace: true });
+    }
+  }, [loading, isAuthenticated, isVerified, navigate]);
+
+  useEffect(() => {
+    if (location.state?.needsVerification) {
+      setNotice('Please verify your email to continue.');
+    }
+  }, [location.state]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
 const LandingPage = () => {
   return (
@@ -33,8 +72,45 @@ const LandingPage = () => {
             {/* Buttons */}
             <div className="w-full flex flex-col sm:flex-row justify-center md:justify-end items-center gap-4 md:gap-9">
               <button
+                onClick={() => setLoginModalOpen(true)}
                 className="w-full sm:w-60 h-14 px-4 py-2.5 rounded-[20px] shadow-[4px_5px_4px_0px_rgba(0,0,0,0.29)] text-white text-xl md:text-2xl lg:text-3xl font-normal font-['Poppins'] transition-all duration-300 hover:scale-105 hover:shadow-[6px_7px_6px_0px_rgba(0,0,0,0.29)]"
                 style={{ backgroundColor: "#6BC4A6" }}
+              >
+                LOGIN
+              </button>
+              <button
+                onClick={() => setRegisterModalOpen(true)}
+                className="w-full sm:w-60 h-14 px-4 py-2.5 rounded-[20px] shadow-[4px_5px_4px_0px_rgba(0,0,0,0.29)] text-white text-xl md:text-2xl lg:text-3xl font-normal font-['Poppins'] transition-all duration-300 hover:scale-105 hover:shadow-[6px_7px_6px_0px_rgba(0,0,0,0.29)]"
+                style={{ backgroundColor: "#6BC4A6" }}
+              >
+                SIGN UP
+              </button>
+            </div>
+          </div>
+        </section>
+
+        {/* Email Verification Notice */}
+        {isAuthenticated && !isVerified && (
+          <div className="w-full max-w-4xl mx-auto px-4">
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 mb-8">
+              <div className="text-yellow-800 mb-3">
+                {notice || 'Your email is not verified. Please check your inbox and click the verification link. You will be automatically logged in once verified.'}
+              </div>
+              <button
+                onClick={async () => {
+                  setSending(true);
+                  setNotice('');
+                  try {
+                    await sendVerificationEmail();
+                    setNotice('Verification email sent. Check your inbox.');
+                  } catch (e) {
+                    setNotice(e.message || 'Failed to send verification email.');
+                  } finally {
+                    setSending(false);
+                  }
+                }}
+                className="px-4 py-2 rounded-lg bg-blue-600 text-white disabled:opacity-50 font-['Poppins'] text-sm"
+                disabled={sending}
               >
                 LOGIN
               </button>
@@ -46,145 +122,145 @@ const LandingPage = () => {
               </button>
             </div>
           </div>
+        )}
+
+        {/* Features Section */}
+        <section className="w-full bg-cyan-50 py-20">
+          <div className="max-w-7xl mx-auto px-8">
+            {/* Section Title */}
+            <div className="text-center mb-16">
+              <h2 className="text-6xl md:text-7xl font-['Pacifico'] text-cyan-800 mb-6 [text-shadow:_0px_4px_4px_rgb(0_0_0_/_0.25)]">
+                Where every recipe finds a home
+              </h2>
+            </div>
+
+            {/* Features Layout */}
+            <div className="flex flex-col lg:flex-row items-center gap-16">
+              {/* Left Side - Features */}
+              <div className="flex-1 max-w-2xl">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  {/* Feature 1 - Save Favorites */}
+                  <div className="relative">
+                    <div className="bg-teal-700 rounded-[40px] p-6 text-white relative overflow-hidden" style={{
+                      clipPath: 'polygon(0% 0%, 85% 0%, 100% 15%, 100% 100%, 15% 100%, 0% 85%)'
+                    }}>
+                      <h3 className="text-xl font-bold font-['Poppins'] mb-2">Save Favorites</h3>
+                      <p className="text-sm font-['Poppins'] leading-relaxed">
+                        Review dishes and learn from the community.
+                      </p>
+                    </div>
+                    {/* Overlapping stars icon */}
+                    <div className="absolute -bottom-2 -left-2 w-12 h-12 flex items-center justify-center">
+                      <div className="relative">
+                        <span className="text-3xl text-yellow-400 drop-shadow-lg">⭐</span>
+                        <span className="absolute top-0 left-1 text-2xl text-yellow-300 opacity-80">⭐</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Feature 2 - Easy Search */}
+                  <div className="relative">
+                    <div className="bg-teal-700 rounded-[40px] p-6 text-white relative overflow-hidden" style={{
+                      clipPath: 'polygon(15% 0%, 100% 0%, 100% 85%, 85% 100%, 0% 100%, 0% 15%)'
+                    }}>
+                      <h3 className="text-xl font-bold font-['Poppins'] mb-2">Easy Search</h3>
+                      <p className="text-sm font-['Poppins'] leading-relaxed">
+                        Find recipes by ingredients, diet, or difficulty.
+                      </p>
+                    </div>
+                    {/* Overlapping magnifying glass icon */}
+                    <div className="absolute -bottom-2 -right-2 w-12 h-12 flex items-center justify-center">
+                      <span className="text-3xl">🔍</span>
+                    </div>
+                  </div>
+
+                  {/* Feature 3 - Cook & Share */}
+                  <div className="relative">
+                    <div className="bg-teal-700 rounded-[40px] p-6 text-white relative overflow-hidden" style={{
+                      clipPath: 'polygon(0% 15%, 15% 0%, 100% 0%, 100% 100%, 0% 100%)'
+                    }}>
+                      <h3 className="text-xl font-bold font-['Poppins'] mb-2">Cook & Share</h3>
+                      <p className="text-sm font-['Poppins'] leading-relaxed">
+                        Upload your favorite recipes for others to try.
+                      </p>
+                    </div>
+                    {/* Overlapping bowl icon */}
+                    <div className="absolute -top-2 -right-2 w-12 h-12 flex items-center justify-center">
+                      <span className="text-3xl">🥣</span>
+                    </div>
+                  </div>
+
+                  {/* Feature 4 - Ratings & Feedback */}
+                  <div className="relative">
+                    <div className="bg-teal-700 rounded-[40px] p-6 text-white relative overflow-hidden" style={{
+                      clipPath: 'polygon(0% 0%, 100% 0%, 100% 85%, 85% 100%, 15% 100%, 0% 85%)'
+                    }}>
+                      <h3 className="text-xl font-bold font-['Poppins'] mb-2">Ratings & Feedback</h3>
+                      <p className="text-sm font-['Poppins'] leading-relaxed">
+                        Review dishes and learn from the community.
+                      </p>
+                    </div>
+                    {/* Overlapping medal icon */}
+                    <div className="absolute -bottom-2 -right-2 w-12 h-12 flex items-center justify-center">
+                      <span className="text-3xl">🏅</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Side - Cooking Illustration */}
+              <div className="flex-1 max-w-lg hidden lg:block">
+                <div className="relative">
+                  {/* Pan */}
+                  <div className="w-full max-w-80 h-40 bg-teal-700 rounded-full relative mx-auto" style={{
+                    clipPath: 'ellipse(100% 50% at 50% 100%)'
+                  }}>
+                    {/* Pan handle */}
+                    <div className="absolute right-0 top-1/2 transform -translate-y-1/2 w-16 h-6 bg-teal-700 rounded-r-full"></div>
+                  </div>
+                  
+                  {/* Ingredients in pan */}
+                  <div className="absolute top-8 left-1/2 transform -translate-x-1/2 w-72 h-32">
+                    {/* Shrimp */}
+                    <div className="absolute top-4 left-8 w-6 h-4 bg-orange-400 rounded-full transform rotate-12"></div>
+                    <div className="absolute top-8 left-12 w-5 h-3 bg-orange-400 rounded-full transform -rotate-6"></div>
+                    <div className="absolute top-6 left-16 w-4 h-3 bg-orange-400 rounded-full transform rotate-45"></div>
+                    
+                    {/* Broccoli */}
+                    <div className="absolute top-2 left-20 w-4 h-4 bg-green-500 rounded-full"></div>
+                    <div className="absolute top-6 left-24 w-3 h-3 bg-green-500 rounded-full"></div>
+                    
+                    {/* Chili peppers */}
+                    <div className="absolute top-4 left-32 w-3 h-6 bg-red-500 rounded-full"></div>
+                    <div className="absolute top-8 left-36 w-2 h-4 bg-red-500 rounded-full"></div>
+                    
+                    {/* Sauce base */}
+                    <div className="absolute bottom-0 left-0 w-full h-16 bg-orange-200 rounded-full opacity-60"></div>
+                    <div className="absolute bottom-2 left-4 w-2 h-2 bg-orange-600 rounded-full"></div>
+                    <div className="absolute bottom-4 left-12 w-1 h-1 bg-orange-600 rounded-full"></div>
+                    <div className="absolute bottom-6 left-20 w-1 h-1 bg-orange-600 rounded-full"></div>
+                  </div>
+                  
+                  {/* Spatula */}
+                  <div className="absolute top-0 right-8 w-2 h-32 bg-gray-400 transform rotate-12 origin-bottom"></div>
+                  <div className="absolute top-28 right-6 w-8 h-4 bg-gray-300 rounded-full"></div>
+                  
+                  {/* Seasoning cloud */}
+                  <div className="absolute -top-8 left-1/2 transform -translate-x-1/2">
+                    <div className="w-16 h-12 bg-blue-200 rounded-full opacity-60"></div>
+                    <div className="absolute top-8 left-1/2 transform -translate-x-1/2 w-4 h-4 bg-gray-600 rounded-full"></div>
+                    {/* Spice particles */}
+                    <div className="absolute top-12 left-1/2 transform -translate-x-1/2">
+                      <div className="w-1 h-1 bg-orange-500 rounded-full animate-bounce"></div>
+                      <div className="absolute top-2 left-2 w-1 h-1 bg-orange-500 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
+                      <div className="absolute top-4 left-1 w-1 h-1 bg-orange-500 rounded-full animate-bounce" style={{animationDelay: '0.4s'}}></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </section>
-
-         {/* Features Section */}
-         <section className="w-full bg-cyan-50 py-20">
-           <div className="max-w-7xl mx-auto px-8">
-             {/* Section Title */}
-             <div className="text-center mb-16">
-               <h2 className="text-6xl md:text-7xl font-['Pacifico'] text-cyan-800 mb-6 [text-shadow:_0px_4px_4px_rgb(0_0_0_/_0.25)]">
-                 Where every recipe finds a home
-               </h2>
-             </div>
-
-             {/* Features Layout */}
-             <div className="flex flex-col lg:flex-row items-center gap-16">
-               {/* Left Side - Features */}
-               <div className="flex-1 max-w-2xl">
-                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                   {/* Feature 1 - Save Favorites */}
-                   <div className="relative">
-                     <div className="bg-teal-700 rounded-[40px] p-6 text-white relative overflow-hidden" style={{
-                       clipPath: 'polygon(0% 0%, 85% 0%, 100% 15%, 100% 100%, 15% 100%, 0% 85%)'
-                     }}>
-                       <h3 className="text-xl font-bold font-['Poppins'] mb-2">Save Favorites</h3>
-                       <p className="text-sm font-['Poppins'] leading-relaxed">
-                         Review dishes and learn from the community.
-                       </p>
-                     </div>
-                     {/* Overlapping stars icon */}
-                     <div className="absolute -bottom-2 -left-2 w-12 h-12 flex items-center justify-center">
-                       <div className="relative">
-                         <span className="text-3xl text-yellow-400 drop-shadow-lg">⭐</span>
-                         <span className="absolute top-0 left-1 text-2xl text-yellow-300 opacity-80">⭐</span>
-                       </div>
-                     </div>
-                   </div>
-
-                   {/* Feature 2 - Easy Search */}
-                   <div className="relative">
-                     <div className="bg-teal-700 rounded-[40px] p-6 text-white relative overflow-hidden" style={{
-                       clipPath: 'polygon(15% 0%, 100% 0%, 100% 85%, 85% 100%, 0% 100%, 0% 15%)'
-                     }}>
-                       <h3 className="text-xl font-bold font-['Poppins'] mb-2">Easy Search</h3>
-                       <p className="text-sm font-['Poppins'] leading-relaxed">
-                         Find recipes by ingredients, diet, or difficulty.
-                       </p>
-                     </div>
-                     {/* Overlapping magnifying glass icon */}
-                     <div className="absolute -bottom-2 -right-2 w-12 h-12 flex items-center justify-center">
-                       <span className="text-3xl">🔍</span>
-                     </div>
-                   </div>
-
-                   {/* Feature 3 - Cook & Share */}
-                   <div className="relative">
-                     <div className="bg-teal-700 rounded-[40px] p-6 text-white relative overflow-hidden" style={{
-                       clipPath: 'polygon(0% 15%, 15% 0%, 100% 0%, 100% 100%, 0% 100%)'
-                     }}>
-                       <h3 className="text-xl font-bold font-['Poppins'] mb-2">Cook & Share</h3>
-                       <p className="text-sm font-['Poppins'] leading-relaxed">
-                         Upload your favorite recipes for others to try.
-                       </p>
-                     </div>
-                     {/* Overlapping bowl icon */}
-                     <div className="absolute -top-2 -right-2 w-12 h-12 flex items-center justify-center">
-                       <span className="text-3xl">🥣</span>
-                     </div>
-                   </div>
-
-                   {/* Feature 4 - Ratings & Feedback */}
-                   <div className="relative">
-                     <div className="bg-teal-700 rounded-[40px] p-6 text-white relative overflow-hidden" style={{
-                       clipPath: 'polygon(0% 0%, 100% 0%, 100% 85%, 85% 100%, 15% 100%, 0% 85%)'
-                     }}>
-                       <h3 className="text-xl font-bold font-['Poppins'] mb-2">Ratings & Feedback</h3>
-                       <p className="text-sm font-['Poppins'] leading-relaxed">
-                         Review dishes and learn from the community.
-                       </p>
-                     </div>
-                     {/* Overlapping medal icon */}
-                     <div className="absolute -bottom-2 -right-2 w-12 h-12 flex items-center justify-center">
-                       <span className="text-3xl">🏅</span>
-                     </div>
-                   </div>
-                 </div>
-               </div>
-
-               {/* Right Side - Cooking Illustration */}
-               <div className="flex-1 max-w-lg hidden lg:block">
-                 <div className="relative">
-                   {/* Pan */}
-                   <div className="w-full max-w-80 h-40 bg-teal-700 rounded-full relative mx-auto" style={{
-                     clipPath: 'ellipse(100% 50% at 50% 100%)'
-                   }}>
-                     {/* Pan handle */}
-                     <div className="absolute right-0 top-1/2 transform -translate-y-1/2 w-16 h-6 bg-teal-700 rounded-r-full"></div>
-                   </div>
-                   
-                   {/* Ingredients in pan */}
-                   <div className="absolute top-8 left-1/2 transform -translate-x-1/2 w-72 h-32">
-                     {/* Shrimp */}
-                     <div className="absolute top-4 left-8 w-6 h-4 bg-orange-400 rounded-full transform rotate-12"></div>
-                     <div className="absolute top-8 left-12 w-5 h-3 bg-orange-400 rounded-full transform -rotate-6"></div>
-                     <div className="absolute top-6 left-16 w-4 h-3 bg-orange-400 rounded-full transform rotate-45"></div>
-                     
-                     {/* Broccoli */}
-                     <div className="absolute top-2 left-20 w-4 h-4 bg-green-500 rounded-full"></div>
-                     <div className="absolute top-6 left-24 w-3 h-3 bg-green-500 rounded-full"></div>
-                     
-                     {/* Chili peppers */}
-                     <div className="absolute top-4 left-32 w-3 h-6 bg-red-500 rounded-full"></div>
-                     <div className="absolute top-8 left-36 w-2 h-4 bg-red-500 rounded-full"></div>
-                     
-                     {/* Sauce base */}
-                     <div className="absolute bottom-0 left-0 w-full h-16 bg-orange-200 rounded-full opacity-60"></div>
-                     <div className="absolute bottom-2 left-4 w-2 h-2 bg-orange-600 rounded-full"></div>
-                     <div className="absolute bottom-4 left-12 w-1 h-1 bg-orange-600 rounded-full"></div>
-                     <div className="absolute bottom-6 left-20 w-1 h-1 bg-orange-600 rounded-full"></div>
-                   </div>
-                   
-                   {/* Spatula */}
-                   <div className="absolute top-0 right-8 w-2 h-32 bg-gray-400 transform rotate-12 origin-bottom"></div>
-                   <div className="absolute top-28 right-6 w-8 h-4 bg-gray-300 rounded-full"></div>
-                   
-                   {/* Seasoning cloud */}
-                   <div className="absolute -top-8 left-1/2 transform -translate-x-1/2">
-                     <div className="w-16 h-12 bg-blue-200 rounded-full opacity-60"></div>
-                     <div className="absolute top-8 left-1/2 transform -translate-x-1/2 w-4 h-4 bg-gray-600 rounded-full"></div>
-                     {/* Spice particles */}
-                     <div className="absolute top-12 left-1/2 transform -translate-x-1/2">
-                       <div className="w-1 h-1 bg-orange-500 rounded-full animate-bounce"></div>
-                       <div className="absolute top-2 left-2 w-1 h-1 bg-orange-500 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
-                       <div className="absolute top-4 left-1 w-1 h-1 bg-orange-500 rounded-full animate-bounce" style={{animationDelay: '0.4s'}}></div>
-                     </div>
-                   </div>
-                 </div>
-               </div>
-             </div>
-           </div>
-         </section>
 
         {/* Steps Section */}
         <section className="w-full py-20 bg-cyan-50">
@@ -256,15 +332,13 @@ const LandingPage = () => {
                   <div className="mt-6 flex justify-center">
                     <div className={`w-20 h-1 bg-gradient-to-r ${step.color} rounded-full`}></div>
                   </div>
-
-                
                 </div>
               ))}
             </div>
           </div>
         </section>
         
-         {/* Recipe Showcase Section */}
+        {/* Recipe Showcase Section */}
         <section className="w-full py-12 md:py-20 bg-cyan-50">
           <div className="max-w-7xl mx-auto px-4 md:px-8">
             <div className="text-center mb-8 md:mb-12">
@@ -288,9 +362,6 @@ const LandingPage = () => {
           </div>
         </section>
 
-
-
-
         {/* Call to Action */}
         <section className="w-full flex flex-col bg-cyan-50 justify-center items-center gap-6 py-12 md:py-16 px-4">
           <h2 className="text-4xl text-cyan-800 md:text-6xl lg:text-8xl font-['Pacifico'] leading-tight md:leading-[155px] text-center drop-shadow-md">
@@ -301,12 +372,12 @@ const LandingPage = () => {
           </p>
 
           <button 
+            onClick={() => setRegisterModalOpen(true)}
             className="w-full sm:w-72 h-14 md:h-16 rounded-[20px] shadow-[4px_5px_4px_0px_rgba(0,0,0,0.29)] text-white text-xl md:text-2xl lg:text-3xl font-['Poppins'] transition-all duration-300 hover:scale-105 hover:shadow-[6px_7px_6px_0px_rgba(0,0,0,0.29)]" 
             style={{ backgroundColor: "#6BC4A6" }}
           >
             Let's Get Cooking!
           </button>
-
         </section>
 
         {/* Footer */}
@@ -321,10 +392,37 @@ const LandingPage = () => {
             <div className="hover:text-cyan-800 text-gray-800 transition-colors duration-300 cursor-pointer">FAQ</div>
           </nav>
         </footer>
-
       </div>
+
+      {/* Modals */}
+      <LoginModal
+        isOpen={loginModalOpen}
+        onClose={() => setLoginModalOpen(false)}
+        onForgotPassword={() => {
+          setLoginModalOpen(false);
+          setForgotPassModalOpen(true);
+        }}
+        onSignUp={() => {
+          setLoginModalOpen(false);
+          setRegisterModalOpen(true);
+        }}
+      />
+      <RegisterModal
+        isOpen={registerModalOpen}
+        onClose={() => setRegisterModalOpen(false)}
+        onSignIn={() => {
+          setRegisterModalOpen(false);
+          setLoginModalOpen(true);
+        }}
+      />
+      <ForgotPassModal
+        isOpen={forgotPassModalOpen}
+        onClose={() => setForgotPassModalOpen(false)}
+        onSignIn={() => {
+          setForgotPassModalOpen(false);
+          setLoginModalOpen(true);
+        }}
+      />
     </>
   );
-};
-
-export default LandingPage;
+}

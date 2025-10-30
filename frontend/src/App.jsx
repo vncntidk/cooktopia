@@ -2,9 +2,13 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'r
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import LandingPage from './pages/LandingPage';
 import HomePage from './pages/HomePage';
+import FloatingActionButton from './components/FloatingActionButton';
 import { Toaster } from 'react-hot-toast';
 
 import './App.css';
+import CreateRecipe from './pages/CreateRecipe.jsx';
+import Messages from './pages/Messages.jsx';
+import ReactionsDemo from './pages/ReactionsDemo.jsx';
 
 function App() {
   return (
@@ -25,9 +29,15 @@ function AppContent() {
     <>
       <Routes>
         <Route path="/" element={<LandingPage />} />
-        <Route path="/home" element={<HomePage />} />
+        <Route path="/home" element={<Protected><HomePage /></Protected>} />
+        <Route path="/create-recipe" element={<Protected><CreateRecipe /></Protected>} />
+        <Route path="/messages" element={<Protected><Messages /></Protected>} />
+        <Route path="/reactions-demo" element={<ReactionsDemo />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      
+      {/* Global Floating Action Button - Hidden on create-recipe page */}
+      {shouldShowFAB && <FloatingActionButton />}
       
       <Toaster 
         position="top-right"
