@@ -1,4 +1,5 @@
 import React from 'react';
+import { useAuth } from '../contexts/AuthContext';
 import HeaderSidebarLayout from '../components/HeaderSidebarLayout';
 import HomeFeed from "../components/HomeFeed";
 

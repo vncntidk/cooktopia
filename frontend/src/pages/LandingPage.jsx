@@ -7,7 +7,8 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { sendVerificationEmail } from '../services/auth';
 import Header from "../components/Header";
 
-export default function LandingPage() {
+
+const LandingPage = () => {
   const [loginModalOpen, setLoginModalOpen] = useState(false);
   const [registerModalOpen, setRegisterModalOpen] = useState(false);
   const [forgotPassModalOpen, setForgotPassModalOpen] = useState(false);
@@ -39,8 +40,6 @@ export default function LandingPage() {
       </div>
     );
   }
-
-const LandingPage = () => {
   return (
     <>
       {/* Header */}
@@ -426,3 +425,5 @@ const LandingPage = () => {
     </>
   );
 }
+
+export default LandingPage;
