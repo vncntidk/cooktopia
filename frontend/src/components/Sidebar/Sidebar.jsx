@@ -40,11 +40,11 @@ const Sidebar = () => {
             setActive("home");
             navigate("/home");
           }}
-          className="relative p-3 transition-all duration-200"
+          className="relative w-full flex justify-center items-center py-4 transition-all duration-200"
           aria-label="Home"
         >
           {active === "home" && (
-            <span className={`${styles.icons} absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-orange-500 rounded-r`}></span>
+            <span className={`${styles.icons} absolute left-0 top-1/2 -translate-y-1/2 w-[4px] h-10 bg-orange-500 rounded-r`}></span>
           )}
           <img
             src={active === "home" ? "/icons/homeActive.png" : "/icons/homeIcon.png"}
@@ -59,11 +59,11 @@ const Sidebar = () => {
             setActive("notifications");
             // navigate("/notifications"); // Uncomment when notifications page is ready
           }}
-          className="relative p-3 transition-all duration-200"
+          className="relative w-full flex justify-center items-center py-4 transition-all duration-200"
           aria-label="Notifications"
         >
           {active === "notifications" && (
-            <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-orange-500 rounded-r"></span>
+            <span className={`${styles.icons} absolute left-0 top-1/2 -translate-y-1/2 w-[4px] h-10 bg-orange-500 rounded-r`}></span>
           )}
           <img
             src={active === "notifications" ? "/icons/notifActive.png" : "/icons/notificationIcon.png"}
@@ -78,11 +78,11 @@ const Sidebar = () => {
             setActive("messages");
             navigate("/messages");
           }}
-          className="relative p-3 transition-all duration-200"
+          className="relative w-full flex justify-center items-center py-4 transition-all duration-200"
           aria-label="Messages"
         >
           {active === "messages" && (
-            <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-orange-500 rounded-r"></span>
+            <span className={`${styles.icons} absolute left-0 top-1/2 -translate-y-1/2 w-[4px] h-10 bg-orange-500 rounded-r`}></span>
           )}
           <img
             src={active === "messages" ? "/icons/chatActive.png" : "/icons/chatIcon.png"}
