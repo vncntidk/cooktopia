@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import styles from "./Sidebar.module.css";
+import ProfileMenu from "../../pages/ProfileMenu";
 
 const Sidebar = () => {
   const navigate = useNavigate();
@@ -17,6 +18,8 @@ const Sidebar = () => {
       setActive("notifications");
     }
   }, [location]);
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const profileRef = useRef(null);
 
   return (
     <aside
@@ -24,11 +27,18 @@ const Sidebar = () => {
       aria-label="Sidebar"
     >
       {/* Profile */}
-      <div className={`${styles.profileWrapper} flex flex-col items-center`}>
+      <div className={`${styles.profileWrapper} flex flex-col items-center relative`}>
         <img
+          ref={profileRef}
           src="/profile.png"
           alt="Profile"
           className="w-10 h-10 rounded-full object-cover cursor-pointer hover:scale-105 transition-transform"
+          onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
+        />
+        <ProfileMenu
+          isOpen={isProfileMenuOpen}
+          onClose={() => setIsProfileMenuOpen(false)}
+          profileRef={profileRef}
         />
       </div>
 
@@ -96,3 +106,8 @@ const Sidebar = () => {
 };
 
 export default Sidebar;
+
+
+
+
+
