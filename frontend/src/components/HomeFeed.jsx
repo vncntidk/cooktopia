@@ -72,7 +72,7 @@ export default function HomeFeed() {
                 {/* VIEW RECIPE BUTTON */}
                 <button
                   className="absolute bottom-10 left-1/2 -translate-x-1/2 w-10/13 shadow-md h-8 text-sm font-medium bg-white rounded-md opacity-0 group-hover:opacity-100 transition
-                    group-hover:translate-y-0 translate-y-2 hover:shadow-md hover:rounded-md hover:bg-[#6BC4A6] hover:text-white duration-300"
+                    group-hover:translate-y-0 translate-y-2 hover:shadow-md hover:rounded-md hover:bg-[#FE982A] hover:text-white duration-300"
                 >
                   View Recipe
                 </button>
