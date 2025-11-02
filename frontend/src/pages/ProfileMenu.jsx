@@ -57,12 +57,14 @@ const ProfileMenu = ({ isOpen, onClose, profileRef }) => {
     onClose();
   };
 
+  const handleSupportCenter = () => {
+    // Support Center handles both feedback and issue reporting
+    console.log('Support Center clicked - handles both feedback and issue reporting');
+  };
+
   const menuItems = [
     { id: 'view-profile', label: 'View Profile', action: handleViewProfile },
-    { id: 'edit-profile', label: 'Edit Profile', action: () => console.log('Edit Profile clicked') },
-    { id: 'activity-logs', label: 'View Activity Logs', action: () => console.log('Activity Logs clicked') },
-    { id: 'feedback', label: 'Give Feedback', action: () => console.log('Feedback clicked') },
-    { id: 'report-issue', label: 'Report an Issue', action: () => console.log('Report Issue clicked') },
+    { id: 'support-center', label: 'Support Center', action: handleSupportCenter },
     { id: 'logout', label: 'Log Out', action: handleLogOut, isLast: true }
   ];
 
