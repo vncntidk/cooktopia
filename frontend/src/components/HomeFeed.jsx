@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import styles from "./Component.module.css";
+import ViewPostModal from "../modals/ViewPostModal";
 
 const initialPosts = [
   { id: 1, img: "/posts/1.jpg", user: "user_name" },
@@ -15,9 +16,21 @@ const initialPosts = [
 export default function HomeFeed() {
   const [posts, setPosts] = useState(initialPosts);
   const [savedItems, setSavedItems] = useState({});
+  const [selectedRecipe, setSelectedRecipe] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const toggleSave = (id) => {
     setSavedItems(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const handleViewRecipe = (postId) => {
+    setSelectedRecipe({ id: postId });
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setSelectedRecipe(null);
   };
 
   useEffect(() => {
@@ -71,6 +84,7 @@ export default function HomeFeed() {
 
                 {/* VIEW RECIPE BUTTON */}
                 <button
+                  onClick={() => handleViewRecipe(post.id)}
                   className="absolute bottom-10 left-1/2 -translate-x-1/2 w-10/13 shadow-md h-8 text-sm font-medium bg-white rounded-md opacity-0 group-hover:opacity-100 transition
                     group-hover:translate-y-0 translate-y-2 hover:shadow-md hover:rounded-md hover:bg-[#6BC4A6] hover:text-white duration-300"
                 >
@@ -85,6 +99,13 @@ export default function HomeFeed() {
             </article>
             ))}
         </div>
+
+        {/* View Recipe Modal */}
+        <ViewPostModal 
+          isOpen={isModalOpen}
+          onClose={handleCloseModal}
+          recipe={selectedRecipe}
+        />
     </main>
   );
 }
