@@ -1,7 +1,9 @@
 .contentWrapper {
-  margin-top: 64px;
+  padding-top: 72px;
+  padding-left: 8px;
+  padding-right: 40px;
 }
 
 .recipeCards {
-  margin: 6px;
+  margin: 8px;
 }
