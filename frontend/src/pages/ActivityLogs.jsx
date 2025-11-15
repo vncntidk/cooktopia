@@ -1,0 +1,299 @@
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import HeaderSidebarLayout from "../components/HeaderSidebarLayout";
+import { useAuth } from "../contexts/AuthContext";
+
+// Icon components for different activity types
+const ActivityIcon = ({ type }) => {
+  const iconClasses = "w-7 h-7 flex items-center justify-center";
+  
+  switch (type) {
+    case "like":
+      return (
+        <div className={`${iconClasses} bg-red-100 rounded-full`}>
+          <svg className="w-4 h-4 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
+          </svg>
+        </div>
+      );
+    case "comment":
+      return (
+        <div className={`${iconClasses} bg-blue-100 rounded-full`}>
+          <svg className="w-4 h-4 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clipRule="evenodd" />
+          </svg>
+        </div>
+      );
+    case "rating":
+      return (
+        <div className={`${iconClasses} bg-yellow-100 rounded-full`}>
+          <svg className="w-4 h-4 text-yellow-600" fill="currentColor" viewBox="0 0 20 20">
+            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+          </svg>
+        </div>
+      );
+    case "save":
+      return (
+        <div className={`${iconClasses} bg-green-100 rounded-full`}>
+          <svg className="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+            <path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-2.5L5 18V4z" />
+          </svg>
+        </div>
+      );
+    default:
+      return null;
+  }
+};
+
+// Activity log item component
+const ActivityLogItem = ({ date, time, activity, showDate = true, onView }) => {
+  return (
+    <div className="w-full bg-white rounded-[20px] border border-black/30 shadow-md" style={{ paddingTop: '16px', paddingBottom: '16px', paddingLeft: '20px', paddingRight: '20px' }}>
+      <div className="flex justify-between items-end flex-wrap gap-3">
+        {/* Left section - Activity details */}
+        <div className="flex-1 flex flex-col gap-2">
+          {showDate && (
+            <div className="text-black text-xs font-normal font-['Poppins']">
+              {date}
+            </div>
+          )}
+          <div className="flex items-center gap-3">
+            {/* User avatar */}
+            <div className="w-[50px] h-[50px] bg-zinc-300 rounded-full flex items-center justify-center overflow-hidden">
+              <img 
+                src="/profile.png" 
+                alt="User" 
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  e.target.style.display = 'none';
+                }}
+              />
+            </div>
+            
+            {/* Activity icon */}
+            <ActivityIcon type={activity.type} />
+            
+            {/* Activity description */}
+            <div className="flex-1 text-black text-base font-normal font-['Poppins']">
+              {activity.description}
+            </div>
+          </div>
+        </div>
+        
+        {/* Right section - Time and View button */}
+        <div className="flex items-end gap-2">
+          <div className="text-black text-sm font-light font-['Poppins'] text-center">
+            {time}
+          </div>
+          <button
+            onClick={() => onView(activity)}
+            className="w-24 h-10 px-3 py-1.5 bg-[#FE982A] rounded-[10px] shadow-[4px_5px_4px_0px_rgba(0,0,0,0.29)] flex items-center justify-center hover:bg-[#e88620] transition-colors"
+          >
+            <span className="text-white text-xs font-normal font-['Poppins']">
+              View
+            </span>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Activity log group component (for multiple activities on the same day)
+const ActivityLogGroup = ({ date, activities, onView }) => {
+  return (
+    <div className="w-full bg-white rounded-[20px] border border-black/30 shadow-md flex flex-col gap-3" style={{ paddingTop: '16px', paddingBottom: '16px', paddingLeft: '20px', paddingRight: '20px' }}>
+      {activities.map((activity, index) => (
+        <div key={index}>
+          <div className="flex justify-between items-end flex-wrap gap-3">
+            {/* Left section - Activity details */}
+            <div className="flex-1 flex flex-col gap-2">
+              {index === 0 && (
+                <div className="text-black text-xs font-normal font-['Poppins']">
+                  {date}
+                </div>
+              )}
+              <div className="flex items-center gap-3">
+                {/* User avatar */}
+                <div className="w-[50px] h-[50px] bg-zinc-300 rounded-full flex items-center justify-center overflow-hidden">
+                  <img 
+                    src="/profile.png" 
+                    alt="User" 
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.target.style.display = 'none';
+                    }}
+                  />
+                </div>
+                
+                {/* Activity icon */}
+                <ActivityIcon type={activity.type} />
+                
+                {/* Activity description */}
+                <div className="flex-1 text-black text-base font-normal font-['Poppins']">
+                  {activity.description}
+                </div>
+              </div>
+            </div>
+            
+            {/* Right section - Time and View button */}
+            <div className="flex items-end gap-2">
+              <div className="text-black text-sm font-light font-['Poppins'] text-center">
+                {activity.time}
+              </div>
+              <button
+                onClick={() => onView(activity)}
+                className="w-24 h-10 px-3 py-1.5 bg-[#FE982A] rounded-[10px] shadow-[4px_5px_4px_0px_rgba(0,0,0,0.29)] flex items-center justify-center hover:bg-[#e88620] transition-colors"
+              >
+                <span className="text-white text-xs font-normal font-['Poppins']">
+                  View
+                </span>
+              </button>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+const ActivityLogs = () => {
+  const navigate = useNavigate();
+  const { currentUser } = useAuth();
+  const [activityLogs, setActivityLogs] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Fetch activity logs from Firebase or use mock data
+    // For now, using mock data that matches the Figma design
+    const mockActivities = [
+      {
+        date: "28 August 2025",
+        activities: [
+          {
+            id: 1,
+            type: "like",
+            description: "You liked Anna_123's recipe",
+            time: "22:16",
+            recipeId: "recipe1",
+          }
+        ]
+      },
+      {
+        date: "27 August 2025",
+        activities: [
+          {
+            id: 2,
+            type: "comment",
+            description: "You commented on Elsa's recipe",
+            time: "20:16",
+            recipeId: "recipe2",
+          },
+          {
+            id: 3,
+            type: "rating",
+            description: "You rated Sven's recipe",
+            time: "19:16",
+            recipeId: "recipe3",
+          }
+        ]
+      },
+      {
+        date: "26 August 2025",
+        activities: [
+          {
+            id: 4,
+            type: "save",
+            description: "You added Sven's recipe to favorites",
+            time: "22:16",
+            recipeId: "recipe4",
+          }
+        ]
+      }
+    ];
+
+    setActivityLogs(mockActivities);
+    setLoading(false);
+  }, [currentUser]);
+
+  const handleViewActivity = (activity) => {
+    // Handle view action - navigate to recipe or open modal
+    console.log("View activity:", activity);
+    // You can add navigation logic here
+    // navigate(`/recipe/${activity.recipeId}`);
+  };
+
+  if (loading) {
+    return (
+      <HeaderSidebarLayout>
+        <div className="flex items-center justify-center h-full">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading activity logs...</p>
+          </div>
+        </div>
+      </HeaderSidebarLayout>
+    );
+  }
+
+  return (
+    <HeaderSidebarLayout>
+      <div className="w-full" style={{ paddingTop: '80px', paddingLeft: '20px', paddingRight: '80px', paddingBottom: '20px' }}>
+        {/* Back Button */}
+        <button
+          onClick={() => navigate(-1)}
+          className="flex items-center gap-2 mb-4 text-gray-600 hover:text-black transition-colors"
+          aria-label="Go back"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+          <span className="text-sm font-medium">Back</span>
+        </button>
+
+        {/* Page Title */}
+        <div style={{ paddingBottom: '30px' }}>
+          <h1 className="text-2xl font-semibold font-['Poppins'] text-black">
+            Activity Logs
+          </h1>
+        </div>
+
+        {/* Activity Logs Content */}
+        <div className="flex gap-4">
+          {/* Orange vertical line */}
+          <div className="w-1 bg-[#bc4f07] rounded-full flex-shrink-0"></div>
+          
+          {/* Activity logs list */}
+          <div className="flex-1 flex flex-col gap-6">
+            {activityLogs.length === 0 ? (
+              <div className="text-center py-12">
+                <p className="text-gray-500 text-lg">No activity logs yet</p>
+              </div>
+            ) : (
+              activityLogs.map((log, index) => (
+                <div key={index}>
+                  {log.activities.length === 1 ? (
+                    <ActivityLogItem
+                      date={log.date}
+                      time={log.activities[0].time}
+                      activity={log.activities[0]}
+                      onView={handleViewActivity}
+                    />
+                  ) : (
+                    <ActivityLogGroup
+                      date={log.date}
+                      activities={log.activities}
+                      onView={handleViewActivity}
+                    />
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
+    </HeaderSidebarLayout>
+  );
+};
+
+export default ActivityLogs;

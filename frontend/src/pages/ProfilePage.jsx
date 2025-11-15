@@ -678,7 +678,8 @@ export default function ProfilePage() {
 
   const handleViewActivityLogs = useCallback(() => {
     setIsMenuOpen(false);
-  }, []);
+    navigate('/activity-logs');
+  }, [navigate]);
 
   // Follow button component
   const FollowButton = ({ targetUserId, currentUserId }) => {

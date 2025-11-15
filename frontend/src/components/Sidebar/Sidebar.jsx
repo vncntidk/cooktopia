@@ -16,8 +16,8 @@ const Sidebar = () => {
       setActive("messages");
     } else if (location.pathname.includes("notifications")) {
       setActive("notifications");
-    } else if (location.pathname.includes("/profile")) {
-      // Don't highlight Home when on profile pages
+    } else if (location.pathname.includes("/profile") || location.pathname === "/activity-logs") {
+      // Don't highlight Home when on profile or activity logs pages
       setActive("");
     }
   }, [location]);
