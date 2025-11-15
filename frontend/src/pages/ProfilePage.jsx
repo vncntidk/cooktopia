@@ -1,54 +1,266 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  useMemo,
+} from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import {
+  updateProfile,
+  updateEmail,
+} from 'firebase/auth';
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  limit,
+  orderBy,
+  query,
+  startAfter,
+  where,
+} from 'firebase/firestore';
 import HeaderSidebarLayout from '../components/HeaderSidebarLayout';
 import { useAuth } from '../contexts/AuthContext';
-import { updateProfile } from 'firebase/auth';
-import { auth } from '../config/firebase-config';
+import { auth, db } from '../config/firebase-config';
 import { uploadImage } from '../services/cloudinary';
+import {
+  getUserProfile,
+  updateUserProfile,
+  getUserRecipeCount,
+  getUserFollowersCount,
+  getUserFollowingCount,
+} from '../services/users';
+import { followUser, unfollowUser, isFollowing } from '../services/follows';
+import ViewPostModal from '../modals/ViewPostModal';
+import './ProfilePage.css';
+import '../modals/EditProfileModal.css';
 
-export default function ProfilePage() {
-  const navigate = useNavigate();
-  const { user } = useAuth();
-  const dropdownRef = useRef(null);
-  const menuButtonRef = useRef(null);
-  const modalContentRef = useRef(null);
-  
-  // Dynamic user data with placeholder values
-  const [userData, setUserData] = useState({
-    name: user?.displayName || user?.email?.split('@')[0] || 'user_name',
+const SECTION_KEYS = {
+  'own-recipes': {
+    label: 'Own Recipes',
+    emptyMessage: 'No recipes yet. Start sharing your first dish!',
+    userCollection: null,
+  },
+  'liked-recipes': {
+    label: 'Liked Recipes',
+    emptyMessage: 'You haven’t liked any recipes yet. Explore the feed and tap the heart to save your faves.',
+    userCollection: 'likedRecipes',
+  },
+  'saved-recipes': {
+    label: 'Saved Recipes',
+    emptyMessage: 'Keep track of recipes you love by saving them from the feed.',
+    userCollection: 'savedRecipes',
+  },
+};
+
+const PAGE_SIZE = 6;
+
+const initialSectionState = {
+  items: [],
+  loading: false,
+  error: '',
+  hasMore: true,
+  cursor: null,
+  initialised: false,
+};
+
+const initialFormErrors = {
+  name: '',
+  email: '',
+  bio: '',
+  upload: '',
+};
+
+function getInitialUserData(user) {
+  const fallbackName = user?.displayName || user?.email?.split('@')[0] || 'user_name';
+
+  return {
+    name: fallbackName,
+    email: user?.email || '',
     posts: 0,
     followers: 0,
     following: 0,
-    bio: "Add bio",
+    bio: 'Add bio',
     profileImage: user?.photoURL || null,
-    hasProfileImage: !!user?.photoURL
-  });
+    hasProfileImage: Boolean(user?.photoURL),
+  };
+}
 
+export default function ProfilePage() {
+  const navigate = useNavigate();
+  const { userId: urlUserId } = useParams();
+  const { user, reloadUser } = useAuth();
+  
+  // Determine if viewing own profile or another user's profile
+  const profileUserId = urlUserId || user?.uid;
+  const isOwnProfile = !urlUserId || urlUserId === user?.uid;
+
+  // Initialize with empty state when viewing another user to prevent flash of wrong data
+  const [userData, setUserData] = useState(() => {
+    // Only use current user's data if viewing own profile
+    if (!urlUserId || urlUserId === user?.uid) {
+      return getInitialUserData(user);
+    }
+    // Return empty/loading state for other users
+    return {
+      name: '',
+      email: '',
+      posts: 0,
+      followers: 0,
+      following: 0,
+      bio: 'Add bio',
+      profileImage: null,
+      hasProfileImage: false,
+    };
+  });
   const [activeTab, setActiveTab] = useState('own-recipes');
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
+  const [sections, setSections] = useState(() => ({
+    'own-recipes': { ...initialSectionState },
+    'liked-recipes': { ...initialSectionState },
+    'saved-recipes': { ...initialSectionState },
+  }));
 
-  // Edit modal state
-  const [editName, setEditName] = useState(userData.name);
-  const [editBio, setEditBio] = useState(userData.bio);
-  const [editProfileImage, setEditProfileImage] = useState(userData.profileImage);
+  const [formState, setFormState] = useState({
+    name: userData.name,
+    email: userData.email,
+    bio: userData.bio === 'Add bio' ? '' : userData.bio,
+    profileImage: userData.profileImage,
+  });
 
-  // Update state when user changes
+  const [formErrors, setFormErrors] = useState(initialFormErrors);
+  const [uploadStatus, setUploadStatus] = useState('idle'); // idle | uploading | success | error
+  const [submissionStatus, setSubmissionStatus] = useState('idle'); // idle | saving | success | error
+  const [submissionMessage, setSubmissionMessage] = useState('');
+
+  const dropdownRef = useRef(null);
+  const menuButtonRef = useRef(null);
+  const sectionsRef = useRef(sections);
+
   useEffect(() => {
-    if (user) {
-      setUserData(prev => ({
-        ...prev,
-        name: user.displayName || user.email?.split('@')[0] || 'user_name',
-        profileImage: user.photoURL || prev.profileImage,
-        hasProfileImage: !!user.photoURL || prev.hasProfileImage
-      }));
-      setEditName(user.displayName || user.email?.split('@')[0] || 'user_name');
-      setEditProfileImage(user.photoURL || userData.profileImage);
-    }
-  }, [user]);
+    sectionsRef.current = sections;
+  }, [sections]);
 
-  // Close menu when clicking outside
+  // Load user profile data and stats from Firestore
+  // Reset userData when profileUserId changes to prevent showing wrong user's data
+  useEffect(() => {
+    if (!profileUserId) {
+      return;
+    }
+
+    // Reset to loading state when switching users
+    if (!isOwnProfile) {
+      setUserData({
+        name: '',
+        email: '',
+        posts: 0,
+        followers: 0,
+        following: 0,
+        bio: 'Add bio',
+        profileImage: null,
+        hasProfileImage: false,
+      });
+    }
+
+    const loadUserData = async () => {
+      try {
+        // Load profile data from Firestore
+        const profileData = await getUserProfile(profileUserId);
+        
+        // Load stats
+        const [postsCount, followersCount, followingCount] = await Promise.all([
+          getUserRecipeCount(profileUserId),
+          getUserFollowersCount(profileUserId),
+          getUserFollowingCount(profileUserId),
+        ]);
+
+        // Get username: for own profile use Firebase Auth, for others use Firestore
+        // Firestore should have displayName saved from profile updates
+        let userName = 'user_name';
+        if (isOwnProfile) {
+          userName = user.displayName || user.email?.split('@')[0] || 'user_name';
+        } else {
+          // For other users, try Firestore displayName first, then check recipes for authorName
+          userName = profileData.displayName || profileData.name;
+          
+          // If still no name, try to get it from their most recent recipe
+          if (!userName || userName === 'user_name') {
+            try {
+              const recipesRef = collection(db, 'recipes');
+              const userRecipesQuery = query(
+                recipesRef,
+                where('authorId', '==', profileUserId),
+                where('isPublished', '==', true),
+                orderBy('createdAt', 'desc'),
+                limit(1)
+              );
+              const recipeSnapshot = await getDocs(userRecipesQuery);
+              if (!recipeSnapshot.empty) {
+                const latestRecipe = recipeSnapshot.docs[0].data();
+                userName = latestRecipe.authorName || userName;
+              }
+            } catch (error) {
+              console.error('Error fetching username from recipes:', error);
+            }
+          }
+          
+          // Final fallback
+          if (!userName || userName === 'user_name') {
+            userName = `user_${profileUserId.slice(0, 8)}`;
+          }
+        }
+
+        const freshData = {
+          name: userName,
+          email: isOwnProfile 
+            ? (user.email || '')
+            : (profileData.email || ''),
+          posts: postsCount,
+          followers: followersCount,
+          following: followingCount,
+          bio: profileData.bio || 'Add bio',
+          profileImage: isOwnProfile
+            ? (user.photoURL || profileData.profileImage || null)
+            : (profileData.profileImage || null),
+          hasProfileImage: Boolean(
+            isOwnProfile 
+              ? (user.photoURL || profileData.profileImage)
+              : profileData.profileImage
+          ),
+        };
+
+        setUserData((prev) => ({
+          ...prev,
+          ...freshData,
+        }));
+
+        if (isOwnProfile) {
+          setFormState({
+            name: freshData.name,
+            email: freshData.email,
+            bio: freshData.bio === 'Add bio' ? '' : freshData.bio,
+            profileImage: freshData.profileImage,
+          });
+        }
+      } catch (error) {
+        console.error('Error loading user data:', error);
+        // Fallback to basic user data
+        const fallbackData = isOwnProfile 
+          ? getInitialUserData(user)
+          : getInitialUserData(null);
+        setUserData((prev) => ({
+          ...prev,
+          ...fallbackData,
+        }));
+      }
+    };
+
+    loadUserData();
+  }, [profileUserId, user, isOwnProfile]);
+
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (
@@ -70,18 +282,28 @@ export default function ProfilePage() {
     };
   }, [isMenuOpen]);
 
-  const handleImageClick = (imageType) => {
-    console.log(`${imageType} clicked`);
-    // Future functionality for image interactions
-  };
+  useEffect(() => {
+    if (!isEditModalOpen) {
+      return undefined;
+    }
 
-  const handleProfileImageUpload = async (file = null) => {
+    const handleEscape = (event) => {
+      if (event.key === 'Escape') {
+        setIsEditModalOpen(false);
+      }
+    };
+
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [isEditModalOpen]);
+
+  const handleProfileImageUpload = useCallback(async (file = null) => {
     if (!file) {
       const input = document.createElement('input');
       input.type = 'file';
       input.accept = 'image/*';
       input.onchange = (e) => {
-        const selectedFile = e.target.files[0];
+        const selectedFile = e.target.files?.[0];
         if (selectedFile) {
           handleProfileImageUpload(selectedFile);
         }
@@ -90,386 +312,843 @@ export default function ProfilePage() {
       return;
     }
 
-    setIsUploading(true);
+    setUploadStatus('uploading');
+    setFormErrors((prev) => ({ ...prev, upload: '' }));
+
     try {
       const result = await uploadImage(file);
       const imageUrl = result.secure_url || result.url;
-      
-      // Update the edit modal state (don't update main profile until Save is clicked)
-      setEditProfileImage(imageUrl);
-      
-      console.log('Profile image selected:', imageUrl);
+      setFormState((prev) => ({
+        ...prev,
+        profileImage: imageUrl,
+      }));
+      setUploadStatus('success');
+      setSubmissionMessage('Image uploaded! Remember to hit Save.');
     } catch (error) {
       console.error('Error uploading profile image:', error);
-      alert('Failed to upload profile image. Please try again.');
-    } finally {
-      setIsUploading(false);
-    }
-  };
-
-  const handleEditProfile = () => {
-    setEditName(userData.name);
-    setEditBio(userData.bio);
-    setEditProfileImage(userData.profileImage);
-    setIsEditModalOpen(true);
-  };
-
-  const handleSaveEditProfile = async () => {
-    try {
-      setIsUploading(true);
-      
-      // Prepare update object for Firebase
-      const updates = {};
-      if (editName !== userData.name) {
-        updates.displayName = editName;
-      }
-      if (editProfileImage !== userData.profileImage && editProfileImage) {
-        updates.photoURL = editProfileImage;
-      }
-
-      // Update Firebase profile if there are changes
-      if (auth.currentUser && Object.keys(updates).length > 0) {
-        await updateProfile(auth.currentUser, updates);
-      }
-
-      // Update local state
-      setUserData(prev => ({
+      setUploadStatus('error');
+      setFormErrors((prev) => ({
         ...prev,
-        name: editName,
-        bio: editBio,
-        profileImage: editProfileImage,
-        hasProfileImage: !!editProfileImage
+        upload: 'Failed to upload profile photo. Please try again.',
+      }));
+    }
+  }, []);
+
+  const validateForm = useCallback(() => {
+    const errors = { ...initialFormErrors };
+    let isValid = true;
+
+    if (!formState.name.trim()) {
+      errors.name = 'Display name is required.';
+      isValid = false;
+    } else if (formState.name.trim().length < 2) {
+      errors.name = 'Display name must be at least 2 characters.';
+      isValid = false;
+    }
+
+    if (!formState.email.trim()) {
+      errors.email = 'Email is required.';
+      isValid = false;
+    } else {
+      const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailPattern.test(formState.email.trim())) {
+        errors.email = 'Enter a valid email address.';
+        isValid = false;
+      }
+    }
+
+    if (formState.bio && formState.bio.length > 280) {
+      errors.bio = 'Bio must be 280 characters or fewer.';
+      isValid = false;
+    }
+
+    setFormErrors(errors);
+    return isValid;
+  }, [formState]);
+
+  const resetModalState = useCallback(() => {
+    setFormState({
+      name: userData.name,
+      email: userData.email,
+      bio: userData.bio === 'Add bio' ? '' : userData.bio,
+      profileImage: userData.profileImage,
+    });
+    setFormErrors(initialFormErrors);
+    setUploadStatus('idle');
+    setSubmissionStatus('idle');
+    setSubmissionMessage('');
+  }, [userData]);
+
+  const handleEditProfileOpen = useCallback(() => {
+    resetModalState();
+    setIsEditModalOpen(true);
+  }, [resetModalState]);
+
+  const handleEditProfileClose = useCallback(() => {
+    setIsEditModalOpen(false);
+    resetModalState();
+  }, [resetModalState]);
+
+  const fetchRecipesBySection = useCallback(
+    async (sectionKey, reset = false) => {
+      if (!profileUserId) {
+        return;
+      }
+
+      const currentState = sectionsRef.current[sectionKey];
+      if (currentState.loading) {
+        return;
+      }
+
+      const cursor = reset ? null : currentState.cursor;
+
+      setSections((prev) => ({
+        ...prev,
+        [sectionKey]: {
+          ...prev[sectionKey],
+          loading: true,
+          error: '',
+          ...(reset
+            ? {
+                items: [],
+                cursor: null,
+                hasMore: true,
+              }
+            : {}),
+        },
       }));
 
-      setIsEditModalOpen(false);
-    } catch (error) {
-      console.error('Error updating profile:', error);
-      alert('Failed to update profile. Please try again.');
-    } finally {
-      setIsUploading(false);
+      try {
+        let fetchedRecipes = [];
+        let lastVisible = null;
+        let hasMore = true;
+
+        if (sectionKey === 'own-recipes') {
+          const recipesRef = collection(db, 'recipes');
+          const conditions = [
+            where('authorId', '==', profileUserId),
+            where('isPublished', '==', true),
+            orderBy('createdAt', 'desc'),
+            limit(PAGE_SIZE),
+          ];
+          if (cursor) {
+            conditions.push(startAfter(cursor));
+          }
+
+          const snapshot = await getDocs(query(recipesRef, ...conditions));
+
+          fetchedRecipes = snapshot.docs.map((docSnapshot) => ({
+            id: docSnapshot.id,
+            ...docSnapshot.data(),
+          }));
+
+          lastVisible = snapshot.docs[snapshot.docs.length - 1] || null;
+          hasMore = fetchedRecipes.length === PAGE_SIZE;
+        } else {
+          // Only show liked/saved recipes for own profile
+          if (!isOwnProfile) {
+            setSections((prev) => ({
+              ...prev,
+              [sectionKey]: {
+                ...prev[sectionKey],
+                loading: false,
+                error: '',
+                items: [],
+                hasMore: false,
+                initialised: true,
+              },
+            }));
+            return;
+          }
+
+          const { userCollection } = SECTION_KEYS[sectionKey];
+          const subCollectionRef = collection(db, 'users', profileUserId, userCollection);
+          const constraints = [orderBy('createdAt', 'desc'), limit(PAGE_SIZE)];
+          if (cursor) {
+            constraints.push(startAfter(cursor));
+          }
+
+          const snapshot = await getDocs(query(subCollectionRef, ...constraints));
+          const recipeIds = snapshot.docs
+            .map((docSnapshot) => ({
+              id: docSnapshot.id,
+              recipeId: docSnapshot.data()?.recipeId || docSnapshot.id,
+              createdAt: docSnapshot.data()?.createdAt || null,
+            }))
+            .filter((entry) => Boolean(entry.recipeId));
+
+          const recipePromises = recipeIds.map(async (entry) => {
+            const recipeDoc = await getDoc(doc(db, 'recipes', entry.recipeId));
+            if (recipeDoc.exists()) {
+              return {
+                id: recipeDoc.id,
+                ...recipeDoc.data(),
+                bookmarkedAt: entry.createdAt,
+              };
+            }
+            return null;
+          });
+
+          fetchedRecipes = (await Promise.all(recipePromises)).filter(Boolean);
+          lastVisible = snapshot.docs[snapshot.docs.length - 1] || null;
+          hasMore = snapshot.size === PAGE_SIZE;
+        }
+
+        setSections((prev) => {
+          const mergedItems = reset
+            ? fetchedRecipes
+            : [...prev[sectionKey].items, ...fetchedRecipes];
+
+          const uniqueItems = Array.from(
+            new Map(mergedItems.map((recipe) => [recipe.id, recipe])).values(),
+          );
+
+          return {
+            ...prev,
+            [sectionKey]: {
+              ...prev[sectionKey],
+              items: uniqueItems,
+              cursor: lastVisible,
+              hasMore,
+              loading: false,
+              error: '',
+              initialised: true,
+            },
+          };
+        });
+      } catch (error) {
+        console.error(`Error loading ${sectionKey}:`, error);
+        setSections((prev) => ({
+          ...prev,
+          [sectionKey]: {
+            ...prev[sectionKey],
+            loading: false,
+            error:
+              error?.message ||
+              'We hit a snag loading your recipes. Please try again.',
+            initialised: true,
+          },
+        }));
+      }
+    },
+    [profileUserId, isOwnProfile],
+  );
+
+  useEffect(() => {
+    const state = sections[activeTab];
+    if (!state.initialised && !state.loading) {
+      fetchRecipesBySection(activeTab, true);
     }
-  };
+  }, [activeTab, fetchRecipesBySection, sections]);
 
-  const handleCancelEditProfile = () => {
-    setEditName(userData.name);
-    setEditBio(userData.bio);
-    setEditProfileImage(userData.profileImage);
-    setIsEditModalOpen(false);
-  };
+  const handleTabChange = useCallback(
+    (nextTab) => {
+      setActiveTab(nextTab);
+    },
+    [setActiveTab],
+  );
 
-  const handleViewActivityLogs = () => {
-    console.log('View Activity Logs clicked');
+  const handleSaveEditProfile = useCallback(
+    async (event) => {
+      event?.preventDefault();
+
+      if (!validateForm()) {
+        setSubmissionStatus('error');
+        setSubmissionMessage('Please fix the highlighted issues.');
+        return;
+      }
+
+      try {
+        setSubmissionStatus('saving');
+        setSubmissionMessage('Saving your changes...');
+
+        const updates = {};
+
+        // Update Firebase Auth profile
+        if (auth.currentUser) {
+          if (formState.name.trim() !== userData.name) {
+            updates.displayName = formState.name.trim();
+          }
+          if (
+            formState.profileImage &&
+            formState.profileImage !== userData.profileImage
+          ) {
+            updates.photoURL = formState.profileImage;
+          }
+
+          if (formState.email.trim() !== userData.email) {
+            await updateEmail(auth.currentUser, formState.email.trim());
+          }
+
+          if (Object.keys(updates).length > 0) {
+            await updateProfile(auth.currentUser, updates);
+          }
+
+          await reloadUser?.();
+        }
+
+        // Save bio, displayName, and profile data to Firestore
+        // This ensures other users can see the correct username
+        const firestoreProfileData = {
+          bio: formState.bio.trim() || 'Add bio',
+          displayName: formState.name.trim(), // Save displayName to Firestore
+        };
+
+        if (formState.profileImage) {
+          firestoreProfileData.profileImage = formState.profileImage;
+        }
+
+        await updateUserProfile(user.uid, firestoreProfileData);
+
+        // Update local state
+        setUserData((prev) => ({
+          ...prev,
+          name: formState.name.trim(),
+          email: formState.email.trim(),
+          bio: formState.bio.trim() || 'Add bio',
+          profileImage: formState.profileImage,
+          hasProfileImage: Boolean(formState.profileImage),
+        }));
+
+        setSubmissionStatus('success');
+        setSubmissionMessage('Profile updated successfully.');
+        setTimeout(() => {
+          setIsEditModalOpen(false);
+        }, 400);
+      } catch (error) {
+        console.error('Error updating profile:', error);
+        setSubmissionStatus('error');
+        setSubmissionMessage(
+          error?.message ||
+            'We could not update your profile. Please try again.',
+        );
+      }
+    },
+    [formState, reloadUser, userData, validateForm, user],
+  );
+
+  const handleLoadMore = useCallback(() => {
+    fetchRecipesBySection(activeTab);
+  }, [activeTab, fetchRecipesBySection]);
+
+  const activeSection = sections[activeTab];
+
+  const [selectedRecipe, setSelectedRecipe] = useState(null);
+  const [isRecipeModalOpen, setIsRecipeModalOpen] = useState(false);
+
+  const recipeCards = useMemo(
+    () =>
+      activeSection.items.map((recipe) => (
+        <article
+          key={recipe.id}
+          className="profile-recipes__card"
+          onClick={() => {
+            setSelectedRecipe(recipe);
+            setIsRecipeModalOpen(true);
+          }}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              setSelectedRecipe(recipe);
+              setIsRecipeModalOpen(true);
+            }
+          }}
+          aria-label={`View recipe: ${recipe.title || 'Untitled recipe'}`}
+        >
+          <div className="profile-recipes__media">
+            <img
+              src={Array.isArray(recipe.imageUrls) && recipe.imageUrls.length > 0 ? recipe.imageUrls[0] : '/posts/placeholder.jpg'}
+              alt={recipe.title || 'Recipe image'}
+              loading="lazy"
+            />
+          </div>
+          <div className="profile-recipes__body">
+            <h3 className="profile-recipes__title">{recipe.title || 'Untitled recipe'}</h3>
+            <p className="profile-recipes__meta">
+              {recipe.duration ? `${recipe.duration} mins • ` : ''}
+              {recipe.difficulty || 'Difficulty not set'}
+            </p>
+          </div>
+        </article>
+      )),
+    [activeSection.items],
+  );
+
+  const handleViewActivityLogs = useCallback(() => {
     setIsMenuOpen(false);
-    // Future functionality for activity logs
+  }, []);
+
+  // Follow button component
+  const FollowButton = ({ targetUserId, currentUserId }) => {
+    const [following, setFollowing] = useState(false);
+    const [loading, setLoading] = useState(false);
+
+    useEffect(() => {
+      if (currentUserId && targetUserId && currentUserId !== targetUserId) {
+        isFollowing(currentUserId, targetUserId).then(setFollowing);
+      }
+    }, [currentUserId, targetUserId]);
+
+    const handleFollowToggle = async () => {
+      if (!currentUserId || !targetUserId || currentUserId === targetUserId) {
+        return;
+      }
+
+      setLoading(true);
+      try {
+        if (following) {
+          await unfollowUser(currentUserId, targetUserId);
+          setFollowing(false);
+          // Update followers count
+          const newCount = await getUserFollowersCount(targetUserId);
+          setUserData((prev) => ({ ...prev, followers: newCount }));
+        } else {
+          await followUser(currentUserId, targetUserId);
+          setFollowing(true);
+          // Update followers count
+          const newCount = await getUserFollowersCount(targetUserId);
+          setUserData((prev) => ({ ...prev, followers: newCount }));
+        }
+      } catch (error) {
+        console.error('Error toggling follow:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (!currentUserId || currentUserId === targetUserId) {
+      return null;
+    }
+
+    return (
+      <button
+        type="button"
+        className="profile-hero__action-button"
+        onClick={handleFollowToggle}
+        disabled={loading}
+      >
+        {loading ? '...' : following ? 'Unfollow' : 'Follow'}
+      </button>
+    );
   };
 
   return (
     <HeaderSidebarLayout>
-      <div className="w-full bg-stone-100 min-h-screen">
-        {/* Back to Home Button */}
-        <div className="px-7 py-4">
-          <button
-            onClick={() => navigate('/home')}
-            className="flex items-center gap-2 text-orange-700 hover:text-orange-800 transition-colors duration-200"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-            Back to Home
-          </button>
-        </div>
-
-        <div className="flex-1 px-7 pt-24 pb-2.5 flex flex-col justify-start items-center gap-12">
-          <div className="self-stretch flex flex-col justify-start items-start gap-6">
-            <div className="self-stretch flex flex-col justify-start items-end gap-6">
-              <div className="self-stretch px-9 flex flex-col justify-start items-start gap-10">
-                {/* Instagram-style Profile Section */}
-                <div className="self-stretch flex flex-row justify-start items-start gap-14 flex-wrap">
-                  {/* Profile Picture */}
-                  <div className="relative">
-                    <div className="w-40 h-40 relative">
-                      {userData.hasProfileImage ? (
-                        <img 
-                          className="w-40 h-40 rounded-full object-cover border-4 border-white shadow-lg cursor-pointer hover:opacity-90 transition-opacity" 
-                          src={userData.profileImage} 
-                          alt="Profile Avatar" 
-                        />
-                      ) : (
-                        <div 
-                          className="w-40 h-40 rounded-full border-4 border-white bg-gray-200 flex items-center justify-center text-gray-500 text-4xl cursor-pointer hover:bg-gray-300 transition-all duration-200 shadow-lg"
-                        >
-                          {userData.name.charAt(0).toUpperCase()}
-                        </div>
-                      )}
-                      {/* Edit overlay icon - opens Edit Profile modal */}
-                      <div 
-                        className="absolute bottom-0 right-0 w-10 h-10 bg-orange-500 rounded-full flex items-center justify-center cursor-pointer hover:bg-orange-600 transition-colors shadow-lg border-2 border-white"
-                        onClick={handleEditProfile}
-                        title="Edit profile"
-                      >
-                        <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                        </svg>
-                      </div>
-                    </div>
+      <div className="profile-page">
+        <div className="profile-page__inner">
+          <section className="profile-hero">
+            <div className="profile-hero__avatar-group">
+              <div className="profile-hero__avatar-wrapper">
+                {userData.hasProfileImage && userData.profileImage ? (
+                  <img
+                    className="profile-hero__avatar"
+                    src={userData.profileImage}
+                    alt={`${userData.name} profile`}
+                  />
+                ) : (
+                  <div
+                    className="profile-hero__avatar profile-hero__avatar--placeholder"
+                    aria-hidden="true"
+                  >
+                    {userData.name.charAt(0).toUpperCase()}
                   </div>
-
-                  {/* Profile Info Section */}
-                  <div className="flex-1 flex flex-col justify-start items-start gap-4">
-                    {/* Username and Edit/Menu */}
-                    <div className="w-full flex items-center gap-4">
-                      <h1 className="text-2xl font-semibold font-['Poppins'] text-black">
-                        {userData.name}
-                      </h1>
-                      <button
-                        onClick={handleEditProfile}
-                        className="px-4 py-1.5 bg-gray-100 hover:bg-gray-200 text-black text-sm font-medium rounded-lg transition-colors duration-200"
-                      >
-                        Edit Profile
-                      </button>
-                      {/* Three-dot menu */}
-                      <div className="relative">
-                        <button
-                          ref={menuButtonRef}
-                          onClick={() => setIsMenuOpen(!isMenuOpen)}
-                          className="p-1 hover:bg-gray-100 rounded-full transition-colors duration-200"
-                          aria-label="More options"
-                        >
-                          <svg className="w-6 h-6 text-black" fill="currentColor" viewBox="0 0 24 24">
-                            <circle cx="12" cy="5" r="2" />
-                            <circle cx="12" cy="12" r="2" />
-                            <circle cx="12" cy="19" r="2" />
-                          </svg>
-                        </button>
-                        {isMenuOpen && (
-                          <div
-                            ref={dropdownRef}
-                            className="absolute top-10 right-0 w-56 bg-white rounded-xl shadow-lg overflow-hidden z-50"
-                            style={{
-                              boxShadow: '5px 5px 4px 0px rgba(0,0,0,0.25)',
-                            }}
-                          >
-                            <button
-                              onClick={handleViewActivityLogs}
-                              className="w-full h-14 p-2.5 flex items-center justify-center gap-2.5 bg-white hover:bg-gray-100 transition-colors duration-150"
-                            >
-                              <div className="text-black text-xl font-medium font-['Inter'] leading-5">
-                                View Activity Logs
-                              </div>
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Stats Section - Instagram style */}
-                    <div className="flex items-center gap-8">
-                      <div className="flex items-center gap-1">
-                        <span className="text-black text-lg font-semibold font-['Sarabun']">{userData.posts}</span>
-                        <span className="text-black text-lg font-normal font-['Afacad']">posts</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <span className="text-black text-lg font-semibold font-['Sarabun']">{userData.followers}</span>
-                        <span className="text-black text-lg font-normal font-['Afacad']">followers</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <span className="text-black text-lg font-semibold font-['Sarabun']">{userData.following}</span>
-                        <span className="text-black text-lg font-normal font-['Afacad']">following</span>
-                      </div>
-                    </div>
-
-                    {/* Bio Section */}
-                    <div className="w-full">
-                      <div className="text-black text-base font-normal font-['Playfair_Display']">
-                        {userData.bio === "Add bio" ? (
-                          <span className="text-gray-500 italic">No bio yet. Click "Edit Profile" to add one.</span>
-                        ) : (
-                          userData.bio
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="self-stretch h-0 outline-1 outline-offset-[-0.50px] outline-orange-700"></div>
+                )}
               </div>
             </div>
 
-            {/* Tabs Section */}
-            <div className="self-stretch px-9 inline-flex justify-start items-center gap-28 flex-wrap content-center border-b border-gray-200">
-              <button
-                onClick={() => setActiveTab('own-recipes')}
-                className={`pb-3 px-1 relative ${activeTab === 'own-recipes' ? 'border-b-2 border-orange-700' : ''}`}
-              >
-                <div className={`text-center text-lg font-normal font-['Poppins'] ${
-                  activeTab === 'own-recipes' ? 'text-orange-700 font-semibold' : 'text-black'
-                }`}>Own Recipes</div>
-              </button>
-              <button
-                onClick={() => setActiveTab('liked-recipes')}
-                className={`pb-3 px-1 relative ${activeTab === 'liked-recipes' ? 'border-b-2 border-orange-700' : ''}`}
-              >
-                <div className={`text-center text-lg font-normal font-['Poppins'] ${
-                  activeTab === 'liked-recipes' ? 'text-orange-700 font-semibold' : 'text-black'
-                }`}>Liked Recipes</div>
-              </button>
-              <button
-                onClick={() => setActiveTab('saved-recipes')}
-                className={`pb-3 px-1 relative ${activeTab === 'saved-recipes' ? 'border-b-2 border-orange-700' : ''}`}
-              >
-                <div className={`text-center text-lg font-normal font-['Poppins'] ${
-                  activeTab === 'saved-recipes' ? 'text-orange-700 font-semibold' : 'text-black'
-                }`}>Saved Recipes</div>
-              </button>
-            </div>
-          </div>
-
-          {/* Recipes Grid */}
-          <div className="self-stretch px-14 flex justify-center items-center">
-            {userData.posts === 0 ? (
-              <div className="text-center text-gray-600 text-lg py-20">
-                No posts yet. Start sharing your first recipe!
-              </div>
-            ) : (
-              <div className="inline-flex justify-start items-center gap-20 flex-wrap content-center">
-                <div className="w-80 h-80 relative">
-                  <img 
-                    className="w-96 h-[495px] left-[-16px] top-0 absolute rounded-[30px] cursor-pointer hover:opacity-90 transition-opacity" 
-                    src="https://placehold.co/387x495" 
-                    alt="Recipe 1" 
-                    onClick={() => handleImageClick('recipe-1')}
-                  />
-                </div>
-                <div className="w-80 h-80 relative">
-                  <img 
-                    className="w-96 h-[495px] left-[-16px] top-0 absolute rounded-[30px] cursor-pointer hover:opacity-90 transition-opacity" 
-                    src="https://placehold.co/387x495" 
-                    alt="Recipe 2" 
-                    onClick={() => handleImageClick('recipe-2')}
-                  />
-                </div>
-                <div className="w-80 h-80 relative">
-                  <img 
-                    className="w-96 h-[495px] left-[-16px] top-0 absolute rounded-[30px] cursor-pointer hover:opacity-90 transition-opacity" 
-                    src="https://placehold.co/387x495" 
-                    alt="Recipe 3" 
-                    onClick={() => handleImageClick('recipe-3')}
-                  />
-                </div>
-                <div className="w-80 h-80 relative">
-                  <img 
-                    className="w-96 h-[495px] left-[-16px] top-0 absolute rounded-[30px] cursor-pointer hover:opacity-90 transition-opacity" 
-                    src="https://placehold.co/387x495" 
-                    alt="Recipe 4" 
-                    onClick={() => handleImageClick('recipe-4')}
-                  />
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Edit Profile Modal */}
-        {isEditModalOpen && (
-          <div 
-            className="fixed inset-0 backdrop-blur-md bg-black/30 flex items-center justify-center z-[100]"
-            onClick={handleCancelEditProfile}
-          >
-            <div 
-              ref={modalContentRef}
-              className="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 overflow-hidden"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-                <h2 className="text-xl font-semibold text-black">Edit Profile</h2>
-                <button
-                  onClick={handleCancelEditProfile}
-                  className="text-gray-500 hover:text-gray-700 transition-colors"
-                >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-              
-              <div className="p-6 space-y-6">
-                {/* Profile Picture Edit */}
-                <div className="flex flex-col items-center gap-4">
-                  <div className="relative">
-                    {editProfileImage ? (
-                      <img 
-                        className="w-32 h-32 rounded-full object-cover border-4 border-gray-200"
-                        src={editProfileImage} 
-                        alt="Profile Avatar" 
-                      />
-                    ) : (
-                      <div className="w-32 h-32 rounded-full border-4 border-gray-200 bg-gray-200 flex items-center justify-center text-gray-500 text-3xl">
-                        {editName.charAt(0).toUpperCase()}
-                      </div>
-                    )}
-                    <button
-                      onClick={() => handleProfileImageUpload()}
-                      className="absolute bottom-0 right-0 w-10 h-10 bg-orange-500 rounded-full flex items-center justify-center cursor-pointer hover:bg-orange-600 transition-colors shadow-lg border-2 border-white"
-                      disabled={isUploading}
-                    >
-                      <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                      </svg>
-                    </button>
-                  </div>
-                  {isUploading && (
-                    <p className="text-sm text-gray-500">Uploading...</p>
+            <div className="profile-hero__content">
+              <div className="profile-hero__row">
+                <div className="profile-hero__name-group">
+                  <h1 className="profile-hero__name">{userData.name}</h1>
+                  {userData.email && (
+                    <p className="profile-hero__email">{userData.email}</p>
                   )}
                 </div>
-
-                {/* Display Name Edit */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Display Name
-                  </label>
-                  <input
-                    type="text"
-                    value={editName}
-                    onChange={(e) => setEditName(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-orange-500"
-                    placeholder="Enter your name"
-                  />
-                </div>
-
-                {/* Bio Edit */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Bio
-                  </label>
-                  <textarea
-                    value={editBio}
-                    onChange={(e) => setEditBio(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg resize-none focus:outline-none focus:border-orange-500"
-                    rows={4}
-                    placeholder="Tell us about yourself"
-                  />
+                <div className="profile-hero__actions">
+                  {isOwnProfile ? (
+                    <button
+                      type="button"
+                      className="profile-hero__action-button"
+                      onClick={handleEditProfileOpen}
+                    >
+                      Edit Profile
+                    </button>
+                  ) : (
+                    <FollowButton targetUserId={profileUserId} currentUserId={user?.uid} />
+                  )}
+                  <div className="profile-hero__menu-wrapper" ref={dropdownRef}>
+                    <button
+                      type="button"
+                      aria-label="More options"
+                      className="profile-hero__more-button"
+                      ref={menuButtonRef}
+                      onClick={() => setIsMenuOpen((prev) => !prev)}
+                    >
+                      ⋮
+                    </button>
+                    {isMenuOpen && (
+                      <div className="profile-hero__menu" role="menu">
+                        <button
+                          type="button"
+                          role="menuitem"
+                          onClick={handleViewActivityLogs}
+                          className="profile-hero__menu-item"
+                        >
+                          View Activity Logs
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 
-              <div className="px-6 py-4 border-t border-gray-200 flex justify-end gap-3">
+              <dl className="profile-hero__stats">
                 <button
-                  onClick={handleCancelEditProfile}
-                  className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-black rounded-lg transition-colors"
+                  type="button"
+                  className="profile-hero__stat-item"
+                  onClick={() => {
+                    // Optional: Navigate to posts modal or scroll to posts section
+                    setActiveTab('own-recipes');
+                    document.querySelector('.profile-tabs')?.scrollIntoView({ behavior: 'smooth' });
+                  }}
+                  aria-label={`${userData.posts} posts`}
                 >
-                  Cancel
+                  <dt>Posts</dt>
+                  <dd>{userData.posts}</dd>
                 </button>
-                <button
-                  onClick={handleSaveEditProfile}
-                  disabled={isUploading}
-                  className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isUploading ? 'Saving...' : 'Save Changes'}
-                </button>
+                <div className="profile-hero__stat-item">
+                  <dt>Followers</dt>
+                  <dd>{userData.followers}</dd>
+                </div>
+                <div className="profile-hero__stat-item">
+                  <dt>Following</dt>
+                  <dd>{userData.following}</dd>
+                </div>
+              </dl>
+
+              <div className="profile-hero__bio">
+                {userData.bio === 'Add bio' ? (
+                  <p className="profile-hero__bio-placeholder">
+                    No bio yet. Click “Edit Profile” to add one.
+                  </p>
+                ) : (
+                  <p>{userData.bio}</p>
+                )}
               </div>
+
             </div>
-          </div>
+          </section>
+
+          <nav className="profile-tabs" aria-label="Profile sections">
+            {/* Only show "Own Recipes" tab for other users' profiles */}
+            {isOwnProfile
+              ? Object.entries(SECTION_KEYS).map(([key, value]) => (
+                  <button
+                    key={key}
+                    type="button"
+                    role="tab"
+                    aria-selected={activeTab === key}
+                    className={`profile-tabs__button ${
+                      activeTab === key ? 'profile-tabs__button--active' : ''
+                    }`}
+                    onClick={() => handleTabChange(key)}
+                  >
+                    {value.label}
+                  </button>
+                ))
+              : (
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={activeTab === 'own-recipes'}
+                    className="profile-tabs__button profile-tabs__button--active"
+                    onClick={() => handleTabChange('own-recipes')}
+                  >
+                    {SECTION_KEYS['own-recipes'].label}
+                  </button>
+                )}
+          </nav>
+
+          <section
+            className="profile-recipes"
+            aria-live="polite"
+          >
+            {activeSection.loading && activeSection.items.length === 0 ? (
+              <div className="profile-recipes__state profile-recipes__state--loading">
+                <span className="profile-recipes__spinner" aria-hidden="true" />
+                <p>Loading recipes...</p>
+              </div>
+            ) : null}
+
+            {!activeSection.loading && activeSection.error ? (
+              <div className="profile-recipes__state profile-recipes__state--error">
+                <p>{activeSection.error}</p>
+                <button
+                  type="button"
+                  className="profile-recipes__retry"
+                  onClick={() => fetchRecipesBySection(activeTab, true)}
+                >
+                  Try again
+                </button>
+              </div>
+            ) : null}
+
+            {!activeSection.loading &&
+              !activeSection.error &&
+              activeSection.items.length === 0 ? (
+                <div className="profile-recipes__state profile-recipes__state--empty">
+                  <p>{SECTION_KEYS[activeTab].emptyMessage}</p>
+                </div>
+              ) : null}
+
+            <div className="profile-recipes__grid">{recipeCards}</div>
+
+            {activeSection.hasMore && !activeSection.loading ? (
+              <div className="profile-recipes__load-more">
+                <button
+                  type="button"
+                  onClick={handleLoadMore}
+                  className="profile-recipes__load-more-button"
+                >
+                  Load more
+                </button>
+              </div>
+            ) : null}
+
+            {activeSection.loading && activeSection.items.length > 0 ? (
+              <div className="profile-recipes__loading-more">
+                <span className="profile-recipes__spinner profile-recipes__spinner--small" aria-hidden="true" />
+                <p>Fetching more recipes…</p>
+              </div>
+            ) : null}
+          </section>
+        </div>
+
+        {isEditModalOpen && (
+          <EditProfileModal
+            formState={formState}
+            formErrors={formErrors}
+            uploadStatus={uploadStatus}
+            submissionStatus={submissionStatus}
+            submissionMessage={submissionMessage}
+            onClose={handleEditProfileClose}
+            onSubmit={handleSaveEditProfile}
+            onInputChange={setFormState}
+            onValidate={validateForm}
+            onUploadPhoto={handleProfileImageUpload}
+            onResetFeedback={() => {
+              setSubmissionStatus('idle');
+              setSubmissionMessage('');
+            }}
+          />
+        )}
+
+        {/* Recipe View Modal */}
+        {isRecipeModalOpen && selectedRecipe && (
+          <ViewPostModal
+            isOpen={isRecipeModalOpen}
+            onClose={() => {
+              setIsRecipeModalOpen(false);
+              setSelectedRecipe(null);
+            }}
+            recipe={selectedRecipe}
+          />
         )}
       </div>
     </HeaderSidebarLayout>
+  );
+}
+
+function EditProfileModal({
+  formState,
+  formErrors,
+  uploadStatus,
+  submissionStatus,
+  submissionMessage,
+  onClose,
+  onSubmit,
+  onInputChange,
+  onValidate,
+  onUploadPhoto,
+  onResetFeedback,
+}) {
+  const modalRef = useRef(null);
+
+  useEffect(() => {
+    modalRef.current?.focus();
+  }, []);
+
+  const handleFieldChange = (field) => (event) => {
+    onResetFeedback();
+    onInputChange((prev) => ({
+      ...prev,
+      [field]: event.target.value,
+    }));
+  };
+
+  const profileInitial = formState.name.charAt(0).toUpperCase();
+
+  return (
+    <div
+      className="edit-profile-modal__overlay"
+      onClick={onClose}
+      role="presentation"
+    >
+      <div
+        className="edit-profile-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="edit-profile-title"
+        onClick={(event) => event.stopPropagation()}
+        ref={modalRef}
+        tabIndex={-1}
+      >
+        <header className="edit-profile-modal__header">
+          <h2 id="edit-profile-title">Edit Profile</h2>
+          <button
+            type="button"
+            onClick={onClose}
+            className="edit-profile-modal__close"
+            aria-label="Close edit profile modal"
+          >
+            ×
+          </button>
+        </header>
+
+        <form
+          className="edit-profile-modal__form"
+          onSubmit={onSubmit}
+          noValidate
+        >
+          <fieldset className="edit-profile-modal__fieldset">
+            <legend className="edit-profile-modal__legend">Profile photo</legend>
+            <div className="edit-profile-modal__avatar-stack">
+              {formState.profileImage ? (
+                <img
+                  src={formState.profileImage}
+                  alt="Selected profile"
+                  className="edit-profile-modal__avatar"
+                />
+              ) : (
+                <div
+                  className="edit-profile-modal__avatar edit-profile-modal__avatar--placeholder"
+                  aria-hidden="true"
+                >
+                  {profileInitial}
+                </div>
+              )}
+              <button
+                type="button"
+                className="edit-profile-modal__upload"
+                onClick={() => onUploadPhoto()}
+                disabled={uploadStatus === 'uploading'}
+              >
+                {uploadStatus === 'uploading' ? 'Uploading…' : 'Change photo'}
+              </button>
+            </div>
+            {formErrors.upload ? (
+              <p className="edit-profile-modal__error" role="alert">
+                {formErrors.upload}
+              </p>
+            ) : null}
+          </fieldset>
+
+          <div className="edit-profile-modal__grid">
+            <label className="edit-profile-modal__field">
+              <span className="edit-profile-modal__label">
+                Display Name <span aria-hidden="true">*</span>
+              </span>
+              <input
+                type="text"
+                value={formState.name}
+                onChange={handleFieldChange('name')}
+                onBlur={onValidate}
+                className={formErrors.name ? 'has-error' : ''}
+                aria-invalid={Boolean(formErrors.name)}
+                aria-describedby={formErrors.name ? 'edit-name-error' : undefined}
+                required
+              />
+              {formErrors.name ? (
+                <span id="edit-name-error" className="edit-profile-modal__error" role="alert">
+                  {formErrors.name}
+                </span>
+              ) : null}
+            </label>
+
+            <label className="edit-profile-modal__field">
+              <span className="edit-profile-modal__label">
+                Email <span aria-hidden="true">*</span>
+              </span>
+              <input
+                type="email"
+                value={formState.email}
+                onChange={handleFieldChange('email')}
+                onBlur={onValidate}
+                className={formErrors.email ? 'has-error' : ''}
+                aria-invalid={Boolean(formErrors.email)}
+                aria-describedby={formErrors.email ? 'edit-email-error' : undefined}
+                required
+              />
+              {formErrors.email ? (
+                <span id="edit-email-error" className="edit-profile-modal__error" role="alert">
+                  {formErrors.email}
+                </span>
+              ) : null}
+            </label>
+          </div>
+
+          <label className="edit-profile-modal__field edit-profile-modal__field--full">
+            <span className="edit-profile-modal__label">Bio</span>
+            <textarea
+              value={formState.bio}
+              onChange={handleFieldChange('bio')}
+              onBlur={onValidate}
+              maxLength={280}
+              rows={4}
+              className={formErrors.bio ? 'has-error' : ''}
+              aria-invalid={Boolean(formErrors.bio)}
+              aria-describedby={formErrors.bio ? 'edit-bio-error' : undefined}
+              placeholder="Tell classmates what you love to cook, favorite ingredients, clubs, or go-to dorm hacks."
+            />
+            <span className="edit-profile-modal__help">
+              {formState.bio.length}/280 characters
+            </span>
+            {formErrors.bio ? (
+              <span id="edit-bio-error" className="edit-profile-modal__error" role="alert">
+                {formErrors.bio}
+              </span>
+            ) : null}
+          </label>
+
+          {submissionMessage ? (
+            <div
+              className={`edit-profile-modal__feedback edit-profile-modal__feedback--${submissionStatus}`}
+              role={submissionStatus === 'error' ? 'alert' : 'status'}
+            >
+              {submissionMessage}
+            </div>
+          ) : null}
+
+          <footer className="edit-profile-modal__footer">
+            <button
+              type="button"
+              className="edit-profile-modal__secondary"
+              onClick={onClose}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="edit-profile-modal__primary"
+              disabled={submissionStatus === 'saving'}
+            >
+              {submissionStatus === 'saving' ? 'Saving…' : 'Save changes'}
+            </button>
+          </footer>
+        </form>
+      </div>
+    </div>
   );
 }

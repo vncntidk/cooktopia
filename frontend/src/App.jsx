@@ -32,6 +32,7 @@ function AppContent() {
         <Route path="/" element={<LandingPage />} />
         <Route path="/home" element={<Protected><HomePage /></Protected>} />
         <Route path="/profile" element={<Protected><ProfilePage /></Protected>} />
+        <Route path="/profile/:userId" element={<Protected><ProfilePage /></Protected>} />
         <Route path="/create-recipe" element={<Protected><CreateRecipe /></Protected>} />
         <Route path="/messages" element={<Protected><Messages /></Protected>} />
         <Route path="/reactions-demo" element={<ReactionsDemo />} />

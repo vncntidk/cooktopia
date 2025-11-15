@@ -1,12 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { logOut } from '../services/auth';
 
 const ProfileMenu = ({ isOpen, onClose, profileRef }) => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const dropdownRef = useRef(null);
+  
+  // Check if currently on profile page
+  const isOnProfilePage = location.pathname === '/profile' || location.pathname.startsWith('/profile/');
 
   // Handle click outside to close dropdown
   useEffect(() => {
@@ -84,7 +88,7 @@ const ProfileMenu = ({ isOpen, onClose, profileRef }) => {
           key={item.id}
           onClick={item.action}
           className={`w-full h-14 p-2.5 flex items-center justify-center gap-2.5 transition-colors duration-150 ${
-            index === 0 
+            item.id === 'view-profile' && isOnProfilePage
               ? 'bg-orange-300 hover:bg-orange-400' 
               : 'bg-white hover:bg-gray-100'
           } ${item.isLast ? 'border-t border-gray-200' : ''}`}

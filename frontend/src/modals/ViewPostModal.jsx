@@ -1,7 +1,19 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { X, Heart, MessageCircle, Send, Bookmark, Star, Trash2, Pencil } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
+import { getRecipeById } from '../services/recipes';
+import {
+  getRecipeInteractionCounts,
+  toggleRecipeLike,
+  hasUserLikedRecipe,
+  toggleRecipeSave,
+  hasUserSavedRecipe,
+  getRecipeComments,
+  addRecipeComment,
+} from '../services/interactions';
+import { useNavigate } from 'react-router-dom';
 
-// Mock recipe data - stored in modal to avoid conflicts with HomeFeed changes
+// Legacy mock data - kept for fallback only
 const mockRecipesData = {
   1: {
     id: 1,
@@ -83,6 +95,8 @@ const mockRecipesData = {
 };
 
 export default function ViewPostModal({ isOpen, onClose, recipe: recipeInput }) {
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('ingredients');
   const [comment, setComment] = useState('');
   const [isLiked, setIsLiked] = useState(false);
@@ -98,26 +112,86 @@ export default function ViewPostModal({ isOpen, onClose, recipe: recipeInput }) 
   const [editText, setEditText] = useState('');
   const [likedComments, setLikedComments] = useState({});
   const [likedReplies, setLikedReplies] = useState({});
+  const [recipe, setRecipe] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [interactionCounts, setInteractionCounts] = useState({ likes: 0, comments: 0, saves: 0 });
 
-  // Generate recipe data based on the post ID
-  const recipe = useMemo(() => {
-    if (!recipeInput) return null;
-    
-    const postId = recipeInput.id;
-    
-    // Get mock data for this post ID, or use default from post 1
-    const mockData = mockRecipesData[postId] || {
-      ...mockRecipesData[1],
-      id: postId,
-      title: "Delicious Recipe",
+  // Load real recipe data from Firebase
+  useEffect(() => {
+    if (!isOpen || !recipeInput?.id) {
+      return;
+    }
+
+    const loadRecipeData = async () => {
+      try {
+        setLoading(true);
+        // Fetch recipe from Firebase
+        const recipeData = await getRecipeById(recipeInput.id);
+        
+        if (recipeData) {
+          setRecipe({
+            id: recipeData.id,
+            title: recipeData.title || 'Untitled Recipe',
+            description: recipeData.description || '',
+            difficulty: recipeData.difficulty || 'Easy',
+            duration: recipeData.duration || 0,
+            ingredients: Array.isArray(recipeData.ingredients) ? recipeData.ingredients : [],
+            steps: Array.isArray(recipeData.steps) ? recipeData.steps : [],
+            instructions: Array.isArray(recipeData.steps) ? recipeData.steps : [], // Alias for compatibility
+            imageUrls: Array.isArray(recipeData.imageUrls) ? recipeData.imageUrls : [],
+            authorId: recipeData.authorId,
+            authorName: recipeData.authorName || 'Unknown',
+            youtubeLink: recipeData.youtubeLink || null,
+            image: recipeData.imageUrls?.[0] || '/posts/placeholder.jpg',
+            userAvatar: null, // Will be loaded from user profile
+          });
+
+          // Load interaction counts
+          const counts = await getRecipeInteractionCounts(recipeData.id);
+          setInteractionCounts(counts);
+
+          // Check if user has liked/saved
+          if (user?.uid) {
+            const [liked, saved] = await Promise.all([
+              hasUserLikedRecipe(recipeData.id, user.uid),
+              hasUserSavedRecipe(recipeData.id, user.uid),
+            ]);
+            setIsLiked(liked);
+            setIsSaved(saved);
+          }
+
+          // Load comments
+          const recipeComments = await getRecipeComments(recipeData.id);
+          setComments(recipeComments);
+        } else {
+          // Fallback to mock data if recipe not found
+          const postId = recipeInput.id;
+          const mockData = mockRecipesData[postId] || mockRecipesData[1];
+          setRecipe({
+            ...mockData,
+            id: postId,
+            image: `/posts/${postId}.jpg`,
+            userAvatar: "/profile.png"
+          });
+        }
+      } catch (error) {
+        console.error('Error loading recipe:', error);
+        // Fallback to mock data on error
+        const postId = recipeInput.id;
+        const mockData = mockRecipesData[postId] || mockRecipesData[1];
+        setRecipe({
+          ...mockData,
+          id: postId,
+          image: `/posts/${postId}.jpg`,
+          userAvatar: "/profile.png"
+        });
+      } finally {
+        setLoading(false);
+      }
     };
-    
-    return {
-      ...mockData,
-      image: `/posts/${postId}.jpg`,
-      userAvatar: "/profile.png"
-    };
-  }, [recipeInput]);
+
+    loadRecipeData();
+  }, [isOpen, recipeInput, user]);
 
   if (!isOpen || !recipe) return null;
 
@@ -127,19 +201,66 @@ export default function ViewPostModal({ isOpen, onClose, recipe: recipeInput }) 
     }
   };
 
-  const handleSubmitComment = () => {
-    if (comment.trim()) {
-      const newComment = {
-        id: Date.now(),
-        username: 'current_user',
-        avatar: '/profile.png',
-        text: comment.trim(),
-        time: 'Just now',
-        likes: 0,
-        replies: []
-      };
-      setComments([newComment, ...comments]);
+  const handleSubmitComment = async () => {
+    if (!comment.trim() || !user?.uid || !recipe?.id) {
+      return;
+    }
+
+    try {
+      await addRecipeComment(
+        recipe.id,
+        user.uid,
+        user.displayName || user.email?.split('@')[0] || 'User',
+        user.photoURL || null,
+        comment.trim()
+      );
+      
+      // Reload comments
+      const recipeComments = await getRecipeComments(recipe.id);
+      setComments(recipeComments);
       setComment('');
+    } catch (error) {
+      console.error('Error adding comment:', error);
+    }
+  };
+
+  const handleToggleLike = async () => {
+    if (!user?.uid || !recipe?.id) {
+      return;
+    }
+
+    try {
+      const newLikedState = await toggleRecipeLike(recipe.id, user.uid);
+      setIsLiked(newLikedState);
+      
+      // Update counts
+      const counts = await getRecipeInteractionCounts(recipe.id);
+      setInteractionCounts(counts);
+    } catch (error) {
+      console.error('Error toggling like:', error);
+    }
+  };
+
+  const handleToggleSave = async () => {
+    if (!user?.uid || !recipe?.id) {
+      return;
+    }
+
+    try {
+      const newSavedState = await toggleRecipeSave(recipe.id, user.uid);
+      setIsSaved(newSavedState);
+      
+      // Update counts
+      const counts = await getRecipeInteractionCounts(recipe.id);
+      setInteractionCounts(counts);
+    } catch (error) {
+      console.error('Error toggling save:', error);
+    }
+  };
+
+  const handleProfileClick = (authorId) => {
+    if (authorId && user?.uid) {
+      navigate(`/profile/${authorId}`);
     }
   };
 
@@ -282,23 +403,30 @@ export default function ViewPostModal({ isOpen, onClose, recipe: recipeInput }) 
             
             {/* User info & Follow button */}
             <div className="flex items-center gap-3 mb-6">
-              <img 
-                src={recipe.userAvatar} 
-                alt={recipe.username}
-                className="w-12 h-12 rounded-full object-cover shadow-md"
-              />
-              <span className="font-semibold text-base">{recipe.username}</span>
-              <button 
-                onClick={() => setIsFollowing(!isFollowing)}
-                className={`border rounded-full text-sm transition ${
-                  isFollowing 
-                    ? 'border-gray-400 bg-gray-100 text-gray-700' 
-                    : 'border-gray-300 hover:bg-gray-100'
-                }`}
-                style={{ paddingLeft: '7px', paddingRight: '7px', paddingTop: '2px', paddingBottom: '2px' }}
+              <button
+                onClick={() => handleProfileClick(recipe.authorId)}
+                className="flex items-center gap-3 hover:opacity-80 transition-opacity"
               >
-                {isFollowing ? 'Following' : 'Follow'}
+                <img 
+                  src={recipe.userAvatar || '/profile.png'} 
+                  alt={recipe.authorName || recipe.username}
+                  className="w-12 h-12 rounded-full object-cover shadow-md"
+                />
+                <span className="font-semibold text-base">{recipe.authorName || recipe.username}</span>
               </button>
+              {user?.uid && recipe.authorId !== user.uid && (
+                <button 
+                  onClick={() => setIsFollowing(!isFollowing)}
+                  className={`border rounded-full text-sm transition ${
+                    isFollowing 
+                      ? 'border-gray-400 bg-gray-100 text-gray-700' 
+                      : 'border-gray-300 hover:bg-gray-100'
+                  }`}
+                  style={{ paddingLeft: '7px', paddingRight: '7px', paddingTop: '2px', paddingBottom: '2px' }}
+                >
+                  {isFollowing ? 'Following' : 'Follow'}
+                </button>
+              )}
             </div>
 
             {/* Title and Star Rating */}
@@ -375,46 +503,56 @@ export default function ViewPostModal({ isOpen, onClose, recipe: recipeInput }) 
             <div className="flex-1 mb-6 overflow-y-auto">
               {activeTab === 'ingredients' ? (
                 <ul className="space-y-3 text-base">
-                  {recipe.ingredients.map((ingredient, index) => (
-                    <li key={index} className="flex items-start">
-                      <span className="mr-3">•</span>
-                      <span>{ingredient}</span>
-                    </li>
-                  ))}
+                  {Array.isArray(recipe.ingredients) && recipe.ingredients.length > 0 ? (
+                    recipe.ingredients.map((ingredient, index) => (
+                      <li key={index} className="flex items-start">
+                        <span className="mr-3">•</span>
+                        <span>{ingredient}</span>
+                      </li>
+                    ))
+                  ) : (
+                    <li className="text-gray-500 italic">No ingredients listed</li>
+                  )}
                 </ul>
               ) : (
                 <ol className="space-y-4 text-base">
-                  {recipe.instructions.map((instruction, index) => (
-                    <li key={index} className="flex items-start">
-                      <span className="font-semibold mr-3 min-w-5">{index + 1}.</span>
-                      <span>{instruction}</span>
-                    </li>
-                  ))}
+                  {Array.isArray(recipe.steps || recipe.instructions) && (recipe.steps || recipe.instructions).length > 0 ? (
+                    (recipe.steps || recipe.instructions).map((instruction, index) => (
+                      <li key={index} className="flex items-start">
+                        <span className="font-semibold mr-3 min-w-5">{index + 1}.</span>
+                        <span>{instruction}</span>
+                      </li>
+                    ))
+                  ) : (
+                    <li className="text-gray-500 italic">No instructions listed</li>
+                  )}
                 </ol>
               )}
             </div>
 
-            {/* Action buttons */}
+            {/* Action buttons - Only Heart, Comments, Save */}
             <div className="flex items-center justify-between py-4 border-t border-b border-gray-200" style={{ marginTop: '10px', marginBottom: '10px' }}>
               <div className="flex items-center gap-4">
                 <button 
-                  onClick={() => setIsLiked(!isLiked)}
-                  className={`transition ${isLiked ? 'text-red-500' : 'text-gray-700 hover:text-red-500'}`}
+                  onClick={handleToggleLike}
+                  className={`flex items-center gap-2 transition ${isLiked ? 'text-red-500' : 'text-gray-700 hover:text-red-500'}`}
+                  disabled={!user?.uid}
                 >
                   <Heart className={`w-6 h-6 ${isLiked ? 'fill-current' : ''}`} />
+                  <span className="text-sm font-medium">{interactionCounts.likes}</span>
                 </button>
-                <button className="text-gray-700 hover:text-[#FF8C42] transition">
+                <button className="flex items-center gap-2 text-gray-700 hover:text-[#FF8C42] transition">
                   <MessageCircle className="w-6 h-6" />
-                </button>
-                <button className="text-gray-700 hover:text-[#FF8C42] transition">
-                  <Send className="w-6 h-6" />
+                  <span className="text-sm font-medium">{interactionCounts.comments}</span>
                 </button>
               </div>
               <button 
-                onClick={() => setIsSaved(!isSaved)}
-                className={`transition ${isSaved ? 'text-[#FF8C42]' : 'text-gray-700 hover:text-[#FF8C42]'}`}
+                onClick={handleToggleSave}
+                className={`flex items-center gap-2 transition ${isSaved ? 'text-[#FF8C42]' : 'text-gray-700 hover:text-[#FF8C42]'}`}
+                disabled={!user?.uid}
               >
                 <Bookmark className={`w-6 h-6 ${isSaved ? 'fill-current' : ''}`} />
+                <span className="text-sm font-medium">{interactionCounts.saves}</span>
               </button>
             </div>
 

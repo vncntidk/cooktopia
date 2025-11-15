@@ -16,6 +16,9 @@ const Sidebar = () => {
       setActive("messages");
     } else if (location.pathname.includes("notifications")) {
       setActive("notifications");
+    } else if (location.pathname.includes("/profile")) {
+      // Don't highlight Home when on profile pages
+      setActive("");
     }
   }, [location]);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
