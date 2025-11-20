@@ -104,7 +104,7 @@ export default function AdminReportReview() {
 
       {/* Main content area */}
       <div className="flex-1 ml-0 lg:ml-48 flex flex-col h-screen min-w-0">
-        <main className="flex-1 overflow-y-auto w-full max-w-full overflow-x-hidden">
+        <main className="flex-1 overflow-y-auto w-full max-w-full overflow-x-hidden mx-4 sm:mx-6 md:mx-8 lg:mx-10">
           <div className="w-full px-3 sm:px-5 md:px-6 lg:px-8 inline-flex flex-col justify-start items-start gap-6 sm:gap-8 md:gap-10 py-4 sm:py-6">
             <ReviewHeader />
             <div className="self-stretch inline-flex flex-col justify-start items-start gap-2">
@@ -116,26 +116,26 @@ export default function AdminReportReview() {
                 <div 
                   onClick={() => handleFilterClick("All")}
                   className={`w-24 h-8 px-3 py-1.5 rounded-[20px] shadow-[4px_5px_4px_0px_rgba(0,0,0,0.29)] inline-flex flex-col justify-center items-center gap-1 cursor-pointer hover:scale-105 transition-all duration-200 ${
-                    activeFilter === "All" ? "bg-orange-400 hover:bg-orange-500" : "bg-orange-300 hover:bg-orange-400"
+                    activeFilter === "All" ? "bg-[#005236]/80 hover:bg-[#005236]" : "bg-[#6BC4A6] hover:bg-[#005236]"
                   }`}
                 >
-                  <div className="text-center justify-start text-black text-xs sm:text-sm font-normal font-['Poppins']">All (53)</div>
+                  <div className={`text-center justify-start text-white text-xs sm:text-sm font-['Poppins'] ${activeFilter === "All" ? "font-bold" : "font-normal"}`}>All (53)</div>
                 </div>
                 <div 
                   onClick={() => handleFilterClick("Pending")}
                   className={`w-32 h-8 px-3 py-1.5 rounded-[20px] shadow-[4px_5px_4px_0px_rgba(0,0,0,0.29)] inline-flex flex-col justify-center items-center gap-1 cursor-pointer hover:scale-105 transition-all duration-200 ${
-                    activeFilter === "Pending" ? "bg-orange-400 hover:bg-orange-500" : "bg-orange-300 hover:bg-orange-400"
+                    activeFilter === "Pending" ? "bg-[#005236]/80 hover:bg-[#005236]" : "bg-[#6BC4A6] hover:bg-[#005236]"
                   }`}
                 >
-                  <div className="text-center justify-start text-black text-xs sm:text-sm font-normal font-['Poppins']">Pending (20)</div>
+                  <div className={`text-center justify-start text-white text-xs sm:text-sm font-['Poppins'] ${activeFilter === "Pending" ? "font-bold" : "font-normal"}`}>Pending (20)</div>
                 </div>
                 <div 
                   onClick={() => handleFilterClick("Replied")}
                   className={`w-28 h-8 px-3 py-1.5 rounded-[20px] shadow-[4px_5px_4px_0px_rgba(0,0,0,0.29)] inline-flex flex-col justify-center items-center gap-1 cursor-pointer hover:scale-105 transition-all duration-200 ${
-                    activeFilter === "Replied" ? "bg-orange-400 hover:bg-orange-500" : "bg-orange-300 hover:bg-orange-400"
+                    activeFilter === "Replied" ? "bg-[#005236]/80 hover:bg-[#005236]" : "bg-[#6BC4A6] hover:bg-[#005236]"
                   }`}
                 >
-                  <div className="text-center justify-start text-black text-xs sm:text-sm font-normal font-['Poppins']">Replied (33)</div>
+                  <div className={`text-center justify-start text-white text-xs sm:text-sm font-['Poppins'] ${activeFilter === "Replied" ? "font-bold" : "font-normal"}`}>Replied (33)</div>
                 </div>
               </div>
             </div>
@@ -144,7 +144,7 @@ export default function AdminReportReview() {
                 <div 
                   key={report.id}
                   onClick={() => handleCardClick(report)}
-                  className="w-full h-48 bg-zinc-100 rounded-[20px] shadow-[-4px_4px_4px_0px_rgba(0,0,0,0.25)] outline-1 outline-offset-[-1px] outline-zinc-300 inline-flex flex-col justify-start items-start gap-1.5 cursor-pointer hover:shadow-lg transition-shadow"
+                  className="w-full max-w-sm h-48 bg-zinc-100 rounded-xl shadow-[-4px_4px_4px_0px_rgba(0,0,0,0.25)] outline-1 outline-offset-[-1px] outline-zinc-300 inline-flex flex-col justify-start items-start gap-1.5 cursor-pointer hover:shadow-lg transition-shadow"
                 >
                   <div className="px-7 py-3 inline-flex justify-start items-center gap-2">
                     <img className="w-12 h-12 rounded-full shadow-[0px_4px_4px_0px_rgba(0,0,0,0.25)] object-cover" src={report.avatar} alt={report.username} />
@@ -166,12 +166,12 @@ export default function AdminReportReview() {
                           </div>
                         )}
                         {report.status.map((status, idx) => (
-                          <div key={idx} className="min-w-[60px] h-8 px-3 py-2 bg-orange-300 rounded-[30px] flex justify-center items-center">
+                          <div key={idx} className="min-w-[60px] h-8 px-3 py-2 bg-[#6BC4A6] rounded-[30px] flex justify-center items-center">
                             <div className="text-center text-black text-sm font-normal font-['Afacad'] whitespace-nowrap">{status}</div>
                           </div>
                         ))}
                         <button 
-                          className="w-8 h-8 p-1 bg-orange-300 rounded-2xl flex justify-center items-center gap-2.5 cursor-pointer hover:bg-orange-400 transition-colors"
+                          className="w-8 h-8 p-1 bg-[#6BC4A6] rounded-2xl flex justify-center items-center gap-2.5 cursor-pointer hover:bg-[#005236] transition-colors"
                           title="Reply"
                           onClick={(e) => {
                             e.stopPropagation();
@@ -237,7 +237,7 @@ export default function AdminReportReview() {
 
                 <div className="flex flex-wrap gap-3 justify-center">
                   {selectedReport.status.map((status, idx) => (
-                    <div key={idx} className="px-6 py-2 bg-orange-300 rounded-[30px] min-w-fit">
+                    <div key={idx} className="px-6 py-2 bg-[#6BC4A6] rounded-[30px] min-w-fit">
                       <div className="text-black text-sm font-normal font-['Afacad'] whitespace-nowrap">{status}</div>
                     </div>
                   ))}
@@ -250,7 +250,7 @@ export default function AdminReportReview() {
                     value={replyText}
                     onChange={(e) => setReplyText(e.target.value)}
                     placeholder="Type your reply here..."
-                    className="w-full min-h-[120px] px-4 py-3 bg-zinc-100 rounded-xl border-none outline-none text-black text-base font-normal font-['Afacad'] resize-none focus:ring-2 focus:ring-orange-400 text-center placeholder:text-center placeholder:text-gray-400 placeholder:opacity-60 flex items-center justify-center"
+                    className="w-full min-h-[120px] px-4 py-3 bg-zinc-100 rounded-xl border-none outline-none text-black text-base font-normal font-['Afacad'] resize-none focus:ring-2 focus:ring-[#6BC4A6] text-center placeholder:text-center placeholder:text-gray-400 placeholder:opacity-60 flex items-center justify-center"
                     style={{ paddingTop: '2.5rem' }}
                   />
                   <div className="flex justify-center gap-3">
@@ -264,7 +264,7 @@ export default function AdminReportReview() {
                     <button
                       type="submit"
                       disabled={!replyText.trim()}
-                      className="min-w-[120px] h-11 px-6 py-2.5 bg-orange-400 rounded-xl text-black text-base font-medium font-['Poppins'] hover:bg-orange-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                      className="min-w-[120px] h-11 px-6 py-2.5 bg-[#6BC4A6] rounded-xl text-black text-base font-medium font-['Poppins'] hover:bg-[#005236] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
                     >
                       Send Reply
                     </button>

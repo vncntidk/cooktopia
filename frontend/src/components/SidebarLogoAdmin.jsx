@@ -83,9 +83,9 @@ export default function SidebarLogoAdmin() {
           }}
           className={`self-stretch h-10 sm:h-11 pl-3 sm:pl-4 pr-2 sm:pr-3 py-2 ${
             activeItem === "Dashboard"
-              ? "bg-gradient-to-r from-orange-300 to-orange-400"
+              ? "bg-gradient-to-r from-[#FFE8CD] to-[#6BC4A6]"
               : ""
-          } inline-flex justify-start items-center gap-2 cursor-pointer hover:bg-orange-200 transition-colors`}
+          } inline-flex justify-start items-center gap-2 cursor-pointer hover:bg-gradient-to-r hover:from-[#FFE8CD] hover:to-[#6BC4A6] transition-colors`}
         >
           <LayoutDashboard 
             className={`w-4 h-4 flex-shrink-0 ${
@@ -110,9 +110,9 @@ export default function SidebarLogoAdmin() {
           }}
           className={`self-stretch h-10 sm:h-11 pl-3 sm:pl-4 pr-2 sm:pr-3 py-2 ${
             activeItem === "Reviews"
-              ? "bg-gradient-to-r from-orange-300 to-orange-400"
+              ? "bg-gradient-to-r from-[#FFE8CD] to-[#6BC4A6]"
               : ""
-          } inline-flex justify-start items-center gap-2 cursor-pointer hover:bg-orange-200 transition-colors`}
+          } inline-flex justify-start items-center gap-2 cursor-pointer hover:bg-gradient-to-r hover:from-[#FFE8CD] hover:to-[#6BC4A6] transition-colors`}
         >
           <Star 
             className={`w-4 h-4 flex-shrink-0 ${
@@ -136,9 +136,9 @@ export default function SidebarLogoAdmin() {
           }}
           className={`self-stretch h-10 sm:h-11 pl-3 sm:pl-4 pr-2 sm:pr-3 py-2 ${
             activeItem === "Users"
-              ? "bg-gradient-to-r from-orange-300 to-orange-400"
+              ? "bg-gradient-to-r from-[#FFE8CD] to-[#6BC4A6]"
               : ""
-          } inline-flex justify-start items-center gap-2 cursor-pointer hover:bg-orange-200 transition-colors`}
+          } inline-flex justify-start items-center gap-2 cursor-pointer hover:bg-gradient-to-r hover:from-[#FFE8CD] hover:to-[#6BC4A6] transition-colors`}
         >
           <Users 
             className={`w-4 h-4 flex-shrink-0 ${
@@ -162,9 +162,9 @@ export default function SidebarLogoAdmin() {
           }}
           className={`self-stretch h-10 sm:h-11 pl-3 sm:pl-4 pr-2 sm:pr-3 py-2 ${
             activeItem === "Activity"
-              ? "bg-gradient-to-r from-orange-300 to-orange-400"
+              ? "bg-gradient-to-r from-[#FFE8CD] to-[#6BC4A6]"
               : ""
-          } inline-flex justify-start items-center gap-2 cursor-pointer hover:bg-orange-200 transition-colors`}
+          } inline-flex justify-start items-center gap-2 cursor-pointer hover:bg-gradient-to-r hover:from-[#FFE8CD] hover:to-[#6BC4A6] transition-colors`}
         >
           <Activity 
             className={`w-4 h-4 flex-shrink-0 ${

@@ -29,7 +29,7 @@ export default function AdminUser() {
                   Number of Posts
                 </div>
                 <div className="flex-1 min-w-[180px] text-center justify-end text-black text-sm sm:text-base md:text-lg font-normal font-['Poppins']">
-                  Last Seen
+                  Account Created
                 </div>
               </div>
 
@@ -59,7 +59,7 @@ export default function AdminUser() {
                   </div>
                   <div className="flex-1 min-w-[180px] p-2.5 flex justify-center items-center gap-1.5">
                     <div className="flex-1 text-center justify-start text-black text-xs sm:text-sm font-medium font-['Poppins']">
-                      07/10/2025 10:00 AM
+                      01/15/2024 09:30 AM
                     </div>
                   </div>
                 </div>
@@ -88,7 +88,7 @@ export default function AdminUser() {
                   </div>
                   <div className="flex-1 min-w-[180px] p-2.5 flex justify-center items-center gap-1.5">
                     <div className="flex-1 text-center justify-start text-black text-xs sm:text-sm font-medium font-['Poppins']">
-                      07/10/2025 10:00 AM
+                      03/22/2024 02:15 PM
                     </div>
                   </div>
                 </div>
@@ -117,7 +117,7 @@ export default function AdminUser() {
                   </div>
                   <div className="flex-1 min-w-[180px] p-2.5 flex justify-center items-center gap-1.5">
                     <div className="flex-1 text-center justify-start text-black text-xs sm:text-sm font-medium font-['Poppins']">
-                      07/10/2025 10:00 AM
+                      05/08/2024 11:45 AM
                     </div>
                   </div>
                 </div>
@@ -146,7 +146,7 @@ export default function AdminUser() {
                   </div>
                   <div className="flex-1 min-w-[180px] p-2.5 flex justify-center items-center gap-1.5">
                     <div className="flex-1 text-center justify-start text-black text-xs sm:text-sm font-medium font-['Poppins']">
-                      07/10/2025 10:00 AM
+                      07/12/2024 04:20 PM
                     </div>
                   </div>
                 </div>
@@ -204,7 +204,7 @@ export default function AdminUser() {
                   </div>
                   <div className="flex-1 min-w-[180px] p-2.5 flex justify-center items-center gap-1.5">
                     <div className="flex-1 text-center justify-start text-black text-xs sm:text-sm font-medium font-['Poppins']">
-                      07/10/2025 10:00 AM
+                      09/30/2024 08:00 AM
                     </div>
                   </div>
                 </div>

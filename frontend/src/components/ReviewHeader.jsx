@@ -18,7 +18,7 @@ export default function ReviewHeader() {
   };
 
   return (
-    <div className="self-stretch inline-flex justify-start items-center flex-wrap content-center">
+    <div className="self-stretch inline-flex justify-start items-center flex-wrap content-center"  style={{ marginTop: 18 }}>
       <div className="p-2.5 flex justify-start items-center gap-3.5 flex-wrap content-center">
         <div 
           onClick={handleFeedbackClick}
