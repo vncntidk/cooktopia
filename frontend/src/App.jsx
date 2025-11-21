@@ -11,6 +11,7 @@ import CreateRecipe from './pages/CreateRecipe.jsx';
 import Messages from './pages/Messages.jsx';
 import ReactionsDemo from './pages/ReactionsDemo.jsx';
 import ActivityLogs from './pages/ActivityLogs.jsx';
+import SearchResults from './pages/SearchResults.jsx';
 
 function App() {
   return (
@@ -25,7 +26,7 @@ function App() {
 function AppContent() {
   const location = useLocation();
   
-  const shouldShowFAB = location.pathname !== '/create-recipe' && location.pathname !== '/messages' && location.pathname !== '/reactions-demo' && location.pathname !== '/activity-logs';
+  const shouldShowFAB = location.pathname !== '/create-recipe' && location.pathname !== '/messages' && location.pathname !== '/reactions-demo' && location.pathname !== '/activity-logs' && location.pathname !== '/search';
 
   return (
     <>
@@ -37,6 +38,7 @@ function AppContent() {
         <Route path="/create-recipe" element={<Protected><CreateRecipe /></Protected>} />
         <Route path="/messages" element={<Protected><Messages /></Protected>} />
         <Route path="/activity-logs" element={<Protected><ActivityLogs /></Protected>} />
+        <Route path="/search" element={<Protected><SearchResults /></Protected>} />
         <Route path="/reactions-demo" element={<ReactionsDemo />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

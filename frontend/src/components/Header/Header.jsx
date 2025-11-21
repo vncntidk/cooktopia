@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import styles from "./Header.module.css";
 
 const Header = () => {
@@ -7,18 +8,7 @@ const Header = () => {
   const [activeIndex, setActiveIndex] = useState(0);
   const searchRef = useRef(null);
   const dropdownRef = useRef(null);
-
-  // Mock data for demonstration
-  const mockRecipes = [
-    { id: 1, title: "Egg Fried Rice", ingredients: ["egg", "rice", "soy sauce"] },
-    { id: 2, title: "Scrambled Eggs", ingredients: ["egg", "butter", "salt"] },
-    { id: 3, title: "Egg Salad", ingredients: ["egg", "mayo", "celery"] },
-  ];
-
-  const mockUsers = [
-    { id: 1, username: "eggmaster123" },
-    { id: 2, username: "chefeggbert" },
-  ];
+  const navigate = useNavigate();
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -100,12 +90,10 @@ const Header = () => {
 
   // Handle option click
   const handleOptionClick = (option) => {
-    console.log("TODO: Implement search logic", {
-      searchQuery,
-      optionType: option.type,
-      option,
-    });
+    // Navigate to search results page with query params
+    navigate(`/search?q=${encodeURIComponent(searchQuery)}&type=${option.type}`);
     setIsDropdownOpen(false);
+    setSearchQuery(""); // Clear search after navigation
   };
 
   const searchOptions = getSearchOptions();
