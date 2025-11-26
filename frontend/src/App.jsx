@@ -4,6 +4,11 @@ import LandingPage from './pages/LandingPage';
 import HomePage from './pages/HomePage';
 import ProfilePage from './pages/ProfilePage';
 import FloatingActionButton from './components/FloatingActionButton';
+import AdminDashboard from './pages/AdminDashboard';
+import AdminFeedbackReview from './pages/AdminFeedbackReview';
+import AdminReportReview from './pages/AdminReportReview';
+import AdminUser from './pages/AdminUser';
+import AdminActivity from './pages/AdminActivity';
 import { Toaster } from 'react-hot-toast';
 
 import './App.css';
@@ -25,7 +30,7 @@ function App() {
 function AppContent() {
   const location = useLocation();
   
-  const shouldShowFAB = location.pathname !== '/create-recipe' && location.pathname !== '/messages' && location.pathname !== '/reactions-demo' && location.pathname !== '/activity-logs';
+  const shouldShowFAB = location.pathname !== '/create-recipe' && location.pathname !== '/messages' && location.pathname !== '/reactions-demo' && location.pathname !== '/activity-logs' && !location.pathname.startsWith('/admin');
 
   return (
     <>
@@ -38,6 +43,12 @@ function AppContent() {
         <Route path="/messages" element={<Protected><Messages /></Protected>} />
         <Route path="/activity-logs" element={<Protected><ActivityLogs /></Protected>} />
         <Route path="/reactions-demo" element={<ReactionsDemo />} />
+        <Route path="/admin" element={<AdminDashboard />} />
+        <Route path="/admin/reviews" element={<AdminFeedbackReview />} />
+        <Route path="/admin/reviews/feedback" element={<AdminFeedbackReview />} />
+        <Route path="/admin/reviews/report" element={<AdminReportReview />} />
+        <Route path="/admin/users" element={<AdminUser />} />
+        <Route path="/admin/activity" element={<AdminActivity />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       

@@ -54,7 +54,23 @@ app.use('*', (req, res) => {
   });
 });
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`🚀 Upload server running on port ${PORT}`);
   console.log(`📁 Health check: http://localhost:${PORT}/api/health`);
+});
+
+// Handle server errors (e.g., port already in use)
+server.on('error', (error) => {
+  if (error.code === 'EADDRINUSE') {
+    console.error(`❌ Port ${PORT} is already in use.`);
+    console.error(`💡 To fix this, either:`);
+    console.error(`   1. Kill the process using port ${PORT}:`);
+    console.error(`      Windows: netstat -ano | findstr :${PORT} (then taskkill /PID <PID> /F)`);
+    console.error(`      Mac/Linux: lsof -ti:${PORT} | xargs kill -9`);
+    console.error(`   2. Change the PORT in your .env file`);
+    process.exit(1);
+  } else {
+    console.error('❌ Server error:', error);
+    process.exit(1);
+  }
 });
