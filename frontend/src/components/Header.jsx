@@ -2,17 +2,21 @@ import React from "react";
 
 const Header = () => {
   return (
-    <header className="w-full relative bg-cyan-50">
-      <div className="w-full flex flex-col md:flex-row justify-between items-center p-4 md:p-6 gap-4 md:gap-0">
+    <header className="w-full h-10 px-4 top-2 z-50 relative">
+      {/* Centered container with max width and horizontal padding */}
+      <div className="max-w-7xl mx-auto px-4 md:px-8 lg:px-12 flex flex-col md:flex-row justify-between items-center">
+        
         {/* Logo */}
         <img
-          className="w-48 md:w-64 lg:w-96 h-auto md:h-28 lg:h-36 object-contain"
+          className="w-32 md:w-40 lg:w-52 h-auto md:h-20 lg:h-24 object-contain"
           src="/images/cooktopialogo.png"
           alt="CookTopia Logo"
+          style={{ marginLeft: '24px' }} // Added inline style for 8px left margin to move logo slightly right
         />
 
-        {/* Navigation aligned to the right */}
-        <nav className="flex gap-8 md:gap-12 lg:gap-16 text-xl md:text-2xl lg:text-3xl text-black font-['Poppins']">
+
+        {/* Navigation aligned right with spacing from edge */}
+        <nav className="w-96 h-11 right-1 top-[38px] absolute flex justify-center items-start gap-10 text-base md:text-lg lg:text-xl text-black font-['Poppins']">
           <div className="hover:text-cyan-800 transition-colors duration-300 cursor-pointer">About</div>
           <div className="hover:text-cyan-800 transition-colors duration-300 cursor-pointer">Contact</div>
           <div className="hover:text-cyan-800 transition-colors duration-300 cursor-pointer">FAQ</div>
@@ -20,7 +24,7 @@ const Header = () => {
       </div>
 
       {/* Full-width Divider Line */}
-      <div className="w-full h-[1px] bg-stone-300 -mt-4 md:-mt-10"></div>
+      <div className="w-full h-[1px] bg-stone-300 mt-4"></div>
     </header>
   );
 };
