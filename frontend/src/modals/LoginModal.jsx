@@ -141,7 +141,7 @@ const LoginModal = ({ isOpen = true, onClose = () => {}, onForgotPassword = () =
             exit={{ scale: 0.95, opacity: 0 }}
             transition={{ type: 'spring', stiffness: 200, damping: 20 }}
             onClick={(e) => e.stopPropagation()}
-            className="w-[600px] min-w-64 pl-10 pr-6 py-8 bg-white rounded-[38px] inline-flex justify-start items-start gap-3 shadow-lg" // Increased width and padding
+            className="w-[550px] min-w-64 h-[645px] pl-10 pr-6 py-8 bg-white rounded-[38px] inline-flex justify-start items-start gap-3 shadow-lg" // Increased width and padding
           >
             <div className="flex-1 flex justify-start items-start gap-3 flex-wrap content-start relative">
               {/* Close Button */}
@@ -171,39 +171,43 @@ const LoginModal = ({ isOpen = true, onClose = () => {}, onForgotPassword = () =
                 </div>
                 
                 {/* Form Section */}
-                <div className="w-full max-w-[480px] flex flex-col justify-start items-center gap-7"> {/* Increased max-width and gap */}
+                <div className="w-full max-w-[460px] flex flex-col justify-start items-center gap-8"> {/* Increased max-width and gap */}
                   <div className="self-stretch flex flex-col justify-start items-center gap-5"> {/* Increased gap */}
-                    <form onSubmit={handleSubmit} className="w-full flex flex-col gap-5"> {/* Increased gap */}
+                    <form onSubmit={handleSubmit} className="w-full flex flex-col gap-6"> {/* Increased gap */}
                         {/* Email Input */}
-                        <div className="self-stretch min-w-32 px-5 py-5 bg-white rounded-lg border border-gray-200 inline-flex justify-start items-center gap-3 flex-wrap content-center focus-within:border-orange-400 focus-within:ring-2 focus-within:ring-orange-100 transition-all duration-200 hover:border-gray-300"> {/* Increased padding */}
+                        <div className="self-stretch min-w-32 h-12 px-5 py-5 bg-white rounded-[20px] border border-gray-300 inline-flex justify-start items-center gap-3 flex-wrap content-center focus-within:border-orange-400 focus-within:ring-2 focus-within:ring-orange-100 transition-all duration-200 hover:border-gray-300"> {/* Increased padding */}
                           <input
                             type="email"
-                            placeholder="Email or username"
+                            placeholder="Email"
                             value={email}
                             onChange={e => setEmail(e.target.value)}
                             onKeyPress={handleKeyPress}
-                            className="flex-1 justify-start text-gray-800 placeholder:text-gray-400 text-lg font-medium font-['Geist'] bg-transparent border-none outline-none" // Increased text size
+                            className="flex-1 justify-start text-gray-800 placeholder:text-gray-400 text-lg font-normal font-['Geist'] bg-transparent border-none outline-none" // Increased text size
+                            style={{ paddingLeft: '16px' }} 
                           />
                         </div>
                         
                         {/* Password Section */}
                         <div className="self-stretch flex flex-col justify-start items-start gap-3"> {/* Increased gap */}
-                          <div className="self-stretch min-w-32 px-5 py-5 bg-white rounded-lg border border-gray-200 inline-flex justify-start items-center gap-3 flex-wrap content-center focus-within:border-orange-400 focus-within:ring-2 focus-within:ring-orange-100 transition-all duration-200 hover:border-gray-300"> {/* Increased padding */}
-                            <input
-                              type="password"
-                              placeholder="Password"
-                              value={password}
-                              onChange={e => setPassword(e.target.value)}
-                              onKeyPress={handleKeyPress}
-                              className="flex-1 justify-start text-gray-800 placeholder:text-gray-400 text-lg font-medium font-['Geist'] bg-transparent border-none outline-none" // Increased text size
-                            />
-                          </div>
+                        <div className="self-stretch min-w-32 h-12 px-5 py-5 bg-white rounded-[20px] border border-gray-300 inline-flex justify-start items-center gap-3 flex-wrap content-center focus-within:border-orange-400 focus-within:ring-2 focus-within:ring-orange-100 transition-all duration-200 hover:border-gray-300"> {/* Increased padding */}
+                          <input
+                            type="password"
+                            placeholder="Password"
+                            value={password}
+                            onChange={e => setPassword(e.target.value)}
+                            onKeyPress={handleKeyPress}
+                            className="flex-1 justify-start text-gray-800 placeholder:text-gray-400 text-lg font-normal font-['Geist'] bg-transparent border-none outline-none" 
+                            style={{ paddingLeft: '16px' }} // Added pl-2 for left padding to move placeholder right
+                          />
+                        </div>
+
                           <div className="self-stretch flex justify-start items-center">
                             <button 
                               type="button"
                               onClick={onForgotPassword} 
                               className="text-emerald-900 text-base font-normal font-['Poppins'] hover:underline transition-all hover:text-emerald-700 focus:outline-none focus:underline" // Increased text size
-                            >
+                               style={{ paddingLeft: '16px' }}                             
+                           >
                               Forgot Password?
                             </button>
                           </div>
@@ -212,10 +216,10 @@ const LoginModal = ({ isOpen = true, onClose = () => {}, onForgotPassword = () =
                         {/* Login Button */}
                         <button
                           type="submit"
-                          className="self-stretch px-5 py-4 bg-orange-500 rounded-[20px] shadow-[4px_5px_4px_0px_rgba(0,0,0,0.29)] flex flex-col justify-center items-center gap-3 disabled:opacity-50 hover:bg-orange-600 active:shadow-[2px_3px_2px_0px_rgba(0,0,0,0.29)] active:translate-y-[2px] transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-offset-2" // Increased padding
+                          className="self-stretch px-5 py-4 h-12 bg-[#FA6B0C] rounded-[20px] shadow-[4px_5px_4px_0px_rgba(0,0,0,0.29)] flex flex-col justify-center items-center gap-3 disabled:opacity-50 hover:bg-orange-600 active:shadow-[2px_3px_2px_0px_rgba(0,0,0,0.29)] active:translate-y-[2px] transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-offset-2" // Increased padding
                           disabled={loading || !email || !password}
                         >
-                          <div className="self-stretch text-center justify-center text-white text-lg font-semibold font-['Poppins']"> {/* Increased text size */}
+                          <div className="self-stretch text-center justify-center text-white text-lg font-['Poppins']"> {/* Increased text size */}
                             {loading ? 'Loading...' : 'Login'}
                           </div>
                         </button>
@@ -231,7 +235,7 @@ const LoginModal = ({ isOpen = true, onClose = () => {}, onForgotPassword = () =
                     {/* Google Sign In Button */}
                     <button
                       onClick={handleGoogle}
-                      className="w-full bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 py-3.5 px-5 rounded-2xl transition-all disabled:opacity-50 flex items-center justify-center gap-4 shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2" // Increased padding
+                      className="w-full h-12 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 py-3.5 px-5 rounded-2xl transition-all disabled:opacity-50 flex items-center justify-center gap-4 shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2" // Increased padding
                       disabled={loading}
                     >
                       <svg className="w-6 h-6" viewBox="0 0 24 24"> {/* Increased icon size */}
@@ -277,16 +281,15 @@ const LoginModal = ({ isOpen = true, onClose = () => {}, onForgotPassword = () =
                   )}
                   
                   {/* Sign Up Link */}
-                  <div className="self-stretch inline-flex justify-center items-center gap-2 flex-wrap content-center mt-2"> {/* Increased gap */}
-                    <div className="flex-1 max-w-64 min-w-48 text-center justify-end text-emerald-900 text-lg font-normal font-['Poppins']"> {/* Increased text size */}
+                  <div className="self-stretch inline-flex justify-center items-center gap-1.5 flex-wrap content-center">
+                  <div className="flex-1 max-w-48 min-w-48 text-center justify-end text-emerald-900 text-base font-normal font-['Poppins']">
                       Don't have an account?
                     </div>
-                    <div className="flex-1 max-w-24 min-w-16 text-center justify-end">
+                    <div className="flex-1 max-w-16 min-w-16 text-center justify-end">
                       <button 
                         type="button"
                         onClick={onSignUp}
-                        className="text-orange-400 text-lg font-normal font-['Poppins'] hover:text-orange-500 hover:underline transition-all focus:outline-none focus:underline" // Increased text size
-                      >
+                        className="text-orange-400 text-base font-normal font-['Poppins'] hover:text-orange-500 hover:underline transition-all focus:outline-none focus:underline"                      >
                         Sign up
                       </button>
                     </div>
