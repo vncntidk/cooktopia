@@ -93,7 +93,7 @@ const ProfileMenu = ({ isOpen, onClose, profileRef }) => {
               : 'bg-white hover:bg-gray-100'
           } ${item.isLast ? 'border-t border-gray-200' : ''}`}
         >
-          <div className="text-black text-xl font-medium font-['Inter'] leading-5">
+          <div className="text-black text-xl font-medium font-[system-ui] leading-5">
             {item.label}
           </div>
         </button>

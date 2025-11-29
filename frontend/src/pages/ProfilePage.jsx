@@ -767,7 +767,7 @@ export default function ProfilePage() {
 
   return (
     <HeaderSidebarLayout>
-      <div className="profile-page">
+      <div className="profile-page"style={{marginTop: 15}}>
         <div className="profile-page__inner">
           <section className="profile-hero">
             <div className="profile-hero__avatar-group">
@@ -802,7 +802,7 @@ export default function ProfilePage() {
                   ) : (
                     <FollowButton targetUserId={profileUserId} currentUserId={user?.uid} />
                   )}
-                  <div className="profile-hero__menu-wrapper" ref={dropdownRef}>
+                  <div className="profile-hero__menu-wrapper" ref={dropdownRef} style={{ marginRight: '3rem' }}>
                     <button
                       type="button"
                       aria-label="More options"
@@ -908,6 +908,7 @@ export default function ProfilePage() {
           <section
             className="profile-recipes"
             aria-live="polite"
+            style={{ marginRight: '1rem', width: '97%'}}
           >
             {activeSection.loading && activeSection.items.length === 0 ? (
               <div className="profile-recipes__state profile-recipes__state--loading">
