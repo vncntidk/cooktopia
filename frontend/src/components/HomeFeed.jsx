@@ -6,6 +6,7 @@ import { Bookmark } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import ViewPostModal from "../modals/ViewPostModal";
+import Avatar from "./Avatar";
 import {
   getRecipeInteractionCounts,
   toggleRecipeLike,
@@ -161,17 +162,17 @@ export default function HomeFeed() {
               />
             </div>
 
-            {/* Save Icon - Only bookmark appears on hover */}
+            {/* Save Icon - Only bookmark appears on hover (no count) */}
             <div className="absolute top-4 right-5 opacity-0 group-hover:opacity-100 transition z-20">
               <button
                 onClick={(e) => handleToggleSave(post.id, e)}
-                className="flex items-center gap-1.5 bg-white/90 backdrop-blur-sm rounded-full px-2 py-1.5 shadow-md hover:bg-white transition"
+                className="flex items-center justify-center bg-white/90 backdrop-blur-sm rounded-full w-10 h-10 shadow-md hover:bg-white transition"
                 disabled={!user?.uid}
+                aria-label={interactionData[post.id]?.isSaved ? 'Unsave recipe' : 'Save recipe'}
               >
                 <Bookmark 
                   className={`w-5 h-5 ${interactionData[post.id]?.isSaved ? 'fill-orange-500 text-orange-500' : 'text-gray-700'}`} 
                 />
-                <span className="text-xs font-medium">{interactionData[post.id]?.saves || 0}</span>
               </button>
             </div>
 
@@ -198,8 +199,12 @@ export default function HomeFeed() {
               }}
               className="p-6 flex items-center gap-2 text-gray-700 text-sm bg-white/50 backdrop-blur-sm hover:bg-white/70 transition w-full text-left"
             >
-              <img src="/icons/profileMini.png" className="w-5 h-5" />
-              @{post.user}
+              <Avatar
+                userId={post.authorId}
+                displayName={post.user}
+                size="sm"
+              />
+              <span>@{post.user}</span>
             </button>
           </article>
         ))}
