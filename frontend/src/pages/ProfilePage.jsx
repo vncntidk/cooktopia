@@ -32,9 +32,12 @@ import {
   getUserFollowersCount,
   getUserFollowingCount,
 } from '../services/users';
-import { followUser, unfollowUser, isFollowing } from '../services/follows';
+import FollowersFollowingModal from '../modals/FollowersFollowingModal';
+import { followUser, unfollowUser, isFollowing, listenToFollowStatus } from '../services/followService';
 import ViewPostModal from '../modals/ViewPostModal';
+import Avatar from '../components/Avatar';
 import './ProfilePage.css';
+import './ViewProfile.css';
 import '../modals/EditProfileModal.css';
 
 const SECTION_KEYS = {
@@ -118,6 +121,8 @@ export default function ProfilePage() {
   const [activeTab, setActiveTab] = useState('own-recipes');
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [followersModalOpen, setFollowersModalOpen] = useState(false);
+  const [followingModalOpen, setFollowingModalOpen] = useState(false);
   const [sections, setSections] = useState(() => ({
     'own-recipes': { ...initialSectionState },
     'liked-recipes': { ...initialSectionState },
@@ -681,19 +686,31 @@ export default function ProfilePage() {
     navigate('/activity-logs');
   }, [navigate]);
 
-  // Follow button component
+  // Follow button component with real-time sync and improved UI/UX
   const FollowButton = ({ targetUserId, currentUserId }) => {
     const [following, setFollowing] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [isHovering, setIsHovering] = useState(false);
 
+    // Real-time listener for follow status
     useEffect(() => {
-      if (currentUserId && targetUserId && currentUserId !== targetUserId) {
-        isFollowing(currentUserId, targetUserId).then(setFollowing);
+      if (!currentUserId || !targetUserId || currentUserId === targetUserId) {
+        return;
       }
+
+      // Set up real-time listener
+      const unsubscribe = listenToFollowStatus(currentUserId, targetUserId, (isFollowing) => {
+        setFollowing(isFollowing);
+      });
+
+      // Cleanup on unmount or when IDs change
+      return () => {
+        unsubscribe();
+      };
     }, [currentUserId, targetUserId]);
 
     const handleFollowToggle = async () => {
-      if (!currentUserId || !targetUserId || currentUserId === targetUserId) {
+      if (!currentUserId || !targetUserId || currentUserId === targetUserId || loading) {
         return;
       }
 
@@ -701,17 +718,15 @@ export default function ProfilePage() {
       try {
         if (following) {
           await unfollowUser(currentUserId, targetUserId);
-          setFollowing(false);
-          // Update followers count
-          const newCount = await getUserFollowersCount(targetUserId);
-          setUserData((prev) => ({ ...prev, followers: newCount }));
+          // Note: The listener will automatically update the state
         } else {
           await followUser(currentUserId, targetUserId);
-          setFollowing(true);
-          // Update followers count
-          const newCount = await getUserFollowersCount(targetUserId);
-          setUserData((prev) => ({ ...prev, followers: newCount }));
+          // Note: The listener will automatically update the state
         }
+        
+        // Update followers count after action
+        const newCount = await getUserFollowersCount(targetUserId);
+        setUserData((prev) => ({ ...prev, followers: newCount }));
       } catch (error) {
         console.error('Error toggling follow:', error);
       } finally {
@@ -719,18 +734,33 @@ export default function ProfilePage() {
       }
     };
 
+    // Hide button if viewing own profile or user not logged in
     if (!currentUserId || currentUserId === targetUserId) {
       return null;
     }
 
+    // Determine button text and classes
+    const getButtonText = () => {
+      if (loading) return '...';
+      if (following && isHovering) return 'Unfollow';
+      if (following) return 'Following';
+      return 'Follow';
+    };
+
+    const buttonClasses = `follow-button ${following ? 'follow-button--following' : 'follow-button--not-following'} ${loading ? 'follow-button--loading' : ''} ${following && isHovering ? 'follow-button--unfollow-hover' : ''}`;
+
     return (
       <button
         type="button"
-        className="profile-hero__action-button"
+        className={buttonClasses}
         onClick={handleFollowToggle}
         disabled={loading}
+        onMouseEnter={() => setIsHovering(true)}
+        onMouseLeave={() => setIsHovering(false)}
+        aria-label={following ? 'Unfollow user' : 'Follow user'}
       >
-        {loading ? '...' : following ? 'Unfollow' : 'Follow'}
+        {loading && <span className="follow-button__spinner" aria-hidden="true"></span>}
+        <span className="follow-button__text">{getButtonText()}</span>
       </button>
     );
   };
@@ -742,20 +772,13 @@ export default function ProfilePage() {
           <section className="profile-hero">
             <div className="profile-hero__avatar-group">
               <div className="profile-hero__avatar-wrapper">
-                {userData.hasProfileImage && userData.profileImage ? (
-                  <img
-                    className="profile-hero__avatar"
-                    src={userData.profileImage}
-                    alt={`${userData.name} profile`}
-                  />
-                ) : (
-                  <div
-                    className="profile-hero__avatar profile-hero__avatar--placeholder"
-                    aria-hidden="true"
-                  >
-                    {userData.name.charAt(0).toUpperCase()}
-                  </div>
-                )}
+                <Avatar
+                  userId={profileUserId}
+                  profileImage={userData.profileImage}
+                  displayName={userData.name}
+                  size="xl"
+                  className="profile-hero__avatar"
+                />
               </div>
             </div>
 
@@ -819,14 +842,24 @@ export default function ProfilePage() {
                   <dt>Posts</dt>
                   <dd>{userData.posts}</dd>
                 </button>
-                <div className="profile-hero__stat-item">
+                <button
+                  type="button"
+                  className="profile-hero__stat-item"
+                  onClick={() => setFollowersModalOpen(true)}
+                  aria-label={`${userData.followers} followers`}
+                >
                   <dt>Followers</dt>
                   <dd>{userData.followers}</dd>
-                </div>
-                <div className="profile-hero__stat-item">
+                </button>
+                <button
+                  type="button"
+                  className="profile-hero__stat-item"
+                  onClick={() => setFollowingModalOpen(true)}
+                  aria-label={`${userData.following} following`}
+                >
                   <dt>Following</dt>
                   <dd>{userData.following}</dd>
-                </div>
+                </button>
               </dl>
 
               <div className="profile-hero__bio">
@@ -955,6 +988,26 @@ export default function ProfilePage() {
               setSelectedRecipe(null);
             }}
             recipe={selectedRecipe}
+          />
+        )}
+
+        {/* Followers Modal */}
+        {followersModalOpen && (
+          <FollowersFollowingModal
+            isOpen={followersModalOpen}
+            onClose={() => setFollowersModalOpen(false)}
+            userId={profileUserId}
+            type="followers"
+          />
+        )}
+
+        {/* Following Modal */}
+        {followingModalOpen && (
+          <FollowersFollowingModal
+            isOpen={followingModalOpen}
+            onClose={() => setFollowingModalOpen(false)}
+            userId={profileUserId}
+            type="following"
           />
         )}
       </div>

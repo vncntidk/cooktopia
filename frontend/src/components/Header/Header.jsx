@@ -4,7 +4,7 @@ import styles from "./Header.module.css";
 const Header = () => {
   return (
     <header
-      className={`fixed top-0 left-0 w-[calc(100%-4rem)] bg-white z-50 flex items-center justify-between px-6 h-16 ${styles.header}`}
+      className={`w-full bg-white z-50 flex items-center justify-between px-6 h-16 ${styles.header}`}
     >
       {/* Logo Section */}
       <div className={`flex items-center space-x-2 ${styles.logoWrapper}`}>

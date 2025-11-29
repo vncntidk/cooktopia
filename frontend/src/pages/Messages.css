@@ -1,0 +1,682 @@
+/* Message Action Buttons */
+.message-action-button {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 8px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6b7280;
+  position: relative;
+  min-width: 36px;
+  min-height: 36px;
+  opacity: 0.8;
+}
+
+/* Message bubble action buttons (Edit/Delete inside bubbles) */
+.message-bubble-actions {
+  display: flex;
+  gap: 4px;
+  margin-left: 8px;
+}
+
+.message-bubble-actions .message-action-button {
+  background: rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(12px);
+  padding: 6px;
+  min-width: 28px;
+  min-height: 28px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.message-bubble-actions .message-action-button:hover {
+  background: rgba(255, 255, 255, 0.35);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Improved hover state with smooth scale */
+.message-action-button:hover {
+  background: rgba(0, 0, 0, 0.06);
+  color: #374151;
+  transform: translateY(-1px);
+  opacity: 1;
+}
+
+/* Active/pressed state */
+.message-action-button:active {
+  transform: translateY(0px);
+  transition: all 0.1s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Focus state for accessibility */
+.message-action-button:focus-visible {
+  outline: 2px solid #fe982a;
+  outline-offset: 2px;
+  background: rgba(254, 152, 42, 0.1);
+}
+
+.message-action-button:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.message-action-button:disabled:hover {
+  background: transparent;
+  color: #6b7280;
+  transform: none;
+}
+
+/* Delete button styling */
+.message-delete-button {
+  color: #ef4444;
+}
+
+.message-delete-button:hover {
+  background: rgba(239, 68, 68, 0.12);
+  color: #dc2626;
+  transform: translateY(-1px);
+}
+
+.message-delete-button:active {
+  background: rgba(239, 68, 68, 0.18);
+  transform: translateY(0px);
+}
+
+.message-delete-button:focus-visible {
+  outline-color: #ef4444;
+  background: rgba(239, 68, 68, 0.1);
+}
+
+/* Smooth fade-in animation */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.8) translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.message-delete-button.visible {
+  animation: fadeIn 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Desktop: Show on hover */
+@media (min-width: 768px) {
+  .message-delete-button.hidden {
+    opacity: 0;
+    pointer-events: none;
+    transform: scale(0.8);
+  }
+  
+  .message-delete-button.visible {
+    display: flex;
+    opacity: 1;
+    pointer-events: auto;
+    transform: scale(1);
+  }
+}
+
+/* Mobile: Always visible with proper touch targets */
+@media (max-width: 767px) {
+  .message-action-button {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 10px;
+  }
+  
+  .message-delete-button {
+    display: flex !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+  }
+}
+
+/* Button group container for better spacing */
+.message-actions-group {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+/* Conversation item styling - IMPROVED */
+.conversation-item {
+  position: relative;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 12px;
+  margin: 2px 8px;
+  padding: 12px 16px !important;
+}
+
+.conversation-item:hover {
+  transform: translateX(4px);
+  background: rgba(58, 59, 58, 0.06) !important;
+}
+
+.conversation-item.active {
+  background: rgba(254, 152, 42, 0.08) !important;
+  border-left: 4px solid #fe982a;
+  padding-left: 12px !important;
+  margin-left: 4px;
+  transform: translateX(0);
+}
+
+/* Message bubble improvements - ENHANCED */
+.message-bubble {
+  position: relative;
+  border-radius: 20px;
+  padding: 12px 18px;
+  max-width: 70%;
+  word-wrap: break-word;
+  transition: all 0.25s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  line-height: 1.5;
+  font-size: 15px;
+}
+
+.message-bubble:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  transform: translateY(-2px);
+}
+
+.message-bubble.own-message {
+  background: linear-gradient(135deg, #fe982a 0%, #e67e22 100%);
+  border-bottom-right-radius: 6px;
+  color: white;
+  margin-left: auto;
+}
+
+.message-bubble.other-message {
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+  color: #1f2937;
+  border-bottom-left-radius: 6px;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  margin-right: auto;
+}
+
+/* Smooth message entry animation - ENHANCED */
+@keyframes messageSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.message-wrapper {
+  animation: messageSlideIn 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  margin-bottom: 8px;
+}
+
+.message-wrapper.compact {
+  margin-bottom: 2px;
+}
+
+.message-wrapper.compact .message-bubble {
+  margin-top: -4px;
+}
+
+/* Input field enhancements - REFINED */
+.message-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  background: white;
+  border-radius: 24px;
+  padding: 8px 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  transition: all 0.25s ease;
+}
+
+.message-input-wrapper:focus-within {
+  box-shadow: 0 4px 20px rgba(254, 152, 42, 0.15);
+  border-color: rgba(254, 152, 42, 0.2);
+  transform: translateY(-1px);
+}
+
+.message-input {
+  border-radius: 20px;
+  transition: all 0.2s ease;
+  font-size: 15px;
+  line-height: 1.5;
+  padding: 12px 16px;
+}
+
+.message-input:focus {
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(254, 152, 42, 0.1);
+}
+
+/* Send button pulse effect - ENHANCED */
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.8;
+  }
+}
+
+.send-button {
+  border-radius: 50%;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  background: #fe982a;
+  color: white;
+  min-width: 44px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.send-button:hover:not(:disabled) {
+  transform: scale(1.1) rotate(5deg);
+  box-shadow: 0 6px 20px rgba(254, 152, 42, 0.4);
+}
+
+.send-button:active:not(:disabled) {
+  transform: scale(0.95) rotate(5deg);
+}
+
+.send-button.sending {
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+/* Attachment preview improvements */
+.attachment-preview {
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  transition: all 0.25s ease;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.attachment-preview:hover {
+  transform: scale(1.03);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.attachment-preview .remove-button {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  background: #ef4444;
+  border-radius: 50%;
+  padding: 6px;
+  transition: all 0.2s ease;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.25);
+  min-width: 28px;
+  min-height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.attachment-preview .remove-button:hover {
+  background: #dc2626;
+  transform: scale(1.15);
+}
+
+/* Unread badge pulse - ENHANCED */
+@keyframes badgePulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  70% {
+    box-shadow: 0 0 0 8px rgba(239, 68, 68, 0);
+  }
+}
+
+.unread-badge {
+  animation: badgePulse 2s ease-in-out infinite;
+  background: #ef4444;
+  color: white;
+  border-radius: 12px;
+  min-width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+/* Modal backdrop - IMPROVED */
+.modal-backdrop {
+  backdrop-filter: blur(8px);
+  background: rgba(0, 0, 0, 0.4);
+  animation: fadeIn 0.25s ease;
+}
+
+.modal-content {
+  animation: modalSlideUp 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+}
+
+@keyframes modalSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Status indicators - REFINED */
+.online-indicator {
+  width: 14px;
+  height: 14px;
+  background: #10b981;
+  border-radius: 50%;
+  border: 2px solid white;
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.3);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+/* Edit mode styling - ENHANCED */
+.edit-mode-container {
+  animation: fadeIn 0.2s ease;
+  background: rgba(254, 152, 42, 0.06);
+  border-radius: 16px;
+  padding: 16px;
+  border: 1px solid rgba(254, 152, 42, 0.15);
+  margin: 8px 0;
+}
+
+.edit-textarea {
+  border: 2px solid #fe982a !important;
+  border-radius: 12px;
+  transition: all 0.25s ease;
+  font-size: 15px;
+  line-height: 1.5;
+  padding: 12px 16px;
+  resize: vertical;
+  min-height: 80px;
+}
+
+.edit-textarea:focus {
+  box-shadow: 0 0 0 4px rgba(254, 152, 42, 0.15);
+  background: white;
+}
+
+/* Scroll indicator - IMPROVED */
+.scroll-to-bottom {
+  position: fixed;
+  bottom: 100px;
+  right: 40px;
+  background: #fe982a;
+  color: white;
+  border-radius: 50%;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: fadeIn 0.3s ease;
+  border: none;
+  z-index: 1000;
+}
+
+.scroll-to-bottom:hover {
+  transform: translateY(-4px) scale(1.05);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+}
+
+/* Loading skeleton - ENHANCED */
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+.skeleton {
+  background: linear-gradient(90deg, #f8f9fa 25%, #e9ecef 50%, #f8f9fa 75%);
+  background-size: 1000px 100%;
+  animation: shimmer 2s infinite;
+  border-radius: 8px;
+}
+
+/* Tooltip styling (optional enhancement) - IMPROVED */
+.message-action-button[data-tooltip]::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%) translateY(-6px);
+  background: #1f2937;
+  color: white;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  z-index: 1000;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.message-action-button[data-tooltip]:hover::after {
+  opacity: 1;
+  transform: translateX(-50%) translateY(-10px);
+}
+
+/* Hide tooltips on mobile */
+@media (max-width: 767px) {
+  .message-action-button[data-tooltip]::after {
+    display: none;
+  }
+}
+
+/* NEW: Enhanced message list and panel styling */
+.messages-conversations-list {
+  padding: 8px 4px;
+}
+
+.messages-conversation-item {
+  border-radius: 12px;
+  margin: 4px 8px;
+  padding: 16px;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid transparent;
+}
+
+.messages-conversation-item:hover {
+  background: rgba(58, 59, 58, 0.06);
+  border-color: rgba(0, 0, 0, 0.05);
+  transform: translateX(4px);
+}
+
+.messages-conversation-item.active {
+  background: rgba(254, 152, 42, 0.08);
+  border-left: 4px solid #fe982a;
+  padding-left: 12px;
+  transform: translateX(0);
+}
+
+/* Message area improvements */
+.messages-area {
+  padding: 20px;
+  scroll-behavior: smooth;
+}
+
+.messages-message-wrapper {
+  margin-bottom: 16px;
+  animation: messageSlideIn 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.messages-message-wrapper.compact {
+  margin-bottom: 4px;
+}
+
+/* Message input container refinement */
+.messages-input-container {
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(10px);
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+/* Enhanced conversation preview */
+.messages-conversation-preview {
+  font-size: 14px;
+  color: #6b7280;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin: 4px 0;
+}
+
+/* Improved message meta information */
+.messages-message-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.messages-message-time {
+  font-size: 11px;
+  opacity: 0.7;
+}
+
+.messages-message-edited {
+  font-style: italic;
+  opacity: 0.6;
+}
+
+/* Better spacing for message actions */
+.messages-message-actions {
+  display: flex;
+  gap: 2px;
+  position: absolute;
+  top: -12px;
+  right: 12px;
+  background: white;
+  border-radius: 8px;
+  padding: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  animation: fadeIn 0.2s ease;
+}
+
+/* Enhanced focus states for accessibility */
+.messages-conversation-item:focus-visible {
+  outline: 2px solid #fe982a;
+  outline-offset: 2px;
+}
+
+.message-bubble:focus-visible {
+  outline: 2px solid #fe982a;
+  outline-offset: 2px;
+}
+
+/* Smooth transitions for all interactive elements */
+.messages-conversation-item,
+.message-bubble,
+.message-action-button,
+.send-button,
+.attachment-preview {
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Improved scrollbar styling */
+.messages-area::-webkit-scrollbar {
+  width: 6px;
+}
+
+.messages-area::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 3px;
+}
+
+.messages-area::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 3px;
+}
+
+.messages-area::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+/* Responsive improvements */
+@media (max-width: 1024px) {
+  .message-bubble {
+    max-width: 80%;
+  }
+}
+
+@media (max-width: 767px) {
+  .message-bubble {
+    max-width: 85%;
+    padding: 10px 14px;
+    font-size: 14px;
+  }
+  
+  .messages-area {
+    padding: 16px 12px;
+  }
+  
+  .messages-input-container {
+    padding: 16px 12px;
+  }
+  
+  .scroll-to-bottom {
+    bottom: 80px;
+    right: 20px;
+    width: 44px;
+    height: 44px;
+  }
+}
+
+/* Dark mode support (optional) */
+@media (prefers-color-scheme: dark) {
+  .message-bubble.other-message {
+    background: linear-gradient(135deg, #374151 0%, #4b5563 100%);
+    color: #f9fafb;
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+  
+  .message-action-button:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #f3f4f6;
+  }
+}
