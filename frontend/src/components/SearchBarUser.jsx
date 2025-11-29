@@ -1,7 +1,7 @@
 import React from "react";
 import { Search, Filter } from "lucide-react";
 
-export default function SearchBarUser({ value, onChange }) {
+export default function SearchBarUser({ value, onSearch }) {
   return (
     <div className="w-full max-w-2xl sm:max-w-3xl md:max-w-4xl lg:max-w-5xl xl:max-w-6xl p-2.5 flex justify-center items-center">
       <div 
@@ -17,7 +17,7 @@ export default function SearchBarUser({ value, onChange }) {
             className="flex-1 bg-transparent border-none outline-none text-black/30 text-sm sm:text-base font-medium font-['Plus_Jakarta_Sans'] placeholder:text-black/30"
 
             value={value}
-            onChange={(e) => onChange(e.target.value)}
+            onChange={(e) => onSearch(e.target.value)}
           />
         </div>
 

@@ -17,13 +17,12 @@ export default function AdminActivity() {
     ];
   
     const filteredUsers = act.filter((a) =>
-      a.admin.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      a.action.toLowerCase().includes(searchQuery.toLowerCase())
+      a.admin.toLowerCase().includes(searchQuery.toLowerCase())
     );
   
       useEffect(() => {
       if (!inputRef.current) {
-        inputRef.current = document.querySelector("input[placeholder='Search admin']");
+        inputRef.current = document.querySelector("input[placeholder='Search recipe, profile, and more']");
       }
   
       if (inputRef.current) {
@@ -45,7 +44,7 @@ export default function AdminActivity() {
           </h1>
 
           <div className="w-[80%]">
-            <SearchBarUser />
+            <SearchBarUser onSearch={setSearchQuery}/>
           </div>
         </div>
   
