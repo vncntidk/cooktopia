@@ -122,8 +122,10 @@ export const getUserFollowersCount = async (userId) => {
       return 0;
     }
 
-    const followersRef = collection(db, 'users', userId, 'followers');
-    const snapshot = await getDocs(followersRef);
+    // Use the flat follows collection
+    const followsRef = collection(db, 'follows');
+    const q = query(followsRef, where('followingId', '==', userId));
+    const snapshot = await getDocs(q);
     return snapshot.size;
   } catch (error) {
     console.error('Error counting followers:', error);
@@ -142,12 +144,106 @@ export const getUserFollowingCount = async (userId) => {
       return 0;
     }
 
-    const followingRef = collection(db, 'users', userId, 'following');
-    const snapshot = await getDocs(followingRef);
+    // Use the flat follows collection
+    const followsRef = collection(db, 'follows');
+    const q = query(followsRef, where('followerId', '==', userId));
+    const snapshot = await getDocs(q);
     return snapshot.size;
   } catch (error) {
     console.error('Error counting following:', error);
     return 0;
+  }
+};
+
+/**
+ * Get list of user's followers with profile data
+ * @param {string} userId - The user's UID
+ * @returns {Promise<Array>} - Array of follower user objects with profile data
+ */
+export const getUserFollowersList = async (userId) => {
+  try {
+    if (!userId) {
+      return [];
+    }
+
+    // Use the flat follows collection
+    const followsRef = collection(db, 'follows');
+    const q = query(followsRef, where('followingId', '==', userId));
+    const snapshot = await getDocs(q);
+    
+    const followersPromises = snapshot.docs.map(async (followDoc) => {
+      const followerId = followDoc.data().followerId;
+      try {
+        const profileData = await getUserProfile(followerId);
+        return {
+          userId: followerId,
+          displayName: profileData.displayName || profileData.name || 'user_name',
+          email: profileData.email || '',
+          profileImage: profileData.profileImage || null,
+          bio: profileData.bio || '',
+        };
+      } catch (error) {
+        console.error(`Error fetching follower profile ${followerId}:`, error);
+        return {
+          userId: followerId,
+          displayName: 'user_name',
+          email: '',
+          profileImage: null,
+          bio: '',
+        };
+      }
+    });
+
+    return await Promise.all(followersPromises);
+  } catch (error) {
+    console.error('Error fetching followers list:', error);
+    return [];
+  }
+};
+
+/**
+ * Get list of users this user follows with profile data
+ * @param {string} userId - The user's UID
+ * @returns {Promise<Array>} - Array of following user objects with profile data
+ */
+export const getUserFollowingList = async (userId) => {
+  try {
+    if (!userId) {
+      return [];
+    }
+
+    // Use the flat follows collection
+    const followsRef = collection(db, 'follows');
+    const q = query(followsRef, where('followerId', '==', userId));
+    const snapshot = await getDocs(q);
+    
+    const followingPromises = snapshot.docs.map(async (followDoc) => {
+      const followingId = followDoc.data().followingId;
+      try {
+        const profileData = await getUserProfile(followingId);
+        return {
+          userId: followingId,
+          displayName: profileData.displayName || profileData.name || 'user_name',
+          email: profileData.email || '',
+          profileImage: profileData.profileImage || null,
+          bio: profileData.bio || '',
+        };
+      } catch (error) {
+        console.error(`Error fetching following profile ${followingId}:`, error);
+        return {
+          userId: followingId,
+          displayName: 'user_name',
+          email: '',
+          profileImage: null,
+          bio: '',
+        };
+      }
+    });
+
+    return await Promise.all(followingPromises);
+  } catch (error) {
+    console.error('Error fetching following list:', error);
+    return [];
   }
 };
 

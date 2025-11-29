@@ -240,3 +240,35 @@ export const addRecipeComment = async (recipeId, userId, userName, userAvatar, t
   }
 };
 
+/**
+ * Delete a comment from a recipe
+ * @param {string} recipeId - The recipe document ID
+ * @param {string} commentId - The comment document ID
+ * @returns {Promise<void>}
+ */
+export const deleteRecipeComment = async (recipeId, commentId) => {
+  try {
+    if (!recipeId || !commentId) {
+      throw new Error('Recipe ID and Comment ID are required');
+    }
+
+    const commentRef = doc(db, RECIPES_COLLECTION, recipeId, COMMENTS_COLLECTION, commentId);
+    await deleteDoc(commentRef);
+
+    // Decrement comments count in recipe (if it exists)
+    try {
+      await updateDoc(doc(db, RECIPES_COLLECTION, recipeId), {
+        comments: increment(-1),
+      });
+    } catch (error) {
+      // If comments field doesn't exist, that's okay - just log it
+      console.warn('Could not decrement comments count:', error);
+    }
+
+    console.log('Comment deleted successfully');
+  } catch (error) {
+    console.error('Error deleting comment:', error);
+    throw new Error(`Failed to delete comment: ${error.message}`);
+  }
+};
+

@@ -1,0 +1,125 @@
+/**
+ * Follow Button Styles
+ * Modern, polished UI/UX for follow/unfollow functionality
+ */
+
+.follow-button {
+  padding: 0.55rem 1.3rem;
+  border-radius: 999px;
+  border: 1px solid;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-width: 100px;
+  position: relative;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.follow-button:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
+/* Follow state - Orange gradient (matching post view) */
+.follow-button--not-following {
+  background: linear-gradient(to right, #f97316, #ea580c);
+  border-color: transparent;
+  color: #ffffff;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.follow-button--not-following:hover {
+  background: linear-gradient(to right, #ea580c, #c2410c);
+  border-color: transparent;
+  transform: translateY(-1px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+.follow-button--not-following:active {
+  transform: translateY(0);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+/* Following state - Gray/outlined */
+.follow-button--following {
+  background: #ffffff;
+  border-color: #d1d5db;
+  color: #374151;
+}
+
+.follow-button--following:hover {
+  background: #fef2f2;
+  border-color: #ef4444;
+  color: #dc2626;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
+}
+
+.follow-button--following:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(239, 68, 68, 0.15);
+}
+
+/* Unfollow hover state - Red */
+.follow-button--unfollow-hover {
+  background: #fef2f2;
+  border-color: #ef4444;
+  color: #dc2626;
+}
+
+/* Loading state */
+.follow-button--loading {
+  opacity: 0.7;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.follow-button--loading .follow-button__text {
+  opacity: 0.6;
+}
+
+/* Spinner for loading state */
+.follow-button__spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: follow-button-spin 0.6s linear infinite;
+  flex-shrink: 0;
+}
+
+.follow-button__text {
+  transition: opacity 0.2s ease;
+}
+
+/* Disabled state */
+.follow-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* Animation for spinner */
+@keyframes follow-button-spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .follow-button {
+    width: 100%;
+    min-width: auto;
+  }
+}
+

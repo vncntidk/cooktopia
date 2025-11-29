@@ -1,0 +1,128 @@
+/* Avatar Component Styles - Reusable across all pages */
+
+.avatar {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.2), rgba(234, 88, 12, 0.2));
+  border: 2px solid rgba(249, 115, 22, 0.3);
+}
+
+.avatar-button {
+  cursor: pointer;
+  border: none;
+  padding: 0;
+  background: transparent;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.avatar-button:hover {
+  transform: scale(1.05);
+  opacity: 0.9;
+}
+
+.avatar-button:focus-visible {
+  outline: 2px solid #f97316;
+  outline-offset: 2px;
+}
+
+/* Size variants */
+.avatar-sm {
+  width: 24px;
+  height: 24px;
+  font-size: 0.75rem;
+}
+
+.avatar-md {
+  width: 40px;
+  height: 40px;
+  font-size: 1rem;
+}
+
+.avatar-lg {
+  width: 64px;
+  height: 64px;
+  font-size: 1.5rem;
+}
+
+.avatar-xl {
+  width: 120px;
+  height: 120px;
+  font-size: 3rem;
+}
+
+/* Skeleton placeholder - shown while image is loading */
+.avatar-skeleton {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    rgba(229, 231, 235, 0.4) 0%,
+    rgba(243, 244, 246, 0.6) 50%,
+    rgba(229, 231, 235, 0.4) 100%
+  );
+  background-size: 200% 100%;
+  border-radius: 50%;
+  animation: avatar-skeleton-shimmer 1.5s ease-in-out infinite;
+  z-index: 1;
+}
+
+@keyframes avatar-skeleton-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* Image styling */
+.avatar-image {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+  transition: opacity 0.3s ease-in-out;
+  z-index: 2;
+}
+
+.avatar-image-loaded {
+  opacity: 1;
+}
+
+.avatar-image-hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Placeholder styling - shown when no image or image failed */
+.avatar-placeholder {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  color: #f97316;
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.15), rgba(234, 88, 12, 0.15));
+  border-radius: 50%;
+  z-index: 0;
+}
+
+.avatar-placeholder-hidden {
+  display: none;
+}
+
