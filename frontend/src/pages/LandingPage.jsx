@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import LoginModal from '../modals/LoginModal';
@@ -128,7 +129,7 @@ const LandingPage = () => {
 
         {/* Features + Illustration Container */}
         <div className="flex flex-col lg:flex-row items-center justify-center gap-16 lg:gap-28">
-          
+         
         <div
   className="grid grid-cols-1 sm:grid-cols-2 gap-10 md:gap-x-30  md:gap-y-10 justify-items-center flex-1"
   style={{ marginTop: "80px" }}
@@ -139,19 +140,19 @@ const LandingPage = () => {
                 { title: "Cook & Share", desc: "Share your own recipes.", icon: "🥣" },
                 { title: "Ratings & Feedback", desc: "Rate and review recipes.", icon: "🏅" }
               ].map((feature) => (
-                <div 
-                  key={feature.title} 
+                <div
+                  key={feature.title}
                   // Cleaner Card Style: White background, bold border on hover, flexible sizing
                   className="bg-white rounded-xl p-6 md:p-8 text-gray-800 flex flex-col items-center gap-4 shadow-lg border-b-4 border-transparent hover:border-[#BC4F07]
                    hover:shadow-xl transition-all duration-300 w-[350px] h-[220px] max-w-sm"
                 >
-                  
+                 
                   {/* Icon Circle (Brand Color Accent) */}
                   <div className="w-16 h-16 bg-[#EE8819]/10 rounded-full flex items-center justify-center text-3xl mb-2 transition-transform duration-300 group hover:scale-105" style= {{marginTop: '25px'
                   }}>
                     {feature.icon}
                   </div>
-                  
+                 
                   <h3 className="text-xl md:text-2xl font-bold text-[#BC4F07] group-hover:text-[#FA6B0C] transition-colors duration-300">{feature.title}</h3>
                   <p className="text-sm md:text-base text-gray-600 text-center leading-relaxed">{feature.desc}</p>
                 </div>
@@ -185,17 +186,17 @@ const LandingPage = () => {
             ].map((step) => (
               <div
                 key={step.number}
-                className="relative bg-white rounded-3xl p-8 pb-12 flex flex-col items-center gap-6 shadow-xl hover:shadow-2xl transition-all duration-500 ease-in-out transform 
+                className="relative bg-white rounded-3xl p-8 pb-12 flex flex-col items-center gap-6 shadow-xl hover:shadow-2xl transition-all duration-500 ease-in-out transform
                 hover:-translate-y-2 group w-[400px] h-[240px]"style={{ marginBottom: '80px' }}
               >
                 {/* Icon Circle */}
                 <div
                   className="w-24 h-24 flex items-center justify-center rounded-full text-5xl mt-8 shadow-inner group-hover:scale-110 transition-transform duration-300"
-                  style={{ backgroundColor: step.color, marginTop: '25px' }} 
+                  style={{ backgroundColor: step.color, marginTop: '25px' }}
                 >
                   {step.icon}
                 </div>
-                
+               
                 <h3 className="text-2xl font-bold text-gray-800 mt-4 group-hover:text-[#EE8819] transition-colors duration-300">{step.title}</h3>
                 <p className="text-gray-600 text-base leading-relaxed max-w-xs">{step.desc}</p>
               </div>
@@ -253,7 +254,7 @@ const LandingPage = () => {
           setLoginModalOpen(true);
         }}
       />
-    </div> 
+    </div>
   );
 };
 

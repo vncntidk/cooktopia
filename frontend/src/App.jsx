@@ -11,6 +11,7 @@ import AdminUser from './pages/AdminUser';
 import AdminActivity from './pages/AdminActivity';
 import { Toaster } from 'react-hot-toast';
 
+
 import './App.css';
 import CreateRecipe from './pages/CreateRecipe.jsx';
 import Messages from './pages/Messages.jsx';
@@ -30,12 +31,12 @@ function App() {
 
 function AppContent() {
   const location = useLocation();
-  
-  const shouldShowFAB = location.pathname !== '/create-recipe' && 
-  location.pathname !== '/messages' && 
-  location.pathname !== '/reactions-demo' && 
-  location.pathname !== '/activity-logs' && 
-  location.pathname !== '/search' && 
+ 
+  const shouldShowFAB = location.pathname !== '/create-recipe' &&
+  location.pathname !== '/messages' &&
+  location.pathname !== '/reactions-demo' &&
+  location.pathname !== '/activity-logs' &&
+  location.pathname !== '/search' &&
   !location.pathname.startsWith('/admin');
 
   return (
@@ -57,12 +58,13 @@ function AppContent() {
         <Route path="/admin/users" element={<AdminUser />} />
         <Route path="/admin/activity" element={<AdminActivity />} />
         <Route path="*" element={<Navigate to="/" replace />} />
+       
       </Routes>
-      
+     
       {/* Global Floating Action Button - Hidden on create-recipe page */}
       {shouldShowFAB && <FloatingActionButton />}
-      
-      <Toaster 
+     
+      <Toaster
         position="top-right"
         toastOptions={{
           duration: 4000,
