@@ -5,163 +5,359 @@ import { User } from "lucide-react";
 export default function AdminDashboard() {
   return (
     <div className="w-full h-screen flex bg-gray-50">
-      {/* Admin Sidebar */}
+      {/* Admin Sidebar - Assumes it uses lg:w-60 */}
       <SidebarLogoAdmin />
 
-      {/* Main content area */}
-      <div className="flex-1 ml-0 lg:ml-48 flex flex-col h-screen min-w-0">
-        <main className="flex-1 overflow-y-auto w-full max-w-full overflow-x-hidden">
-          <div className="w-full px-3 sm:px-5 md:px-6 lg:px-8 inline-flex flex-col justify-start items-start gap-6 sm:gap-8 md:gap-10 py-4 sm:py-6">
-            <div className="self-stretch flex flex-col justify-start items-start gap-4 sm:gap-6 md:gap-8">
-              <div className="self-stretch flex flex-col sm:flex-row justify-center items-c gap-4 sm:gap-6">
-                <div className="w-40 h-40 sm:w-44 sm:h-44 md:w-48 md:h-48 bg-[#6BC4A6]/100 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <div className="flex flex-col items-center justify-center text-center text-zinc-100 text-2xl sm:text-3xl md:text-5xl font-bold font-['Poppins'] px-2">
-                    <div>Site</div>
-                    <div>Stats</div>
-                  </div>
-                </div>
-                <div className="w-full sm:w-3/4 md:w-2/3 lg:w-auto lg:flex-1 max-w-2xl p-3 sm:p-4 py-4 sm:py-6 bg-[#6BC4A6]/40 rounded-2xl sm:rounded-[34.62px] flex justify-center items-center gap-3 sm:gap-4 md:gap-5 flex-wrap sm:flex-nowrap overflow-x-auto min-h-[160px] sm:min-h-[180px]">
-                  <div data-property-1="Visit Count" className="w-28 h-28 sm:w-32 sm:h-32 md:w-36 md:h-36 flex-shrink-0 relative">
-                    <div className="w-full h-full left-0 top-0 absolute bg-[#FFFFFF] rounded-lg shadow-[0px_8.656036376953125px_25.968109130859375px_0px_rgba(0,0,0,0.25)]" />
-                    <div className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 left-1/2 top-4 -translate-x-1/2 absolute">
-                      <div className="w-full h-full left-0 top-0 absolute bg-blue-green rounded" />
-                    </div>
-                    <div className="left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 absolute text-center text-black text-xl sm:text-2xl md:text-3xl font-bold font-['Poppins']">800+</div>
-                    <div className="left-1/2 bottom-2 -translate-x-1/2 absolute text-center text-green text-xs font-bold font-['Plus_Jakarta_Sans']">Site Visits</div>
-                  </div>
-                  <div data-property-1="New Users Count" className="w-28 h-28 sm:w-32 sm:h-32 md:w-36 md:h-36 flex-shrink-0 relative">
-                    <div className="w-full h-full left-0 top-0 absolute bg-[#FFFFFF] rounded-lg shadow-[0px_8.656036376953125px_25.968109130859375px_0px_rgba(0,0,0,0.25)]" />
-                    <div className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 left-1/2 top-3 -translate-x-1/2 absolute">
-                      <div className="w-full h-3/4 left-0 top-1/4 absolute bg-blue-green rounded" />
-                    </div>
-                    <div className="left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 absolute text-center text-black text-xl sm:text-2xl md:text-3xl font-bold font-['Poppins']">50+</div>
-                    <div className="left-1/2 bottom-2 -translate-x-1/2 absolute text-center text-green text-xs font-bold font-['Plus_Jakarta_Sans']">New Users</div>
-                  </div>
-                  <div data-property-1="Active Users Count" className="w-28 h-28 sm:w-32 sm:h-32 md:w-36 md:h-36 flex-shrink-0 relative">
-                    <div className="w-full h-full left-0 top-0 absolute bg-[#FFFFFF] rounded-lg shadow-[0px_8.656036376953125px_25.968109130859375px_0px_rgba(0,0,0,0.25)]" />
-                    <div className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 left-1/2 top-3 -translate-x-1/2 absolute">
-                      <div className="w-3/4 h-3/4 left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 absolute bg-blue-green rounded" />
-                    </div>
-                    <div className="left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 absolute text-center text-black text-xl sm:text-2xl md:text-3xl font-bold font-['Poppins']">4K+</div>
-                    <div className="left-1/2 bottom-2 -translate-x-1/2 absolute text-center text-green text-xs font-bold font-['Plus_Jakarta_Sans']">Active Users</div>
-                  </div>
-                  <div data-property-1="Recipe Count" className="w-28 h-28 sm:w-32 sm:h-32 md:w-36 md:h-36 flex-shrink-0 relative">
-                    <div className="w-full h-full left-0 top-0 absolute bg-[#FFFFFF] rounded-lg shadow-[0px_8.656036376953125px_25.968109130859375px_0px_rgba(0,0,0,0.25)]" />
-                    <div className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 left-1/2 top-3 -translate-x-1/2 absolute">
-                      <div className="w-2/3 h-full left-1/2 top-0 -translate-x-1/2 absolute bg-blue-green rounded" />
-                    </div>
-                    <div className="left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 absolute text-center text-black text-xl sm:text-2xl md:text-3xl font-bold font-['Poppins']">1M+</div>
-                    <div className="left-1/2 bottom-2 -translate-x-1/2 absolute text-center text-green text-xs font-bold font-['Plus_Jakarta_Sans']">Recipes Posted</div>
-                  </div>
-                </div>
-              </div>
-              <div className="self-stretch flex flex-col justify-start items-start gap-3 sm:gap-4">
-                <div className="self-stretch flex flex-col lg:flex-row justify-start items-center lg:items-start gap-4 sm:gap-6">
-                  <div className="w-full lg:flex-1 p-3 sm:p-4 bg-gradient-to-l from-[#6BC4A6] to-[#FFE8CD] rounded-2xl sm:rounded-[36.96px] flex justify-center items-start gap-3 sm:gap-4 overflow-x-auto">
-                    <div className="w-32 sm:w-36 md:w-40 flex-shrink-0 flex flex-col gap-1.5 sm:gap-2">
-                      <div className="w-full aspect-square relative rounded-xl sm:rounded-2xl overflow-hidden">
-                        <img className="w-full h-full object-cover" src="https://placehold.co/451x321" />
-                      </div>
-                      <div className="text-center text-black text-sm sm:text-base font-bold font-['Plus_Jakarta_Sans']">BINANGKAL</div>
-                      <div className="text-center text-zinc-500 text-xs font-medium font-['Poppins']">512,465 likes  •  1,278 comments</div>
-                      <div className="w-full flex justify-center items-center gap-1.5">
-                        <User className="w-4 h-4 text-stone-500" />
-                        <div className="text-center text-stone-500 text-xs font-['Poppins']">user_name</div>
-                      </div>
-                    </div>
-                    <div className="w-32 sm:w-36 md:w-40 flex-shrink-0 flex flex-col gap-1.5 sm:gap-2">
-                      <div className="w-full aspect-square relative rounded-xl sm:rounded-2xl overflow-hidden">
-                        <img className="w-full h-full object-cover" src="https://placehold.co/279x296" />
-                      </div>
-                      <div className="text-center text-black text-sm sm:text-base font-bold font-['Plus_Jakarta_Sans']">SINIGANG</div>
-                      <div className="text-center text-zinc-500 text-xs font-medium font-['Poppins']">231,899 likes  •  948 comments</div>
-                      <div className="w-full flex justify-center items-center gap-1.5">
-                        <User className="w-4 h-4 text-stone-500" />
-                        <div className="text-center text-stone-500 text-xs font-['Poppins']">user_name</div>
-                      </div>
-                    </div>
-                    <div className="w-32 sm:w-36 md:w-40 flex-shrink-0 flex flex-col gap-1.5 sm:gap-2">
-                      <div className="w-full aspect-square relative rounded-xl sm:rounded-2xl overflow-hidden">
-                        <img className="w-full h-full object-cover" src="https://placehold.co/443x295" />
-                      </div>
-                      <div className="text-center text-black text-sm sm:text-base font-bold font-['Plus_Jakarta_Sans']">KARE-KARE</div>
-                      <div className="text-center text-zinc-500 text-xs font-medium font-['Poppins']">100,354 likes  •  521 comments</div>
-                      <div className="w-full flex justify-center items-center gap-1.5">
-                        <User className="w-4 h-4 text-stone-500" />
-                        <div className="text-center text-stone-500 text-xs font-['Poppins']">user_name</div>
-                      </div>
-                    </div>
-                    <div className="w-32 sm:w-36 md:w-40 flex-shrink-0 flex flex-col gap-1.5 sm:gap-2">
-                      <div className="w-full aspect-square relative rounded-xl sm:rounded-2xl overflow-hidden">
-                        <img className="w-full h-full object-cover" src="https://placehold.co/442x294" />
-                      </div>
-                      <div className="text-center text-black text-base font-bold font-['Plus_Jakarta_Sans']">ADOBO</div>
-                      <div className="text-center text-zinc-500 text-xs font-medium font-['Poppins']">465,266 likes  •  1,004 comments</div>
-                      <div className="w-full flex justify-center items-center gap-1.5">
-                        <User className="w-4 h-4 text-stone-500" />
-                        <div className="text-center text-stone-500 text-xs font-['Poppins']">user_name</div>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="w-full max-w-[280px] md:max-w-[300px] lg:w-48 mx-auto lg:mx-0 bg-gradient-to-b from-orange-400/5 to-orange-100/25 rounded-2xl sm:rounded-[34.62px] flex flex-col justify-start items-start">
-                    <div className="w-full h-16 sm:h-20 px-2 inline-flex justify-start items-center gap-2 sm:gap-3">
-                      <img className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 shadow-[0px_3.462414503097534px_3.462414503097534px_0px_rgba(0,0,0,0.25)] rounded-full object-cover flex-shrink-0" src="https://placehold.co/65x62" />
-                      <div className="flex-1 min-w-0 h-12 sm:h-14 inline-flex flex-col justify-between items-start">
-                        <div className="w-full h-4 text-left text-black text-sm sm:text-base md:text-xl font-normal font-['Afacad'] truncate">_username001</div>
-                        <div className="w-24 py-1.5 inline-flex justify-between items-center">
-                          <div className="text-center justify-center text-black text-sm font-semibold font-['Sarabun']">1M</div>
-                          <div className="w-12 h-2.5 text-center justify-center text-black text-sm font-normal font-['Afacad']">followers</div>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="w-full h-16 sm:h-20 px-2 inline-flex justify-start items-center gap-2 sm:gap-3">
-                      <img className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 shadow-[0px_3.462414503097534px_3.462414503097534px_0px_rgba(0,0,0,0.25)] rounded-full object-cover flex-shrink-0" src="https://placehold.co/65x62" />
-                      <div className="flex-1 min-w-0 h-12 inline-flex flex-col justify-between items-start">
-                        <div className="w-full h-4 text-left text-black text-sm font-normal font-['Afacad'] truncate">_username001</div>
-                        <div className="w-24 py-1.5 inline-flex justify-between items-center">
-                          <div className="text-center justify-center text-black text-sm font-semibold font-['Sarabun']">1M</div>
-                          <div className="w-12 h-2.5 text-center justify-center text-black text-sm font-normal font-['Afacad']">followers</div>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="w-full h-16 sm:h-20 px-2 inline-flex justify-start items-center gap-2 sm:gap-3">
-                      <img className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 shadow-[0px_3.462414503097534px_3.462414503097534px_0px_rgba(0,0,0,0.25)] rounded-full object-cover flex-shrink-0" src="https://placehold.co/65x62" />
-                      <div className="flex-1 min-w-0 h-12 inline-flex flex-col justify-between items-start">
-                        <div className="w-full h-4 text-left text-black text-sm font-normal font-['Afacad'] truncate">_username001</div>
-                        <div className="w-24 py-1.5 inline-flex justify-between items-center">
-                          <div className="text-center justify-center text-black text-sm font-semibold font-['Sarabun']">1M</div>
-                          <div className="w-12 h-2.5 text-center justify-center text-black text-sm font-normal font-['Afacad']">followers</div>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="w-full h-16 sm:h-20 px-2 inline-flex justify-start items-center gap-2 sm:gap-3">
-                      <img className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 shadow-[0px_3.462414503097534px_3.462414503097534px_0px_rgba(0,0,0,0.25)] rounded-full object-cover flex-shrink-0" src="https://placehold.co/65x62" />
-                      <div className="flex-1 min-w-0 h-12 inline-flex flex-col justify-between items-start">
-                        <div className="w-full h-4 text-left text-black text-sm font-normal font-['Afacad'] truncate">_username001</div>
-                        <div className="w-24 py-1.5 inline-flex justify-between items-center">
-                          <div className="text-center justify-center text-black text-sm font-semibold font-['Sarabun']">1M</div>
-                          <div className="w-12 h-2.5 text-center justify-center text-black text-sm font-normal font-['Afacad']">followers</div>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="w-full h-16 sm:h-20 px-2 inline-flex justify-start items-center gap-2 sm:gap-3">
-                      <img className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 shadow-[0px_3.462414503097534px_3.462414503097534px_0px_rgba(0,0,0,0.25)] rounded-full object-cover flex-shrink-0" src="https://placehold.co/65x62" />
-                      <div className="flex-1 min-w-0 h-12 inline-flex flex-col justify-between items-start">
-                        <div className="w-full h-4 text-left text-black text-sm font-normal font-['Afacad'] truncate">_username001</div>
-                        <div className="w-24 py-1.5 inline-flex justify-between items-center">
-                          <div className="text-center justify-center text-black text-sm font-semibold font-['Sarabun']">1M</div>
-                          <div className="w-12 h-2.5 text-center justify-center text-black text-sm font-normal font-['Afacad']">followers</div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
+      {/* Main Content Area */}
+      {/* We use ml-60 on lg screens to push the content over the sidebar */}
+      <div className="flex-1 lg:ml-60 flex flex-col h-screen min-w-0 p-4 lg:p-6 overflow-hidden">
+        <main className="flex-1 overflow-y-auto w-full max-w-full overflow-x-hidden min-h-0">
+          <div className="w-full inline-flex flex-col justify-start items-start gap-6 sm:gap-8 md:gap-10 py-2 sm:py-4">
+            
+            {/* ---------------------------------- ROW 1: SITE STATS ---------------------------------- */}
+<div className="self-stretch flex flex-col justify-start items-start gap-4 sm:gap-6" style={{marginLeft: '20px', marginTop: '20px', marginRight: '20px'}}>
+  
+  {/* Site Stats Box + Stat Cards Row - Now a single responsive flex container */}
+  <div className="w-full flex flex-col lg:flex-row justify-start items-stretch gap-4 sm:gap-6">
+    
+    {/* 1. Site Stats Title Box (Fixed Width/Height) - Main Green Block */}
+    {/* Height adjusted for better proportionality across screen sizes */}
+    <div className="w-full h-32 lg:w-48 lg:h-auto bg-[#6BC4A6]/100 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-lg">
+      <div className="flex flex-col items-center justify-center text-center text-zinc-100 text-3xl md:text-5xl font-bold font-['Poppins'] px-2">
+        <div>Site</div>
+        <div>Metrics</div>
+      </div>
+    </div>
+
+    {/* 2. Stat Cards Wrapper - Responsive Grid enforced here for equal spacing */}
+    {/* Padding and gap adjusted for cleaner look */}
+    <div className="flex-1 p-3 sm:p-4 bg-[#6BC4A6]/40 rounded-2xl shadow-inner min-h-[160px] md:min-h-[180px]">
+      
+      {/* Cards container: Uniform grid for optimal spacing and responsiveness */}
+      <div className="w-full h-full grid grid-cols-2 lg:grid-cols-4 gap-4">
+        
+        {/*
+          Stat Card Template Refactored:
+          - The grid cell itself is now a flex container (applied via parent div below).
+          - The inner white card now has a fixed height (h-32) and uses flex properties (justify-self-center, self-center) to center itself within the cell, preventing it from stretching.
+        */}
+        
+        {/* Stat Card 1: Site Visits */}
+        <div 
+          className="flex items-center justify-center" // Centering wrapper for the card
+        >
+          <div 
+            data-property-1="Visit Count" 
+            className="h-32 w-full max-w-xs bg-white rounded-4xl shadow-lg hover:shadow-xl transition-shadow duration-300 p-4 flex flex-col items-center justify-center text-center"
+          >
+          <img 
+            src="/icons/siteVisits.png" // Replace with the actual image path
+            alt="Site Visits Icon"
+            className="w-6 h-6 flex-shrink-0 mb-2 object-contain" style={{marginBottom: '15px'}} // Retaining size and margin
+          />
+            {/* Stat number in the middle */}
+            <div className="text-4xl font-bold text-black font-['Poppins']"style={{marginBottom: '10px'}} >
+              800+
             </div>
+            
+            {/* Title/label at the bottom */}
+            <div className="text-sm font-bold text-[#6BC4A6] mt-1 font-['Plus_Jakarta_Sans']">
+              Site Visits
+            </div>
+          </div>
+        </div>
+
+        {/* Stat Card 2: New Users */}
+        <div 
+          className="flex items-center justify-center" // Centering wrapper for the card
+        >
+          <div 
+            data-property-1="New Users Count" 
+            className="h-32 w-full max-w-xs bg-white rounded-4xl shadow-lg hover:shadow-xl transition-shadow duration-300 p-4 flex flex-col items-center justify-center text-center"
+          >
+            <img 
+            src="/icons/newUsers.png" // Replace with the actual image path
+            alt="New Users Icon"
+            className="w-7 h-7 flex-shrink-0 mb-2 object-contain"  style={{marginBottom: '15px'}}// Retaining size and margin
+          />
+            
+            {/* Stat number in the middle */}
+            <div className="text-4xl font-bold text-black font-['Poppins']"style={{marginBottom: '10px'}} >
+              50+
+            </div>
+            
+            {/* Title/label at the bottom */}
+            <div className="text-sm font-bold text-[#6BC4A6] mt-1 font-['Plus_Jakarta_Sans']">
+              New Users
+            </div>
+          </div>
+        </div>
+
+        {/* Stat Card 3: Active Users */}
+        <div 
+          className="flex items-center justify-center" // Centering wrapper for the card
+        >
+          <div 
+            data-property-1="Active Users Count" 
+            className="h-32 w-full max-w-xs bg-white rounded-4xl shadow-lg hover:shadow-xl transition-shadow duration-300 p-4 flex flex-col items-center justify-center text-center"
+          >
+            <img 
+            src="/icons/activeUsers.png" // Replace with the actual image path
+            alt="Active Users Icon"
+            className="w-7 h-7 flex-shrink-0 mb-2 object-contain"  style={{marginBottom: '15px'}}// Retaining size and margin
+          />
+            
+            {/* Stat number in the middle */}
+            <div className="text-4xl font-bold text-black font-['Poppins']"style={{marginBottom: '10px'}} >
+              4K+
+            </div>
+            
+            {/* Title/label at the bottom */}
+            <div className="text-sm font-bold text-[#6BC4A6] mt-1 font-['Plus_Jakarta_Sans']">
+              Active Users
+            </div>
+          </div>
+        </div>
+
+        {/* Stat Card 4: Recipes Posted */}
+        <div 
+          className="flex items-center justify-center" // Centering wrapper for the card
+        >
+          <div 
+            data-property-1="Recipe Count" 
+            className="h-32 w-full max-w-xs bg-white rounded-4xl shadow-lg hover:shadow-xl transition-shadow duration-300 p-4 flex flex-col items-center justify-center text-center"
+          >
+            {/* Icon/Logo at the top center */}
+            <img 
+            src="/icons/recipesPosted.png" // Replace with the actual image path
+            alt="Recipes Posted Icon"
+            className="w-7 h-7 flex-shrink-0 mb-2 object-contain"  style={{marginBottom: '15px'}}// Retaining size and margin
+          />            
+            {/* Stat number in the middle */}
+            <div className="text-4xl font-bold text-black font-['Poppins']"style={{marginBottom: '10px'}} >
+              1M+
+            </div>
+            
+            {/* Title/label at the bottom */}
+            <div className="text-sm font-bold text-[#6BC4A6] mt-1 font-['Plus_Jakarta_Sans']">
+              Recipes Posted
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+            
+               {/* ---------------------------------- ROW 2: RECIPES & USERS SPLIT ---------------------------------- */}
+               <div className="self-stretch flex flex-col lg:flex-row justify-start items-start gap-6 sm:gap-8" style={{marginLeft: '20px'}}>
+              
+              {/* LEFT: Top Recipes (Main Content Area) - Flex-1 ensures it takes all available space */}
+              {/* Restored original recipe container gradient */}
+              <div className="w-full lg:w-72 h-175 lg:flex-1 p-4 bg-gradient-to-l from-[#FFE8CD] to-[#6BC4A6] rounded-2xl shadow-xl flex flex-col gap-6">
+                <h2 className="text-center text-4xl font-bold text-black font-['Poppins'] pb-2"style={{marginTop: '20px'}}>Top Performing Recipes</h2>
+                
+                {/* Recipes Grid - Exactly 5 columns per row on large screens */}
+                <div
+                  className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-5"
+                  style={{ marginLeft: '10px', marginBottom: '10px' }}
+                >
+                   {/* Recipe Cards */}
+                   {[
+                    { name: "BINANGKAL", likes: "512K", comments: "1.2K", user: "user_name_a", img: "Placeholder+1" },
+                    { name: "SINIGANG", likes: "231K", comments: "948", user: "user_name_b", img: "Placeholder+2" },
+                    { name: "KARE-KARE", likes: "100K", comments: "521", user: "user_name_c", img: "Placeholder+3" },
+                    { name: "ADOBO", likes: "465K", comments: "1K", user: "user_name_d", img: "Placeholder+4" },
+                    { name: "Placeholder 5", likes: "10K", comments: "100", user: "user_name_e", img: "Placeholder+5" },
+                    { name: "BINANGKAL", likes: "512K", comments: "1.2K", user: "user_name_a", img: "Placeholder+6" },
+                    { name: "SINIGANG", likes: "231K", comments: "948", user: "user_name_b", img: "Placeholder+7" },
+                    { name: "KARE-KARE", likes: "100K", comments: "521", user: "user_name_c", img: "Placeholder+8" },
+                    { name: "ADOBO", likes: "465K", comments: "1K", user: "user_name_d", img: "Placeholder+9" },
+                    { name: "Placeholder 10", likes: "10K", comments: "100", user: "user_name_e", img: "Placeholder+10" },
+                  ].map((recipe, index) => (
+                    <div
+                      key={index}
+                      className="h-[290px] w-[275px] flex flex-col gap-2 bg-white p-3 rounded-xl shadow-md hover:shadow-xl transition-all duration-200 hover:scale-[1.02]"
+                    >
+                      <div className="w-full aspect-square relative rounded-lg overflow-hidden bg-gray-100">
+                        <img
+                          className="w-full h-full object-cover"
+                          src={`https://placehold.co/400x300/FFFFFF/000000?text=${recipe.img}`}
+                          alt={recipe.name}
+                        />
+                      </div>
+                      <div className="text-center text-black text-sm sm:text-base font-bold font-['Plus_Jakarta_Sans'] truncate px-1">
+                        {recipe.name}
+                      </div>
+                      <div className="text-center text-zinc-500 text-xs font-medium font-['Poppins']">
+                        {recipe.likes} likes • {recipe.comments} comments
+                      </div>
+                      <div className="w-full flex justify-center items-center gap-1.5 mt-auto">
+                        <User className="w-4 h-4 text-stone-500 flex-shrink-0" />
+                        <div className="text-center text-stone-500 text-xs font-['Poppins'] truncate">
+                          {recipe.user}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                 
+                </div>
+              </div>
+
+      {/* RIGHT: Top Users List (Fixed Width Sidebar) */}
+    <div 
+      // Container: Maintains original size (h-175) and gradient.
+      className="w-full lg:w-72 h-175 flex-shrink-0 bg-gradient-to-l from-[#6BC4A6] to-[#FFE8CD] rounded-2xl shadow-xl flex flex-col justify-start items-start p-4"style={{marginRight: '20px'}}
+    >
+      
+      {/* Title Section (Fixed Height/Space) */}
+      <h2 
+        className="text-2xl font-extrabold text-black font-['Poppins'] w-full pb-3 text-center mt-1"style={{marginTop: '20px'}}
+      >
+        Top 10 Creators 
+      </h2>
+      
+      {/* List Container - Takes up all remaining vertical space and enables scrolling */}
+      <div 
+        className="w-full flex-1 overflow-y-auto mt-4"style={{marginTop: '10px'}}
+      >
+        {/* Grid: MODIFIED TO grid-cols-1 on ALL screen sizes for one card per row */}
+        <div className="grid grid-cols-1 gap-3 pb-2">
+
+      {/* --- Card Template: User 1 --- */}
+      <div 
+        // Card: Increased  padding (p-3) and adjusted alignment for a taller container feel
+        className="w-[260px] h-[50px] p-3 bg-white/70 rounded-lg shadow-md flex items-center justify-start gap-3 transition-shadow hover:shadow-lg cursor-pointer"style={{marginLeft: '15px'}}
+      >
+        <span className="text-xl font-extrabold text-[#006644] flex-shrink-0 w-6 text-center"style={{marginLeft: '1px'}}>1</span>
+        <img className="w-12 h-12 shadow-inner rounded-full object-cover flex-shrink-0" src="https://placehold.co/65x62" alt="Chef Master Avatar" />
+        <div className="flex-1 min-w-0 flex flex-col items-start justify-center">
+          <div className="text-base font-bold text-black font-['Poppins'] truncate">_chefMaster_</div>
+          <div className="text-sm text-gray-700">
+            <span className="font-semibold text-sm text-[#006644]">1.2M</span> followers
+          </div>
+        </div>
+      </div>
+
+      {/* --- Card Template: User 2 --- */}
+      <div className="w-[260px] h-[50px] p-3 bg-white/70 rounded-lg shadow-md flex items-center justify-start gap-3 transition-shadow hover:shadow-lg cursor-pointer"style={{marginLeft: '15px'}}>
+        <span className="text-xl font-extrabold text-[#006644] flex-shrink-0 w-6 text-center"style={{marginLeft: '1px'}}>2</span>
+        <img className="w-12 h-12 shadow-inner rounded-full object-cover flex-shrink-0" src="https://placehold.co/65x62" alt="Gourmet Jane Avatar" />
+        <div className="flex-1 min-w-0 flex flex-col items-start justify-center">
+          <div className="text-base font-bold text-black font-['Poppins'] truncate">_gourmet_jane</div>
+          <div className="text-sm text-gray-700">
+            <span className="font-semibold text-sm text-[#006644]">980K</span> followers
+          </div>
+        </div>
+      </div>
+      
+      {/* --- Card Template: User 3 --- */}
+      <div className="w-[260px] h-[50px] p-3 bg-white/70 rounded-lg shadow-md flex items-center justify-start gap-3 transition-shadow hover:shadow-lg cursor-pointer"style={{marginLeft: '15px'}}>
+        <span className="text-xl font-extrabold text-[#006644] flex-shrink-0 w-6 text-center"style={{marginLeft: '1px'}}>3</span>
+        <img className="w-12 h-12 shadow-inner rounded-full object-cover flex-shrink-0" src="https://placehold.co/65x62" alt="Kitchen King Avatar" />
+        <div className="flex-1 min-w-0 flex flex-col items-start justify-center">
+          <div className="text-base font-bold text-black font-['Poppins'] truncate">_kitchen_king</div>
+          <div className="text-sm text-gray-700">
+            <span className="font-semibold text-sm text-[#006644]">750K</span> followers
+          </div>
+        </div>
+      </div>
+
+      {/* --- Card Template: User 4 --- */}
+      <div className="w-[260px] h-[50px] p-3 bg-white/70 rounded-lg shadow-md flex items-center justify-start gap-3 transition-shadow hover:shadow-lg cursor-pointer"style={{marginLeft: '15px'}}>
+        <span className="text-xl font-extrabold text-[#006644] flex-shrink-0 w-6 text-center"style={{marginLeft: '1px'}}>4</span>
+        <img className="w-12 h-12 shadow-inner rounded-full object-cover flex-shrink-0" src="https://placehold.co/65x62" alt="Tasty Treats Avatar" />
+        <div className="flex-1 min-w-0 flex flex-col items-start justify-center">
+          <div className="text-base font-bold text-black font-['Poppins'] truncate">_tasty_treats</div>
+          <div className="text-sm text-gray-700">
+            <span className="font-semibold text-sm text-[#006644]">600K</span> followers
+          </div>
+        </div>
+      </div>
+
+      {/* --- Card Template: User 5 --- */}
+      <div className="w-[260px] h-[50px] p-3 bg-white/70 rounded-lg shadow-md flex items-center justify-start gap-3 transition-shadow hover:shadow-lg cursor-pointer"style={{marginLeft: '15px'}}>
+        <span className="text-xl font-extrabold text-[#006644] flex-shrink-0 w-6 text-center"style={{marginLeft: '1px'}}>5</span>
+        <img className="w-12 h-12 shadow-inner rounded-full object-cover flex-shrink-0" src="https://placehold.co/65x62" alt="Home Cooker Avatar" />
+        <div className="flex-1 min-w-0 flex flex-col items-start justify-center">
+          <div className="text-base font-bold text-black font-['Poppins'] truncate">_home_cooker</div>
+          <div className="text-sm text-gray-700">
+            <span className="font-semibold text-sm text-[#006644]">450K</span> followers
+          </div>
+        </div>
+      </div>
+      
+      {/* --- Card Template: User 6 --- */}
+      <div className="w-[260px] h-[50px] p-3 bg-white/70 rounded-lg shadow-md flex items-center justify-start gap-3 transition-shadow hover:shadow-lg cursor-pointer"style={{marginLeft: '15px'}}>
+        <span className="text-xl font-extrabold text-[#006644] flex-shrink-0 w-6 text-center"style={{marginLeft: '1px'}}>6</span>
+        <img className="w-12 h-12 shadow-inner rounded-full object-cover flex-shrink-0" src="https://placehold.co/65x62" alt="Baking Boss Avatar" />
+        <div className="flex-1 min-w-0 flex flex-col items-start justify-center">
+          <div className="text-base font-bold text-black font-['Poppins'] truncate">_baking_boss</div>
+          <div className="text-sm text-gray-700">
+            <span className="font-semibold text-sm text-[#006644]">320K</span> followers
+          </div>
+        </div>
+      </div>
+
+      {/* --- Card Template: User 7 --- */}
+      <div className="w-[260px] h-[50px] p-3 bg-white/70 rounded-lg shadow-md flex items-center justify-start gap-3 transition-shadow hover:shadow-lg cursor-pointer"style={{marginLeft: '15px'}}>
+        <span className="text-xl font-extrabold text-[#006644] flex-shrink-0 w-6 text-center"style={{marginLeft: '1px'}}>7</span>
+        <img className="w-12 h-12 shadow-inner rounded-full object-cover flex-shrink-0" src="https://placehold.co/65x62" alt="Grill Master Avatar" />
+        <div className="flex-1 min-w-0 flex flex-col items-start justify-center">
+          <div className="text-base font-bold text-black font-['Poppins'] truncate">_grill_master</div>
+          <div className="text-sm text-gray-700">
+            <span className="font-semibold text-sm text-[#006644]">290K</span> followers
+          </div>
+        </div>
+      </div>
+      
+      {/* --- Card Template: User 8 --- */}
+      <div className="w-[260px] h-[50px] p-3 bg-white/70 rounded-lg shadow-md flex items-center justify-start gap-3 transition-shadow hover:shadow-lg cursor-pointer"style={{marginLeft: '15px'}}>
+        <span className="text-xl font-extrabold text-[#006644] flex-shrink-0 w-6 text-center"style={{marginLeft: '1px'}}>8</span>
+        <img className="w-12 h-12 shadow-inner rounded-full object-cover flex-shrink-0" src="https://placehold.co/65x62" alt="Dessert Queen Avatar" />
+        <div className="flex-1 min-w-0 flex flex-col items-start justify-center">
+          <div className="text-base font-bold text-black font-['Poppins'] truncate">_dessert_queen</div>
+          <div className="text-sm text-gray-700">
+            <span className="font-semibold text-sm text-[#006644]">180K</span> followers
+          </div>
+        </div>
+      </div>
+      
+      {/* --- Card Template: User 9 --- */}
+      <div className="w-[260px] h-[50px] p-3 bg-white/70 rounded-lg shadow-md flex items-center justify-start gap-3 transition-shadow hover:shadow-lg cursor-pointer"style={{marginLeft: '15px'}}>
+        <span className="text-xl font-extrabold text-[#006644] flex-shrink-0 w-6 text-center"style={{marginLeft: '1px'}}>9</span>
+        <img className="w-12 h-12 shadow-inner rounded-full object-cover flex-shrink-0" src="https://placehold.co/65x62" alt="Vegan Eats Avatar" />
+        <div className="flex-1 min-w-0 flex flex-col items-start justify-center">
+          <div className="text-base font-bold text-black font-['Poppins'] truncate">_vegan_eats</div>
+          <div className="text-sm text-gray-700">
+            <span className="font-semibold text-sm text-[#006644]">150K</span> followers
+          </div>
+        </div>
+      </div>
+      
+      {/* --- Card Template: User 10 --- */}
+      <div className="w-[260px] h-[50px] p-3 bg-white/70 rounded-lg shadow-md flex items-center justify-start gap-3 transition-shadow hover:shadow-lg cursor-pointer"style={{marginLeft: '15px'}}>
+        <span className="text-xl font-extrabold text-[#006644] flex-shrink-0 w-6 text-center"style={{marginLeft: '1px'}}>10</span>
+        <img className="w-12 h-12 shadow-inner rounded-full object-cover flex-shrink-0" src="https://placehold.co/65x62" alt="Soup Master Avatar" />
+        <div className="flex-1 min-w-0 flex flex-col items-start justify-center">
+          <div className="text-base font-bold text-black font-['Poppins'] truncate">_soup_master</div>
+          <div className="text-sm text-gray-700">
+            <span className="font-semibold text-sm text-[#006644]">120K</span> followers
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+            </div>
+            
           </div>
         </main>
       </div>
     </div>
   );
 }
-
