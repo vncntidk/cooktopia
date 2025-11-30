@@ -4,8 +4,8 @@ import { useAuth } from "../../contexts/AuthContext";
 import { getUserProfile } from "../../services/users";
 import { listenToUnreadCount } from "../../services/messagingService";
 import styles from "./Sidebar.module.css";
-//o
 import NotificationModal from "../../modals/NotificationModal"; //for Notifications
+import ProfileMenu from "../../pages/ProfileMenu";
 
 
 const Sidebar = () => {
@@ -13,13 +13,14 @@ const Sidebar = () => {
   const { user } = useAuth();
   const [active, setActive] = useState("home");
   const navigate = useNavigate();
+
   //Notifications modal state
-    const showNotification = (message) => {
-       setNotificationMessage(message);
-       setIsModalOpen(true);
-     };
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [notificationMessage, setNotificationMessage] = useState('');
+  const showNotification = (message) => {
+      setNotificationMessage(message);
+      setIsModalOpen(true);
+    };
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [notificationMessage, setNotificationMessage] = useState('');
   const [profileImage, setProfileImage] = useState(null);
   const [isImageLoaded, setIsImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
