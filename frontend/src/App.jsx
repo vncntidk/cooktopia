@@ -30,7 +30,7 @@ function App() {
 function AppContent() {
   const location = useLocation();
   
-  const shouldShowFAB = location.pathname !== '/create-recipe' && location.pathname !== '/messages' && location.pathname !== '/reactions-demo' && location.pathname !== '/activity-logs' && !location.pathname.startsWith('/admin');
+  const shouldShowFAB = !location.pathname.startsWith('/create-recipe') && !location.pathname.startsWith('/edit-recipe') && location.pathname !== '/messages' && location.pathname !== '/reactions-demo' && location.pathname !== '/activity-logs' && !location.pathname.startsWith('/admin');
 
   return (
     <>
@@ -40,6 +40,7 @@ function AppContent() {
         <Route path="/profile" element={<Protected><ProfilePage /></Protected>} />
         <Route path="/profile/:userId" element={<Protected><ProfilePage /></Protected>} />
         <Route path="/create-recipe" element={<Protected><CreateRecipe /></Protected>} />
+        <Route path="/edit-recipe/:recipeId" element={<Protected><CreateRecipe /></Protected>} />
         <Route path="/messages" element={<Protected><Messages /></Protected>} />
         <Route path="/activity-logs" element={<Protected><ActivityLogs /></Protected>} />
         <Route path="/reactions-demo" element={<ReactionsDemo />} />

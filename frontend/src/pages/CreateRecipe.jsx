@@ -1,11 +1,11 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Upload, Video, Plus, X, Clock, ChefHat } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { uploadMultipleImages } from '../services/cloudinary';
-import { createRecipe } from '../services/recipes';
+import { createRecipe, updateRecipe, getRecipeById } from '../services/recipes';
 import toast from 'react-hot-toast';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import './CreateRecipe.css';
 
 // ============= REUSABLE COMPONENTS =============
@@ -255,6 +255,10 @@ const DynamicList = ({
 const CreateRecipe = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const { recipeId } = useParams();
+  // Determine edit mode based on route path (not just params)
+  const isEditMode = location.pathname.startsWith('/edit-recipe') && !!recipeId;
 
   const [formData, setFormData] = useState({
     title: '',
@@ -268,8 +272,86 @@ const CreateRecipe = () => {
 
   const [images, setImages] = useState([]);
   const [imagePreviews, setImagePreviews] = useState([]);
+  const [existingImageUrls, setExistingImageUrls] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState({});
+
+  // Load recipe data if in edit mode
+  useEffect(() => {
+    if (isEditMode && recipeId) {
+      const loadRecipe = async () => {
+        try {
+          setIsLoading(true);
+          const recipeData = await getRecipeById(recipeId);
+          
+          if (!recipeData) {
+            toast.error('Recipe not found');
+            navigate('/home');
+            return;
+          }
+
+          // Check if user is the owner
+          if (recipeData.authorId !== user?.uid) {
+            toast.error('You do not have permission to edit this recipe');
+            navigate('/home');
+            return;
+          }
+
+          // Pre-fill form with recipe data
+          setFormData({
+            title: recipeData.title || '',
+            description: recipeData.description || '',
+            youtubeLink: recipeData.youtubeLink || '',
+            difficulty: recipeData.difficulty || '',
+            duration: recipeData.duration?.toString() || '',
+            ingredients: recipeData.ingredients && recipeData.ingredients.length > 0 
+              ? recipeData.ingredients 
+              : [''],
+            steps: recipeData.steps && recipeData.steps.length > 0 
+              ? recipeData.steps 
+              : ['']
+          });
+
+          // Set existing images
+          if (recipeData.imageUrls && recipeData.imageUrls.length > 0) {
+            setExistingImageUrls(recipeData.imageUrls);
+            // Create previews for existing images
+            const previews = recipeData.imageUrls.map((url, index) => ({
+              file: null,
+              preview: url,
+              id: `existing-${index}`,
+              isExisting: true
+            }));
+            setImagePreviews(previews);
+          }
+        } catch (error) {
+          console.error('Error loading recipe:', error);
+          toast.error('Failed to load recipe');
+          navigate('/home');
+        } finally {
+          setIsLoading(false);
+        }
+      };
+
+      loadRecipe();
+    } else {
+      // Reset form when switching from edit to create mode
+      setFormData({
+        title: '',
+        description: '',
+        youtubeLink: '',
+        difficulty: '',
+        duration: '',
+        ingredients: [''],
+        steps: ['']
+      });
+      setImages([]);
+      setImagePreviews([]);
+      setExistingImageUrls([]);
+      setIsLoading(false);
+    }
+  }, [isEditMode, recipeId, user, navigate]);
 
   const handleInputChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -289,9 +371,23 @@ const CreateRecipe = () => {
   };
 
   const removeImage = (index) => {
-    URL.revokeObjectURL(imagePreviews[index].preview);
-    setImages(prev => prev.filter((_, i) => i !== index));
+    const preview = imagePreviews[index];
+    if (!preview) return;
+    
+    // Only revoke URL if it's a blob URL (newly uploaded), not an existing image
+    if (preview.file && !preview.isExisting) {
+      URL.revokeObjectURL(preview.preview);
+      // Remove the file from images array
+      setImages(prev => prev.filter(file => file !== preview.file));
+    }
+    
+    // Remove from previews
     setImagePreviews(prev => prev.filter((_, i) => i !== index));
+    
+    // If it's an existing image, also remove from existingImageUrls
+    if (preview.isExisting) {
+      setExistingImageUrls(prev => prev.filter(url => url !== preview.preview));
+    }
   };
 
   const updateListItem = (list, index, value) => {
@@ -359,10 +455,13 @@ const CreateRecipe = () => {
     setIsSubmitting(true);
 
     try {
-      let imageUrls = [];
+      let imageUrls = [...existingImageUrls];
+      
+      // Upload new images if any
       if (images.length > 0) {
         const uploadResults = await uploadMultipleImages(images);
-        imageUrls = uploadResults.map(result => result.secure_url);
+        const newImageUrls = uploadResults.map(result => result.secure_url);
+        imageUrls = [...imageUrls, ...newImageUrls];
       }
 
       const recipeData = {
@@ -374,21 +473,44 @@ const CreateRecipe = () => {
         duration: parseInt(formData.duration),
         ingredients: formData.ingredients.filter(i => i.trim()),
         steps: formData.steps.filter(s => s.trim()),
-        authorId: user.uid,
-        authorName: user.displayName || user.email
       };
 
-      toast.loading('Saving recipe...', { id: 'save' });
-      await createRecipe(recipeData);
-      toast.success('Recipe created successfully!', { id: 'save' });
+      if (isEditMode) {
+        // Update existing recipe
+        toast.loading('Updating recipe...', { id: 'save' });
+        await updateRecipe(recipeId, recipeData);
+        toast.success('Recipe updated successfully!', { id: 'save' });
+      } else {
+        // Create new recipe
+        recipeData.authorId = user.uid;
+        recipeData.authorName = user.displayName || user.email;
+        toast.loading('Saving recipe...', { id: 'save' });
+        await createRecipe(recipeData);
+        toast.success('Recipe created successfully!', { id: 'save' });
+      }
+      
       navigate('/home');
     } catch (error) {
-      console.error('Error creating recipe:', error);
-      toast.error(error.message || 'Failed to create recipe');
+      console.error(`Error ${isEditMode ? 'updating' : 'creating'} recipe:`, error);
+      toast.error(error.message || `Failed to ${isEditMode ? 'update' : 'create'} recipe`);
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  // Show loading state while fetching recipe data in edit mode
+  if (isLoading) {
+    return (
+      <div className="create-recipe-page">
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '50vh' }}>
+          <div style={{ textAlign: 'center' }}>
+            <div className="loading-spinner" style={{ margin: '0 auto 1rem' }}></div>
+            <p>Loading recipe...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="create-recipe-page">
@@ -397,7 +519,7 @@ const CreateRecipe = () => {
         <div className="header-container">
           <div className="header-content">
             <ChefHat className="header-icon" />
-            <h1 className="header-title">Create Recipe</h1>
+            <h1 className="header-title">{isEditMode ? 'Edit Recipe' : 'Create Recipe'}</h1>
           </div>
         </div>
       </header>
@@ -555,10 +677,10 @@ const CreateRecipe = () => {
               {isSubmitting ? (
                 <span className="button-loading">
                   <span className="loading-spinner"></span>
-                  Creating...
+                  {isEditMode ? 'Updating...' : 'Creating...'}
                 </span>
               ) : (
-                'Post Recipe'
+                isEditMode ? 'Update Recipe' : 'Post Recipe'
               )}
             </motion.button>
           </motion.div>
