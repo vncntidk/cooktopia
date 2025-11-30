@@ -38,6 +38,7 @@ export default function AdminUser() {
     <div className="w-full h-screen flex bg-gray-50">
       <SidebarLogoAdmin />
 
+
       <div className="flex-1 ml-0 lg:ml-48 flex flex-col h-screen min-w-0 ">
         {/* SEARCH BAR */}
           <div className="self-stretch flex justify-center items-center mt-8 sm:mt-12 md:mt-16" style={{ paddingTop: '20px' }}>
