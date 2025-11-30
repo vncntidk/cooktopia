@@ -8,6 +8,8 @@ import { getRecipeInteractionCounts, toggleRecipeLike, hasUserLikedRecipe, toggl
 import { followUser, unfollowUser, isFollowing as checkIsFollowing } from '../services/followService';
 import { useNavigate } from 'react-router-dom';
 import Avatar from '../components/Avatar';
+import ConfirmDialog from '../components/ConfirmDialog';
+import toast from 'react-hot-toast';
 import '../pages/ViewProfile.css';
 
 export default function ViewPostModal({ isOpen, onClose, recipe: recipeInput }) {
@@ -37,6 +39,7 @@ export default function ViewPostModal({ isOpen, onClose, recipe: recipeInput }) 
   const [interactionCounts, setInteractionCounts] = useState({ likes: 0, comments: 0, saves: 0 });
   const [showRecipeMenu, setShowRecipeMenu] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   // Load real recipe data from Firebase (from old code)
   useEffect(() => {
@@ -384,6 +387,35 @@ export default function ViewPostModal({ isOpen, onClose, recipe: recipeInput }) 
   // Check if current user is the recipe owner
   const isOwner = user?.uid && recipe?.authorId === user.uid;
 
+  // Handle edit navigation
+  const handleEditRecipe = () => {
+    if (!recipe?.id || !isOwner) return;
+    setShowRecipeMenu(false);
+    onClose(); // Close the modal first
+    navigate(`/edit-recipe/${recipe.id}`);
+  };
+
+  // Handle delete confirmation
+  const handleDeleteConfirm = async () => {
+    if (!user?.uid || !recipe?.id || !isOwner || isDeleting) return;
+    
+    setIsDeleting(true);
+    try {
+      await deleteRecipe(recipe.id);
+      toast.success('Recipe deleted successfully');
+      setShowDeleteDialog(false);
+      onClose();
+      // Refresh the page to update recipe lists
+      setTimeout(() => {
+        window.location.reload();
+      }, 500);
+    } catch (error) {
+      console.error('Error deleting recipe:', error);
+      toast.error(error.message || 'Failed to delete recipe. Please try again.');
+      setIsDeleting(false);
+    }
+  };
+
   return (
     <>
       <style>{`
@@ -436,7 +468,7 @@ export default function ViewPostModal({ isOpen, onClose, recipe: recipeInput }) 
         .close-button {
           position: absolute;
           top: 1rem;
-          right: 1rem;
+          left: 1rem;
           z-index: 20;
           padding: 0.625rem;
           background-color: rgba(255, 255, 255, 0.95);
@@ -520,6 +552,7 @@ export default function ViewPostModal({ isOpen, onClose, recipe: recipeInput }) 
           padding: 1.5rem 1.5rem 1rem;
           background-color: white;
           border-bottom: 1px solid #f3f4f6;
+          position: relative;
         }
 
         .author-section {
@@ -527,6 +560,8 @@ export default function ViewPostModal({ isOpen, onClose, recipe: recipeInput }) 
           align-items: center;
           justify-content: space-between;
           margin-bottom: 1rem;
+          gap: 1rem;
+          width: 100%;
         }
 
         .author-info {
@@ -535,6 +570,8 @@ export default function ViewPostModal({ isOpen, onClose, recipe: recipeInput }) 
           gap: 0.75rem;
           cursor: pointer;
           transition: opacity 0.2s ease;
+          flex-shrink: 0;
+          min-width: 0;
         }
 
         .author-info:hover {
@@ -560,6 +597,8 @@ export default function ViewPostModal({ isOpen, onClose, recipe: recipeInput }) 
           display: flex;
           align-items: center;
           gap: 0.5rem;
+          flex-shrink: 0;
+          margin-left: auto;
         }
 
 
@@ -586,7 +625,7 @@ export default function ViewPostModal({ isOpen, onClose, recipe: recipeInput }) 
           box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
           border: 1px solid #f3f4f6;
           padding: 0.25rem 0;
-          z-index: 20;
+          z-index: 30;
           min-width: 140px;
         }
 
@@ -1286,6 +1325,27 @@ export default function ViewPostModal({ isOpen, onClose, recipe: recipeInput }) 
             width: 100%;
             max-height: calc(95vh - 300px);
           }
+
+          .close-button {
+            top: 0.75rem;
+            left: 0.75rem;
+            padding: 0.5rem;
+          }
+
+          .author-section {
+            flex-wrap: wrap;
+            gap: 0.75rem;
+          }
+
+          .action-buttons {
+            width: 100%;
+            justify-content: flex-end;
+            margin-left: 0;
+          }
+
+          .modal-header {
+            padding: 1rem;
+          }
         }
 
         /* No data message */
@@ -1356,7 +1416,7 @@ export default function ViewPostModal({ isOpen, onClose, recipe: recipeInput }) 
                 </button>
                 
                 <div className="action-buttons">
-                  {/* Follow button for non-owners */}
+                  {/* Follow button - show for non-owners */}
                   {!isOwner && user?.uid && recipe.authorId && (
                     <button 
                       onClick={handleFollowToggle}
@@ -1367,7 +1427,7 @@ export default function ViewPostModal({ isOpen, onClose, recipe: recipeInput }) 
                     </button>
                   )}
                   
-                  {/* Edit/Delete menu for owners */}
+                  {/* Edit/Delete menu - show for owners only */}
                   {isOwner && (
                     <div style={{ position: 'relative' }}>
                       <button
@@ -1380,41 +1440,22 @@ export default function ViewPostModal({ isOpen, onClose, recipe: recipeInput }) 
                       {showRecipeMenu && (
                         <div className="menu-dropdown">
                           <button
-                            onClick={() => {
-                              setShowRecipeMenu(false);
-                              console.log('Edit recipe:', recipe.id);
-                              // TODO: Implement edit functionality
-                            }}
+                            onClick={handleEditRecipe}
                             className="menu-item edit"
                           >
                             <Edit2 className="w-4 h-4" />
                             Edit Recipe
                           </button>
                           <button
-                            onClick={async () => {
-                              if (!user?.uid || !recipe?.id) return;
-                              
-                              if (window.confirm('Are you sure you want to delete this recipe? This action cannot be undone.')) {
-                                setIsDeleting(true);
-                                try {
-                                  // Delete recipe from Firebase
-                                  await deleteRecipe(recipe.id);
-                                  onClose();
-                                  window.location.reload();
-                                } catch (error) {
-                                  console.error('Error deleting recipe:', error);
-                                  alert('Failed to delete recipe. Please try again.');
-                                } finally {
-                                  setIsDeleting(false);
-                                  setShowRecipeMenu(false);
-                                }
-                              }
+                            onClick={() => {
+                              setShowRecipeMenu(false);
+                              setShowDeleteDialog(true);
                             }}
-                            disabled={isDeleting || !user?.uid}
+                            disabled={isDeleting}
                             className="menu-item delete"
                           >
                             <Trash2 className="w-4 h-4" />
-                            {isDeleting ? 'Deleting...' : 'Delete'}
+                            Delete Recipe
                           </button>
                         </div>
                       )}
@@ -1745,6 +1786,19 @@ export default function ViewPostModal({ isOpen, onClose, recipe: recipeInput }) 
           </div>
         </div>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={showDeleteDialog}
+        onClose={() => !isDeleting && setShowDeleteDialog(false)}
+        onConfirm={handleDeleteConfirm}
+        title="Delete Recipe"
+        message="Are you sure you want to delete this recipe? This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+        variant="danger"
+        isLoading={isDeleting}
+      />
     </>
   );
 }
