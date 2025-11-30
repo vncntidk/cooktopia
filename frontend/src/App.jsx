@@ -2,11 +2,15 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'r
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import LandingPage from './pages/LandingPage';
 import HomePage from './pages/HomePage';
+import ProfilePage from './pages/ProfilePage';
+import Messages from "./pages/Messages";
+import ReactionsDemo from "./pages/ReactionsDemo";
 import FloatingActionButton from './components/FloatingActionButton';
 import { Toaster } from 'react-hot-toast';
 
 import './App.css';
 import CreateRecipe from './pages/CreateRecipe.jsx';
+
 
 function App() {
   return (
@@ -21,14 +25,17 @@ function App() {
 function AppContent() {
   const location = useLocation();
   
-  const shouldShowFAB = location.pathname !== '/create-recipe';
+  const shouldShowFAB = location.pathname !== '/create-recipe' && location.pathname !== '/messages' && location.pathname !== '/reactions-demo';
 
   return (
     <>
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/home" element={<Protected><HomePage /></Protected>} />
+        <Route path="/profile" element={<Protected><ProfilePage /></Protected>} />
         <Route path="/create-recipe" element={<Protected><CreateRecipe /></Protected>} />
+        <Route path="/messages" element={<Protected><Messages /></Protected>} />
+        <Route path="/reactions-demo" element={<ReactionsDemo />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       

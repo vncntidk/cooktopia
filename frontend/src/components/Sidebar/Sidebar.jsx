@@ -1,8 +1,20 @@
 import React, { useState } from "react";
 import styles from "./Sidebar.module.css";
+import { useNavigate } from "react-router-dom";
+//o
+import NotificationModal from "../../modals/NotificationModal"; //for Notifications
+
 
 const Sidebar = () => {
   const [active, setActive] = useState("home");
+  const navigate = useNavigate();
+  //Notifications modal state
+    const showNotification = (message) => {
+       setNotificationMessage(message);
+       setIsModalOpen(true);
+     };
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [notificationMessage, setNotificationMessage] = useState('');
 
   return (
     <aside
@@ -15,6 +27,7 @@ const Sidebar = () => {
           src="/profile.png"
           alt="Profile"
           className="w-10 h-10 rounded-full object-cover cursor-pointer hover:scale-105 transition-transform"
+          onClick={() => navigate("/profile")}
         />
       </div>
 
@@ -33,12 +46,16 @@ const Sidebar = () => {
             src={active === "home" ? "/icons/homeActive.png" : "/icons/homeIcon.png"}
             alt="Home"
             className="w-10 h-10"
+            onClick={() => navigate("/home")}
           />
         </button>
 
         {/* Notifications */}
         <button
-          onClick={() => setActive("notifications")}
+          onClick={() => {
+          setActive("notifications");
+          setIsModalOpen(prev => !prev);
+          }}
           className="relative p-3 transition-all duration-200"
           aria-label="Notifications"
         >
@@ -51,6 +68,7 @@ const Sidebar = () => {
             className="w-10 h-10"
           />
         </button>
+
 
         {/* Messages */}
         <button
@@ -68,7 +86,13 @@ const Sidebar = () => {
           />
         </button>
       </div>
+      <NotificationModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        message={notificationMessage} // empty string by default; so no default message will show
+      />
     </aside>
+    
   );
 };
 
