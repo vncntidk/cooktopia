@@ -2,7 +2,10 @@ import React from "react";
 
 const Header = () => {
   return (
-    <header className="w-full h-10 px-4 top-2 z-50 relative">
+    // CHANGE: 'relative' replaced with 'fixed top-0 left-0 w-full bg-white'
+    // 'fixed top-0 left-0 w-full' locks it to the viewport, and 'z-50' ensures it stays on top of content.
+    // I added 'bg-white' to prevent content from showing through the header when fixed.
+    <header className="w-full h-22 px-4 fixed top-0 left-0 z-50 bg-white shadow-md">
       {/* Centered container with max width and horizontal padding */}
       <div className="max-w-7xl mx-auto px-4 md:px-8 lg:px-12 flex flex-col md:flex-row justify-between items-center">
         
@@ -11,9 +14,8 @@ const Header = () => {
           className="w-32 md:w-40 lg:w-52 h-auto md:h-20 lg:h-24 object-contain"
           src="/images/cooktopialogo.png"
           alt="CookTopia Logo"
-          style={{ marginLeft: '24px' }} // Added inline style for 8px left margin to move logo slightly right
+          style={{ marginLeft: '24px' }} 
         />
-
 
         {/* Navigation aligned right with spacing from edge */}
         <nav className="w-96 h-11 right-1 top-[38px] absolute flex justify-center items-start gap-10 text-base md:text-lg lg:text-xl text-black font-['Poppins']">
@@ -23,8 +25,7 @@ const Header = () => {
         </nav>
       </div>
 
-      {/* Full-width Divider Line */}
-      <div className="w-full h-[1px] bg-stone-300 mt-4"></div>
+  
     </header>
   );
 };
