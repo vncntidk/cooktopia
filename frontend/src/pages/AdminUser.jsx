@@ -38,13 +38,14 @@ export default function AdminUser() {
     <div className="w-full h-screen flex bg-gray-50">
       <SidebarLogoAdmin />
 
+
       <div className="flex-1 ml-0 lg:ml-48 flex flex-col h-screen min-w-0 ">
         {/* SEARCH BAR */}
-          <div className="self-stretch flex justify-center items-center mt-8 sm:mt-12 md:mt-16" style={{ paddingTop: '20px' }}>
+          <div className="self-stretch flex justify-center items-center mt-8 sm:mt-12 md:mt-16" style={{ paddingTop: '20px'}}>
             <SearchBarUser />
           </div>
 
-        <main className="flex-1 overflow-y-auto w-full max-w-full overflow-x-auto" style={{ paddingTop: '20px' }}>
+        <main className="flex-1 overflow-y-auto w-full max-w-full overflow-x-auto" style={{ paddingTop: '20px', paddingRight: '20px'}}>
           <div className="w-full px-3 sm:px-5 md:px-6 lg:px-8 flex flex-col justify-start gap-6 sm:gap-8 md:gap-10 py-4 sm:py-6">
 
             <div className="self-stretch px-3 sm:px-7 inline-flex flex-col justify-start mt-12 sm:mt-16">
