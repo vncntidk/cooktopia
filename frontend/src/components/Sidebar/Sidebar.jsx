@@ -4,13 +4,22 @@ import { useAuth } from "../../contexts/AuthContext";
 import { getUserProfile } from "../../services/users";
 import { listenToUnreadCount } from "../../services/messagingService";
 import styles from "./Sidebar.module.css";
-import ProfileMenu from "../../pages/ProfileMenu";
+//o
+import NotificationModal from "../../modals/NotificationModal"; //for Notifications
+
 
 const Sidebar = () => {
-  const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
   const [active, setActive] = useState("home");
+  const navigate = useNavigate();
+  //Notifications modal state
+    const showNotification = (message) => {
+       setNotificationMessage(message);
+       setIsModalOpen(true);
+     };
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [notificationMessage, setNotificationMessage] = useState('');
   const [profileImage, setProfileImage] = useState(null);
   const [isImageLoaded, setIsImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
@@ -184,16 +193,17 @@ const Sidebar = () => {
             src={active === "home" ? "/icons/homeActive.png" : "/icons/homeIcon.png"}
             alt="Home"
             className="w-10 h-10"
+            onClick={() => navigate("/home")}
           />
         </button>
 
         {/* Notifications */}
         <button
           onClick={() => {
-            setActive("notifications");
-            // navigate("/notifications"); // Uncomment when notifications page is ready
+          setActive("notifications");
+          setIsModalOpen(prev => !prev);
           }}
-          className="relative w-full flex justify-center items-center py-4 transition-all duration-200"
+          className="relative p-3 transition-all duration-200"
           aria-label="Notifications"
         >
           {active === "notifications" && (
@@ -205,6 +215,7 @@ const Sidebar = () => {
             className="w-10 h-10"
           />
         </button>
+
 
         {/* Messages */}
         <button
@@ -232,7 +243,13 @@ const Sidebar = () => {
           </div>
         </button>
       </div>
+      <NotificationModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        message={notificationMessage} // empty string by default; so no default message will show
+      />
     </aside>
+    
   );
 };
 
