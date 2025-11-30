@@ -38,34 +38,34 @@ export default function AdminActivity() {
   
         <div className="flex-1 ml-0 lg:ml-48 flex flex-col h-screen min-w-0 ">
 
-        <div className="self-stretch flex items-center justify-between mt-4 sm:mt-8" style={{ padding: '10px' }}>
-          <h1 className="text-3xl font-bold text-black">
+        <div className="self-stretch flex items-center justify-between mt-4 sm:mt-8">
+          <h1 className="text-3xl text-center font-bold text-black min-w-[230px]" style={{ paddingLeft: '40px'}}>
             Activity Log
           </h1>
 
-          <div className="w-[80%]">
+          <div className="w-[80%]"  style={{ padding: '10px', }}>
             <SearchBarUser onSearch={setSearchQuery}/>
           </div>
         </div>
   
           <main className="flex-1 overflow-y-auto w-full max-w-full overflow-x-auto">
-            <div className="w-full px-5 flex flex-col gap-8">
+            <div className="w-full px-3 sm:px-5 md:px-6 lg:px-8 flex flex-col justify-start gap-6 sm:gap-8 md:gap-10 py-4 sm:py-6">
 
             <div className="self-stretch px-3 sm:px-7 flex-col justify-start gap-3 sm:gap-4 mt-6 sm:mt-8">
                 {/* TABLE HEADER */}
                 <div className="flex items-center h-20 font-medium text-black px-5" style={{ paddingLeft: '20px' }}>
                   <div className="flex items-center gap-3 text-black px-5">
-                    <div className="w-40 text-center text-sm sm:text-base md:text-lg font-['Poppins']">Timestamp</div>
-                    <div className="w-85 text-center text-sm sm:text-base md:text-lg font-['Poppins']">Admin Name</div>
-                    <div className="w-60 text-center text-sm sm:text-base md:text-lg font-['Poppins']">Action</div>
-                    <div className="w-50 text-center text-sm sm:text-base md:text-lg font-['Poppins']">Target</div>
-                    <div className="w-45 text-center text-sm sm:text-base md:text-lg font-['Poppins']">Log ID</div>
+                    <div className="w-48 text-center text-sm sm:text-base md:text-lg font-['Poppins']">Timestamp</div>
+                    <div className="w-82 text-center text-sm sm:text-base md:text-lg font-['Poppins']">Admin Name</div>
+                    <div className="w-80 text-center text-sm sm:text-base md:text-lg font-['Poppins']">Action</div>
+                    <div className="w-60 text-center text-sm sm:text-base md:text-lg font-['Poppins']">Target</div>
+                    <div className="w-60 text-center text-sm sm:text-base md:text-lg font-['Poppins']">Log ID</div>
                   </div>
               </div>
                 
   
                 {/* USER LIST */}
-                <div className="flex flex-col" style={{ paddingLeft: '20px' }}>
+                <div className="flex flex-col" style={{ paddingLeft: '20px', paddingRight: '20px' }}>
   
                   {/* No result found */}
                   {filteredUsers.length === 0 && (
@@ -84,9 +84,9 @@ export default function AdminActivity() {
                       ` }
 
                     >
-                    <div className="flex items-center gap-5 font-semibold text-blacks" style={{ paddingLeft: '10px' }}>
-                      <div className="w-55 ml-40 text-xs sm:text-sm font-medium font-['Poppins']">{user.timestamp}</div>
-                      <div className="w-60 flex items-center gap-3">
+                    <div className="flex items-center gap-5 font-semibold text-blacks" style={{ paddingLeft: '25px' }}>
+                      <div className="w-60 ml-40 text-xs sm:text-sm font-medium font-['Poppins']">{user.timestamp}</div>
+                      <div className="w-68 flex items-center gap-3">
                         <img
                           className="w-9 h-9 rounded-full object-cover"
                           src={user.avatar}
@@ -95,7 +95,7 @@ export default function AdminActivity() {
                         <span className="text-xs sm:text-sm font-medium font-['Poppins']">{user.admin}</span>
                       </div>
                       <div className="w-65 text-center text-xs sm:text-sm font-medium font-['Poppins']">{user.action}</div>
-                      <div className="w-45 text-center text-xs sm:text-sm font-medium font-['Poppins']">{user.target}</div>
+                      <div className="w-72 text-center text-xs sm:text-sm font-medium font-['Poppins']">{user.target}</div>
                       <div className="w-45 text-center text-xs sm:text-sm font-semibold font-['Poppins']">{user.log}</div>
                     </div>
                     </div>
