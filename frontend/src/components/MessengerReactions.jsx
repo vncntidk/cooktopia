@@ -1,6 +1,10 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SmilePlus } from 'lucide-react';
+<<<<<<< HEAD
+=======
+import '../styles/messages.css';
+>>>>>>> 48facd8e857b4c5b8e8a9825c2d5aa549462df36
 
 const MessengerReactions = ({ messageId, reactions: initialReactions, onReactionUpdate }) => {
   const [showTray, setShowTray] = useState(false);
@@ -9,6 +13,16 @@ const MessengerReactions = ({ messageId, reactions: initialReactions, onReaction
   const triggerRef = useRef(null);
   const trayRef = useRef(null);
 
+<<<<<<< HEAD
+=======
+  // Sync reactions with prop changes (from Firestore updates)
+  useEffect(() => {
+    if (initialReactions) {
+      setReactions(initialReactions);
+    }
+  }, [initialReactions]);
+
+>>>>>>> 48facd8e857b4c5b8e8a9825c2d5aa549462df36
   const emojiOptions = [
     { id: 'heart', emoji: '❤️', label: 'Heart', color: 'bg-rose-50 dark:bg-rose-950 hover:bg-rose-100 dark:hover:bg-rose-900' },
     { id: 'appetite', emoji: '😋', label: 'Hungry', color: 'bg-amber-50 dark:bg-amber-950 hover:bg-amber-100 dark:hover:bg-amber-900' },
@@ -60,6 +74,7 @@ const MessengerReactions = ({ messageId, reactions: initialReactions, onReaction
     setTimeout(() => setShowTray(false), 200);
   };
 
+<<<<<<< HEAD
   const getTrayPosition = () => {
     // Position tray based on trigger element
     // Default: position above the message
@@ -68,19 +83,34 @@ const MessengerReactions = ({ messageId, reactions: initialReactions, onReaction
 
   return (
     <div className="relative inline-flex items-center">
+=======
+  return (
+    <div className="messages-reactions-container">
+>>>>>>> 48facd8e857b4c5b8e8a9825c2d5aa549462df36
       {/* Reaction Trigger Icon */}
       <button
         ref={triggerRef}
         onClick={() => setShowTray(!showTray)}
+<<<<<<< HEAD
         className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800"
         aria-label="Add reaction"
       >
         <SmilePlus className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+=======
+        className="messages-reaction-trigger"
+        aria-label="Add reaction"
+      >
+        <SmilePlus className="messages-reaction-icon" />
+>>>>>>> 48facd8e857b4c5b8e8a9825c2d5aa549462df36
       </button>
 
       {/* Existing Reactions Display */}
       {Object.entries(reactions).some(([_, count]) => count > 0) && (
+<<<<<<< HEAD
         <div className="ml-2 flex items-center gap-1">
+=======
+        <div className="messenger-reactions-list">
+>>>>>>> 48facd8e857b4c5b8e8a9825c2d5aa549462df36
           {emojiOptions.map(({ id, emoji, label }) => {
             const count = reactions[id] || 0;
             if (count === 0) return null;
@@ -89,20 +119,30 @@ const MessengerReactions = ({ messageId, reactions: initialReactions, onReaction
               <motion.button
                 key={id}
                 onClick={() => handleReactionClick(id)}
+<<<<<<< HEAD
                 className={`
                   relative flex items-center gap-1 px-2 py-1 rounded-full border
                   transition-all duration-200 ${emojiOptions.find(e => e.id === id)?.color}
                   ${userReaction === id ? 'ring-2 ring-blue-500 dark:ring-blue-400' : 'border-gray-200 dark:border-gray-700'}
                 `}
+=======
+                className={`messenger-reaction-badge ${userReaction === id ? 'active' : ''}`}
+>>>>>>> 48facd8e857b4c5b8e8a9825c2d5aa549462df36
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 aria-label={`${label}: ${count}`}
               >
+<<<<<<< HEAD
                 <span className="text-base">{emoji}</span>
                 {count > 1 && (
                   <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
+=======
+                <span className="messenger-reaction-emoji">{emoji}</span>
+                {count > 1 && (
+                  <span className="messenger-reaction-count">
+>>>>>>> 48facd8e857b4c5b8e8a9825c2d5aa549462df36
                     {count}
                   </span>
                 )}
@@ -121,7 +161,11 @@ const MessengerReactions = ({ messageId, reactions: initialReactions, onReaction
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
+<<<<<<< HEAD
               className="fixed inset-0 z-10"
+=======
+              className="messages-reaction-backdrop"
+>>>>>>> 48facd8e857b4c5b8e8a9825c2d5aa549462df36
               onClick={() => setShowTray(false)}
             />
             
@@ -132,6 +176,7 @@ const MessengerReactions = ({ messageId, reactions: initialReactions, onReaction
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -10, scale: 0.95 }}
               transition={{ duration: 0.15, ease: "easeOut" }}
+<<<<<<< HEAD
               className={`absolute left-0 ${getTrayPosition()} z-20`}
             >
               <div className="bg-white dark:bg-gray-800 rounded-full shadow-lg border border-gray-200 dark:border-gray-700 p-1 flex items-center gap-1">
@@ -144,11 +189,25 @@ const MessengerReactions = ({ messageId, reactions: initialReactions, onReaction
                       transition-all duration-200 ${color}
                       ${userReaction === id ? 'ring-2 ring-blue-500 dark:ring-blue-400' : ''}
                     `}
+=======
+              className="messages-reaction-tray"
+            >
+              <div className="messages-reaction-tray-content">
+                {emojiOptions.map(({ id, emoji, label }) => (
+                  <motion.button
+                    key={id}
+                    onClick={() => handleReactionClick(id)}
+                    className={`messages-reaction-tray-button ${userReaction === id ? 'active' : ''}`}
+>>>>>>> 48facd8e857b4c5b8e8a9825c2d5aa549462df36
                     whileHover={{ scale: 1.15 }}
                     whileTap={{ scale: 0.9 }}
                     aria-label={label}
                   >
+<<<<<<< HEAD
                     <span className="text-2xl" role="img" aria-label={label}>
+=======
+                    <span className="messages-reaction-tray-emoji" role="img" aria-label={label}>
+>>>>>>> 48facd8e857b4c5b8e8a9825c2d5aa549462df36
                       {emoji}
                     </span>
                   </motion.button>

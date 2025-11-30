@@ -113,12 +113,19 @@ export default function AdminReview() {
                 <div className="self-stretch flex-1 justify-center text-black text-base sm:text-lg font-medium font-['Afacad']">Sort by:</div>
               </div>
 
+<<<<<<< HEAD
               <div className="self-stretch p-2.5 inline-flex justify-start items-center gap-4 flex-wrap content-center"  style={{ marginLeft: 12 }}>
                 <div 
                   onClick={() => handleFilterClick("All")}
                   className={`w-24 h-8 px-3 py-1.5 rounded-[20px] shadow-[4px_5px_4px_0px_rgba(0,0,0,0.29)] inline-flex flex-col justify-center items-center gap-1 cursor-pointer hover:scale-105 transition-all duration-200 ${
                     activeFilter === "All" ? "bg-[#005236]/80 hover:bg-[#005236]" : "bg-[#6BC4A6] hover:bg-[#005236]"
                   }`}
+=======
+              {/* Static 'All' Count Display */}
+              <div className="self-stretch inline-flex justify-start items-center gap-3 flex-wrap">
+                <div
+                  className={`min-w-[80px] h-9 px-4 py-1.5 rounded-full inline-flex justify-center items-center gap-1 bg-[#005236] font-bold text-white shadow-lg`}
+>>>>>>> 48facd8e857b4c5b8e8a9825c2d5aa549462df36
                 >
                   <div className={`text-center justify-start text-white text-xs sm:text-sm font-['Poppins'] ${activeFilter === "All" ? "font-bold" : "font-normal"}`}>All (53)</div>
                 </div>

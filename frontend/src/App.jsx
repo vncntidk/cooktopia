@@ -16,6 +16,10 @@ import CreateRecipe from './pages/CreateRecipe.jsx';
 import Messages from './pages/Messages.jsx';
 import ReactionsDemo from './pages/ReactionsDemo.jsx';
 import ActivityLogs from './pages/ActivityLogs.jsx';
+<<<<<<< HEAD
+=======
+import SearchResults from './pages/SearchResults.jsx';
+>>>>>>> 48facd8e857b4c5b8e8a9825c2d5aa549462df36
 
 function App() {
   return (
@@ -30,7 +34,16 @@ function App() {
 function AppContent() {
   const location = useLocation();
   
+<<<<<<< HEAD
   const shouldShowFAB = location.pathname !== '/create-recipe' && location.pathname !== '/messages' && location.pathname !== '/reactions-demo' && location.pathname !== '/activity-logs' && !location.pathname.startsWith('/admin');
+=======
+  const shouldShowFAB = location.pathname !== '/create-recipe' && 
+  location.pathname !== '/messages' && 
+  location.pathname !== '/reactions-demo' && 
+  location.pathname !== '/activity-logs' && 
+  location.pathname !== '/search' && 
+  !location.pathname.startsWith('/admin');
+>>>>>>> 48facd8e857b4c5b8e8a9825c2d5aa549462df36
 
   return (
     <>
