@@ -4,13 +4,21 @@ import { useAuth } from "../../contexts/AuthContext";
 import { getUserProfile } from "../../services/users";
 import { listenToUnreadCount } from "../../services/messagingService";
 import styles from "./Sidebar.module.css";
+<<<<<<< HEAD
 import ProfileMenu from "../../pages/ProfileMenu";
+=======
+import { useNavigate } from "react-router-dom";
+//o
+import NotificationModal from "../../modals/NotificationModal"; //for Notifications
+
+>>>>>>> 253c05c37b3f7c59af0ea884aa593dbe6ca7fd60
 
 const Sidebar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
   const [active, setActive] = useState("home");
+<<<<<<< HEAD
   const [profileImage, setProfileImage] = useState(null);
   const [isImageLoaded, setIsImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
@@ -112,6 +120,16 @@ const Sidebar = () => {
 
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const profileRef = useRef(null);
+=======
+  const navigate = useNavigate();
+  //Notifications modal state
+    const showNotification = (message) => {
+       setNotificationMessage(message);
+       setIsModalOpen(true);
+     };
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [notificationMessage, setNotificationMessage] = useState('');
+>>>>>>> 253c05c37b3f7c59af0ea884aa593dbe6ca7fd60
 
   return (
     <aside
@@ -119,6 +137,7 @@ const Sidebar = () => {
       aria-label="Sidebar"
     >
       {/* Profile */}
+<<<<<<< HEAD
       <div className={`${styles.profileWrapper} flex flex-col items-center relative`}>
         <div 
           className="relative w-10 h-10 rounded-full overflow-hidden cursor-pointer hover:scale-105 transition-transform"
@@ -163,6 +182,14 @@ const Sidebar = () => {
           isOpen={isProfileMenuOpen}
           onClose={() => setIsProfileMenuOpen(false)}
           profileRef={profileRef}
+=======
+      <div className={`${styles.profileWrapper} flex flex-col items-center`}>
+        <img
+          src="/profile.png"
+          alt="Profile"
+          className="w-10 h-10 rounded-full object-cover cursor-pointer hover:scale-105 transition-transform"
+          onClick={() => navigate("/profile")}
+>>>>>>> 253c05c37b3f7c59af0ea884aa593dbe6ca7fd60
         />
       </div>
 
@@ -184,16 +211,24 @@ const Sidebar = () => {
             src={active === "home" ? "/icons/homeActive.png" : "/icons/homeIcon.png"}
             alt="Home"
             className="w-10 h-10"
+            onClick={() => navigate("/home")}
           />
         </button>
 
         {/* Notifications */}
         <button
           onClick={() => {
+<<<<<<< HEAD
             setActive("notifications");
             // navigate("/notifications"); // Uncomment when notifications page is ready
           }}
           className="relative w-full flex justify-center items-center py-4 transition-all duration-200"
+=======
+          setActive("notifications");
+          setIsModalOpen(prev => !prev);
+          }}
+          className="relative p-3 transition-all duration-200"
+>>>>>>> 253c05c37b3f7c59af0ea884aa593dbe6ca7fd60
           aria-label="Notifications"
         >
           {active === "notifications" && (
@@ -205,6 +240,7 @@ const Sidebar = () => {
             className="w-10 h-10"
           />
         </button>
+
 
         {/* Messages */}
         <button
@@ -232,7 +268,13 @@ const Sidebar = () => {
           </div>
         </button>
       </div>
+      <NotificationModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        message={notificationMessage} // empty string by default; so no default message will show
+      />
     </aside>
+    
   );
 };
 

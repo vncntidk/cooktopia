@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 /* Profile Page Layout - Full Width Edge-to-Edge */
 :root {
   --profile-surface: #ffffff;
@@ -588,3 +589,16 @@
 }
 
 
+=======
+.main-layout {
+  display: flex;
+  flex-direction: column;
+  height: 100vh; /* Full screen height */
+}
+
+.profile-page {
+  flex: 1; /* Takes up remaining space */
+  overflow-y: auto; /* Scroll if content overflows */
+  padding: 50; /* Optional spacing */
+}
+>>>>>>> 253c05c37b3f7c59af0ea884aa593dbe6ca7fd60

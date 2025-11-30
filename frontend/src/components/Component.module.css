@@ -1,4 +1,5 @@
 .contentWrapper {
+<<<<<<< HEAD
   padding-top: 72px;
   padding-left: 8px;
   padding-right: 40px;
@@ -6,4 +7,11 @@
 
 .recipeCards {
   margin: 8px;
+=======
+  margin-top: 64px;
+}
+
+.recipeCards {
+  margin: 6px;
+>>>>>>> 253c05c37b3f7c59af0ea884aa593dbe6ca7fd60
 }

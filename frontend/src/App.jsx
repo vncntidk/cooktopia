@@ -3,6 +3,11 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import LandingPage from './pages/LandingPage';
 import HomePage from './pages/HomePage';
 import ProfilePage from './pages/ProfilePage';
+<<<<<<< HEAD
+=======
+import Messages from "./pages/Messages";
+import ReactionsDemo from "./pages/ReactionsDemo";
+>>>>>>> 253c05c37b3f7c59af0ea884aa593dbe6ca7fd60
 import FloatingActionButton from './components/FloatingActionButton';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminFeedbackReview from './pages/AdminFeedbackReview';
@@ -19,6 +24,7 @@ import ReactionsDemo from './pages/ReactionsDemo.jsx';
 import ActivityLogs from './pages/ActivityLogs.jsx';
 import SearchResults from './pages/SearchResults.jsx';
 
+
 function App() {
   return (
     <AuthProvider>
@@ -31,6 +37,7 @@ function App() {
 
 function AppContent() {
   const location = useLocation();
+<<<<<<< HEAD
  
   const shouldShowFAB = location.pathname !== '/create-recipe' &&
   location.pathname !== '/messages' &&
@@ -38,6 +45,10 @@ function AppContent() {
   location.pathname !== '/activity-logs' &&
   location.pathname !== '/search' &&
   !location.pathname.startsWith('/admin');
+=======
+  
+  const shouldShowFAB = location.pathname !== '/create-recipe' && location.pathname !== '/messages' && location.pathname !== '/reactions-demo';
+>>>>>>> 253c05c37b3f7c59af0ea884aa593dbe6ca7fd60
 
   return (
     <>
@@ -45,6 +56,7 @@ function AppContent() {
         <Route path="/" element={<LandingPage />} />
         <Route path="/home" element={<Protected><HomePage /></Protected>} />
         <Route path="/profile" element={<Protected><ProfilePage /></Protected>} />
+<<<<<<< HEAD
         <Route path="/profile/:userId" element={<Protected><ProfilePage /></Protected>} />
         <Route path="/create-recipe" element={<Protected><CreateRecipe /></Protected>} />
         <Route path="/edit-recipe/:recipeId" element={<Protected><CreateRecipe /></Protected>} />
@@ -58,6 +70,11 @@ function AppContent() {
         <Route path="/admin/reviews/report" element={<AdminReportReview />} />
         <Route path="/admin/users" element={<AdminUser />} />
         <Route path="/admin/activity" element={<AdminActivity />} />
+=======
+        <Route path="/create-recipe" element={<Protected><CreateRecipe /></Protected>} />
+        <Route path="/messages" element={<Protected><Messages /></Protected>} />
+        <Route path="/reactions-demo" element={<ReactionsDemo />} />
+>>>>>>> 253c05c37b3f7c59af0ea884aa593dbe6ca7fd60
         <Route path="*" element={<Navigate to="/" replace />} />
        
       </Routes>
