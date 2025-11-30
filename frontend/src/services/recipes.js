@@ -271,3 +271,104 @@ export const incrementRecipeViews = async (recipeId) => {
     // Don't throw error for view increment failures
   }
 };
+
+/**
+ * Search recipes by title/description
+ * Note: Firestore doesn't support full-text search, so we fetch and filter client-side
+ * @param {string} searchTerm - The search term (case-insensitive partial match)
+ * @param {Object} options - Query options
+ * @param {number} options.limit - Maximum number of recipes to fetch before filtering (default: 200)
+ * @returns {Promise<Array>} - Array of matching recipe documents
+ */
+export const searchRecipesByTitle = async (searchTerm, options = {}) => {
+  try {
+    if (!searchTerm || searchTerm.trim().length === 0) {
+      return [];
+    }
+
+    const { limit: limitCount = 200 } = options;
+    const searchLower = searchTerm.toLowerCase().trim();
+
+    // Fetch published recipes
+    const q = query(
+      collection(db, RECIPES_COLLECTION),
+      where('isPublished', '==', true),
+      orderBy('createdAt', 'desc'),
+      limit(limitCount)
+    );
+
+    const querySnapshot = await getDocs(q);
+    const recipes = [];
+
+    querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      const title = (data.title || '').toLowerCase();
+      const description = (data.description || '').toLowerCase();
+
+      // Check if search term appears in title or description
+      if (title.includes(searchLower) || description.includes(searchLower)) {
+        recipes.push({
+          id: doc.id,
+          ...data
+        });
+      }
+    });
+
+    return recipes;
+  } catch (error) {
+    console.error('Error searching recipes by title:', error);
+    throw new Error(`Failed to search recipes: ${error.message}`);
+  }
+};
+
+/**
+ * Search recipes by ingredients
+ * Note: Firestore array-contains requires exact matches, so we fetch and filter client-side
+ * @param {string} searchTerm - The search term (case-insensitive partial match)
+ * @param {Object} options - Query options
+ * @param {number} options.limit - Maximum number of recipes to fetch before filtering (default: 200)
+ * @returns {Promise<Array>} - Array of matching recipe documents
+ */
+export const searchRecipesByIngredient = async (searchTerm, options = {}) => {
+  try {
+    if (!searchTerm || searchTerm.trim().length === 0) {
+      return [];
+    }
+
+    const { limit: limitCount = 200 } = options;
+    const searchLower = searchTerm.toLowerCase().trim();
+
+    // Fetch published recipes
+    const q = query(
+      collection(db, RECIPES_COLLECTION),
+      where('isPublished', '==', true),
+      orderBy('createdAt', 'desc'),
+      limit(limitCount)
+    );
+
+    const querySnapshot = await getDocs(q);
+    const recipes = [];
+
+    querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      const ingredients = Array.isArray(data.ingredients) ? data.ingredients : [];
+
+      // Check if any ingredient contains the search term
+      const hasMatchingIngredient = ingredients.some((ingredient) =>
+        ingredient.toLowerCase().includes(searchLower)
+      );
+
+      if (hasMatchingIngredient) {
+        recipes.push({
+          id: doc.id,
+          ...data
+        });
+      }
+    });
+
+    return recipes;
+  } catch (error) {
+    console.error('Error searching recipes by ingredient:', error);
+    throw new Error(`Failed to search recipes by ingredient: ${error.message}`);
+  }
+};

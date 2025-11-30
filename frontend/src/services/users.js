@@ -8,6 +8,7 @@ import {
   getDocs,
   query,
   where,
+  limit,
   serverTimestamp
 } from 'firebase/firestore';
 import { db } from '../config/firebase-config';
@@ -244,6 +245,59 @@ export const getUserFollowingList = async (userId) => {
   } catch (error) {
     console.error('Error fetching following list:', error);
     return [];
+  }
+};
+
+/**
+ * Search users by display name or username
+ * Note: Firestore doesn't support full-text search, so we fetch and filter client-side
+ * @param {string} searchTerm - The search term (case-insensitive partial match)
+ * @param {Object} options - Query options
+ * @param {number} options.limit - Maximum number of users to fetch before filtering (default: 100)
+ * @returns {Promise<Array>} - Array of matching user documents with id
+ */
+export const searchUsers = async (searchTerm, options = {}) => {
+  try {
+    if (!searchTerm || searchTerm.trim().length === 0) {
+      return [];
+    }
+
+    const { limit: limitCount = 100 } = options;
+    const searchLower = searchTerm.toLowerCase().trim();
+
+    // Fetch all users (Firestore doesn't have a good way to limit this without indexes)
+    // In production, you'd want to use Algolia or similar for user search
+    const usersRef = collection(db, USERS_COLLECTION);
+    const q = query(usersRef, limit(limitCount));
+    
+    const querySnapshot = await getDocs(q);
+    const users = [];
+
+    querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      const displayName = (data.displayName || data.name || '').toLowerCase();
+      const email = (data.email || '').toLowerCase();
+      const username = email.split('@')[0] || ''; // Extract username from email if no displayName
+
+      // Check if search term appears in displayName, name, or email username
+      if (
+        displayName.includes(searchLower) ||
+        username.includes(searchLower) ||
+        email.includes(searchLower)
+      ) {
+        users.push({
+          id: doc.id,
+          ...data,
+          // Add username field for compatibility
+          username: data.displayName || data.name || username || `user_${doc.id.slice(0, 8)}`,
+        });
+      }
+    });
+
+    return users;
+  } catch (error) {
+    console.error('Error searching users:', error);
+    throw new Error(`Failed to search users: ${error.message}`);
   }
 };
 

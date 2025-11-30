@@ -38,16 +38,17 @@ export default function AdminUser() {
     <div className="w-full h-screen flex bg-gray-50">
       <SidebarLogoAdmin />
 
+
       <div className="flex-1 ml-0 lg:ml-48 flex flex-col h-screen min-w-0 ">
         {/* SEARCH BAR */}
-          <div className="self-stretch flex justify-center items-center mt-8 sm:mt-12 md:mt-16" style={{ paddingTop: '20px' }}>
+          <div className="self-stretch flex justify-center items-center mt-8 sm:mt-12 md:mt-16" style={{ paddingTop: '20px'}}>
             <SearchBarUser />
           </div>
 
-        <main className="flex-1 overflow-y-auto w-full max-w-full overflow-x-auto" style={{ paddingTop: '20px' }}>
+        <main className="flex-1 overflow-y-auto w-full max-w-full overflow-x-auto" style={{ paddingTop: '20px', paddingRight: '20px'}}>
           <div className="w-full px-3 sm:px-5 md:px-6 lg:px-8 flex flex-col justify-start gap-6 sm:gap-8 md:gap-10 py-4 sm:py-6">
 
-            <div className="self-stretch px-3 sm:px-7 inline-flex flex-col justify-start gap-3 sm:gap-4 mt-6 sm:mt-8">
+            <div className="self-stretch px-3 sm:px-7 inline-flex flex-col justify-start mt-12 sm:mt-16">
               {/* TABLE HEADER */}
               <div className="self-stretch h-12 sm:h-16 justify-start items-center gap-3 sm:gap-3.5" style={{ paddingLeft: '20px' }}>
                 <div className="flex items-center gap-3 font-semibold text-black px-5">
@@ -60,7 +61,7 @@ export default function AdminUser() {
               </div>
 
               {/* USER LIST */}
-              <div className="self-stretch flex flex-col justify-start gap-4 sm:gap-6" style={{ paddingLeft: '20px' }}>
+              <div className="self-stretch flex flex-col justify-start gap-1" style={{ paddingLeft: '20px' }}>
 
                 {/* No result found */}
                 {filteredUsers.length === 0 && (
@@ -72,10 +73,14 @@ export default function AdminUser() {
                 {filteredUsers.map((user, index) => (
                   <div
                     key={index}
-                    className="inline-flex items-center gap-3 px-5"
+                    className={`
+                      inline-flex items-center gap-3 px-5
+                      ${index % 2 === 0 ? "bg-[#DFF1EB]" : ""}
+                      hover:bg-[#c9edd3] transition
+                    `}
                   >
                     <img
-                      className="w-12 h-12 rounded-full object-cover"
+                      className="w-12 h-12 rounded-full object-cover ml-2"
                       src={user.avatar}
                       alt="User avatar"
                     />

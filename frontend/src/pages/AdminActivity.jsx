@@ -16,61 +16,60 @@ export default function AdminActivity() {
       { log: 201, admin: "Cook Yeon", action: "Delete Feedback", target: "FeedbackID: 270", timestamp: "09/30/2024 - 08:00 AM", avatar: "https://i.pravatar.cc/150?img=25" },
     ];
   
+    // Expanded filtering to include action and target for better search functionality
     const filteredUsers = act.filter((a) =>
-      a.admin.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      a.action.toLowerCase().includes(searchQuery.toLowerCase())
+      a.admin.toLowerCase().includes(searchQuery.toLowerCase()) || 
+      a.action.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      a.target.toLowerCase().includes(searchQuery.toLowerCase())
     );
   
-      useEffect(() => {
-      if (!inputRef.current) {
-        inputRef.current = document.querySelector("input[placeholder='Search admin']");
-      }
-  
-      if (inputRef.current) {
-        inputRef.current.addEventListener("input", (e) => {
-          setSearchQuery(e.target.value);
-        });
-      }
-    }, []);
-  
+    // Removed the problematic useEffect/inputRef as it's not needed with the onSearch prop
+
     return (
       <div className="w-full h-screen flex bg-gray-50">
         <SidebarLogoAdmin />
   
         <div className="flex-1 ml-0 lg:ml-48 flex flex-col h-screen min-w-0 ">
 
-        <div className="self-stretch flex items-center justify-between mt-4 sm:mt-8" style={{ padding: '10px' }}>
-          <h1 className="text-3xl font-bold text-black">
-            Activity Log
-          </h1>
+          <div className="self-stretch flex items-center justify-between mt-4 sm:mt-8">
+            <h1 className="text-3xl text-center font-bold text-black min-w-[230px]" style={{ paddingLeft: '100px'}}>
+              Activity Log
+            </h1>
 
-          <div className="w-[80%]">
-            <SearchBarUser />
+            <div className="w-[80%]"  style={{ padding: '20px', }}>
+              <SearchBarUser onSearch={setSearchQuery}/>
+            </div>
           </div>
-        </div>
   
-          <main className="flex-1 overflow-y-auto w-full max-w-full overflow-x-auto">
-            <div className="w-full px-5 flex flex-col gap-8">
+          {/* Removed overflow-x-auto from main to ensure the container itself doesn't scroll unnecessarily */}
+          <main className="flex-1 overflow-y-auto w-full max-w-full" style={{ paddingTop: '20px' , paddingLeft: '20px', paddingRight: '20px'}}>
+            {/* Standardized main padding */}
+            <div className="w-full px-4 sm:px-6 lg:px-8 flex flex-col justify-start gap-6 sm:gap-8 md:gap-10 py-4 sm:py-6">
 
-            <div className="self-stretch px-3 sm:px-7 flex-col justify-start gap-3 sm:gap-4 mt-6 sm:mt-8">
-                {/* TABLE HEADER */}
-                <div className="flex items-center h-20 font-medium text-black px-5" style={{ paddingLeft: '20px' }}>
-                  <div className="flex items-center gap-3 text-black px-5">
-                    <div className="w-40 text-center text-sm sm:text-base md:text-lg font-['Poppins']">Timestamp</div>
-                    <div className="w-85 text-center text-sm sm:text-base md:text-lg font-['Poppins']">Admin Name</div>
-                    <div className="w-60 text-center text-sm sm:text-base md:text-lg font-['Poppins']">Action</div>
-                    <div className="w-50 text-center text-sm sm:text-base md:text-lg font-['Poppins']">Target</div>
-                    <div className="w-45 text-center text-sm sm:text-base md:text-lg font-['Poppins']">Log ID</div>
-                  </div>
-              </div>
+              {/* Adjusted container: Removed redundant padding/margin styles */}
+              <div className="self-stretch inline-flex flex-col justify-start mt-4 sm:mt-8">
                 
-  
+                {/* TABLE HEADER */}
+                {/* Changes: Removed hardcoded style padding. Used 'w-full' and flex-1 on columns for full width. */}
+                <div className="flex items-center h-20 font-medium text-black px-5">
+                  <div className="flex items-center w-full text-black px-5">
+                    
+                    {/* Replaced fixed widths with flex-1 for dynamic sizing */}
+                    <div className="flex-1 text-left text-sm sm:text-base md:text-lg font-['Poppins'] min-w-[120px]">Timestamp</div>
+                    <div className="flex-1 text-left text-sm sm:text-base md:text-lg font-['Poppins'] min-w-[150px]">Admin Name</div>
+                    <div className="flex-1 text-left text-sm sm:text-base md:text-lg font-['Poppins'] min-w-[100px]">Action</div>
+                    <div className="flex-1 text-left text-sm sm:text-base md:text-lg font-['Poppins'] min-w-[100px]">Target</div>
+                    <div className="w-16 text-center text-sm sm:text-base md:text-lg font-['Poppins']">Log ID</div>
+                  </div>
+                </div>
+                
                 {/* USER LIST */}
-                <div className="flex flex-col" style={{ paddingLeft: '20px' }}>
+                {/* Removed hardcoded style padding */}
+                <div className="flex flex-col">
   
                   {/* No result found */}
                   {filteredUsers.length === 0 && (
-                    <div className="text-center text-gray-500 text-lg">
+                    <div className="text-center text-gray-500 text-lg py-5">
                       No matching result
                     </div>
                   )}
@@ -79,26 +78,36 @@ export default function AdminActivity() {
                     <div
                       key={index}
                       className={`
-                        self-stretch w-max h-[50px] flex
-                        ${index % 2 === 0 ? "bg-[#DFF1EB]" : ""}
+                        self-stretch w-full h-[50px] flex 
+                        ${index % 2 === 0 ? "bg-[#DFF1EB]" : "bg-white"}
                         hover:bg-[#c9edd3] transition
                       ` }
-
                     >
-                    <div className="flex items-center gap-5 font-semibold text-blacks" style={{ paddingLeft: '10px' }}>
-                      <div className="w-55 ml-40 text-xs sm:text-sm font-medium font-['Poppins']">{user.timestamp}</div>
-                      <div className="w-60 flex items-center gap-3">
-                        <img
-                          className="w-9 h-9 rounded-full object-cover"
-                          src={user.avatar}
-                          alt="Admin avatar"
-                        />
-                        <span className="text-xs sm:text-sm font-medium font-['Poppins']">{user.admin}</span>
+                      {/* Row Content: Used 'w-full' and 'px-10' for standardized padding */}
+                      <div className="flex items-center w-full gap-3 font-semibold text-blacks px-10">
+                        
+                        {/* Timestamp: Replaced fixed width and large margin with flex-1 and min-width */}
+                        <div className="flex-1 text-left text-xs sm:text-sm font-medium font-['Poppins'] min-w-[120px]">{user.timestamp}</div>
+                        
+                        {/* Admin Name: Replaced fixed width with flex-1 */}
+                        <div className="flex-1 flex items-center gap-3 min-w-[150px]">
+                          <img
+                            className="w-9 h-9 rounded-full object-cover"
+                            src={user.avatar}
+                            alt="Admin avatar"
+                          />
+                          <span className="text-xs sm:text-sm font-medium font-['Poppins']">{user.admin}</span>
+                        </div>
+                        
+                        {/* Action: Replaced fixed width with flex-1 */}
+                        <div className="flex-1 text-left text-xs sm:text-sm font-medium font-['Poppins'] min-w-[100px]">{user.action}</div>
+                        
+                        {/* Target: Replaced fixed width with flex-1 */}
+                        <div className="flex-1 text-left text-xs sm:text-sm font-medium font-['Poppins'] min-w-[100px]">{user.target}</div>
+                        
+                        {/* Log ID: Set a small fixed width as it's a short value, ensuring it doesn't take too much space */}
+                        <div className="w-16 text-center text-xs sm:text-sm font-semibold font-['Poppins']">{user.log}</div>
                       </div>
-                      <div className="w-65 text-center text-xs sm:text-sm font-medium font-['Poppins']">{user.action}</div>
-                      <div className="w-45 text-center text-xs sm:text-sm font-medium font-['Poppins']">{user.target}</div>
-                      <div className="w-45 text-center text-xs sm:text-sm font-semibold font-['Poppins']">{user.log}</div>
-                    </div>
                     </div>
                   ))}
                 </div>
@@ -110,4 +119,3 @@ export default function AdminActivity() {
       </div>
     );
 }
-
