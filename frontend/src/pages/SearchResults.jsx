@@ -248,12 +248,12 @@ export default function SearchResults() {
             </h1>
             
             {/* Filter Tabs - Improved styling */}
-            <div className="flex gap-3 mb-6 flex-wrap">
+            <div className="flex gap-3 mb-6 flex-wrap"style={{marginTop: 20}}>
               {["all", "recipes", "ingredients", "users"].map((mode) => (
                 <button
                   key={mode}
                   onClick={() => handleModeChange(mode)}
-                  className={`px-5 py-2.5 rounded-lg text-sm font-semibold leading-normal transition-all duration-300 min-h-[40px] flex items-center justify-center ${
+                  className={`px-5 py-2.5 rounded-2xl text-sm font-semibold leading-normal transition-all duration-300 min-h-[35px] w-[95px] flex items-center justify-center ${
                     searchMode === mode
                       ? "bg-[#FE982A] text-white shadow-md hover:bg-orange-600"
                       : "bg-white text-gray-700 hover:bg-gray-50 border border-gray-200 hover:border-gray-300"
@@ -266,7 +266,7 @@ export default function SearchResults() {
 
             {/* Results Count */}
             {query && (
-              <p className="text-gray-600 mb-6">
+              <p className="text-gray-600 mb-6"style={{marginTop: 10}}>
                 {loading ? (
                   "Searching..."
                 ) : error ? (
