@@ -23,6 +23,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../config/firebase-config';
 import { ensureConversation } from './messagingService';
+import { createNotification } from './notifications';
 
 const FOLLOWS_COLLECTION = 'follows';
 
@@ -75,6 +76,11 @@ export const followUser = async (currentUserId, targetUserId) => {
 
     // Auto-create conversation when user follows another user
     await ensureConversationOnFollow(currentUserId, targetUserId);
+
+    // Create notification for the user being followed
+    console.log('[Follow] Creating follow notification:', { follower: currentUserId, following: targetUserId });
+    const notificationId = await createNotification(targetUserId, currentUserId, 'follow');
+    console.log('[Follow] Notification created:', notificationId);
   } catch (error) {
     console.error('Error following user:', error);
     throw new Error(`Failed to follow user: ${error.message}`);

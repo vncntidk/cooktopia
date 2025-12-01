@@ -4,7 +4,7 @@ import { X, Heart, MessageCircle, Bookmark, Star, Trash2, Pencil, Edit2, MoreVer
 
 import { useAuth } from '../contexts/AuthContext';
 import { getRecipeById, updateRecipe, deleteRecipe } from '../services/recipes';
-import { getRecipeInteractionCounts, toggleRecipeLike, hasUserLikedRecipe, toggleRecipeSave, hasUserSavedRecipe, getRecipeComments, addRecipeComment, deleteRecipeComment } from '../services/interactions';
+import { getRecipeInteractionCounts, toggleRecipeLike, hasUserLikedRecipe, toggleRecipeSave, hasUserSavedRecipe, getRecipeComments, addRecipeComment, deleteRecipeComment, toggleCommentLike } from '../services/interactions';
 import { followUser, unfollowUser, isFollowing as checkIsFollowing } from '../services/followService';
 import { useNavigate } from 'react-router-dom';
 import Avatar from '../components/Avatar';
@@ -293,11 +293,22 @@ export default function ViewPostModal({ isOpen, onClose, recipe: recipeInput }) 
     }
   };
 
-  const toggleCommentLike = (commentId) => {
-    setLikedComments(prev => ({
-      ...prev,
-      [commentId]: !prev[commentId]
-    }));
+  const handleToggleCommentLike = async (commentId) => {
+    if (!user?.uid || !recipe?.id) return;
+
+    try {
+      const newLikedState = await toggleCommentLike(recipe.id, commentId, user.uid);
+      setLikedComments(prev => ({
+        ...prev,
+        [commentId]: newLikedState
+      }));
+      
+      // Refresh comments to get updated like counts
+      const recipeComments = await getRecipeComments(recipe.id);
+      setComments(recipeComments);
+    } catch (error) {
+      console.error('Error toggling comment like:', error);
+    }
   };
 
   const handleSubmitReply = (commentId) => {
@@ -1705,7 +1716,7 @@ export default function ViewPostModal({ isOpen, onClose, recipe: recipeInput }) 
                         </div>
                         <div style={{ display: 'flex', gap: '0.5rem' }}>
                           <button 
-                            onClick={() => toggleCommentLike(commentItem.id)}
+                            onClick={() => handleToggleCommentLike(commentItem.id)}
                             className={`comment-action-button like-button ${likedComments[commentItem.id] ? 'liked' : ''}`}
                           >
                             <Heart className={`w-4 h-4 ${likedComments[commentItem.id] ? 'fill-current' : ''}`} />

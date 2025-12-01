@@ -4,8 +4,9 @@ import { db } from "../config/firebase-config";
 import { collection, onSnapshot } from "firebase/firestore";
 import { Bookmark } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import ViewPostModal from "../modals/ViewPostModal";
+import { getRecipeById } from "../services/recipes";
 import Avatar from "./Avatar";
 import {
   getRecipeInteractionCounts,
@@ -18,6 +19,7 @@ import {
 export default function HomeFeed() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [posts, setPosts] = useState([]);
   const [interactionData, setInteractionData] = useState({}); // { recipeId: { likes, comments, saves, isLiked, isSaved } }
   const [selectedRecipe, setSelectedRecipe] = useState(null);
@@ -143,6 +145,39 @@ export default function HomeFeed() {
 
     return () => unsubscribe();
   }, []);
+
+  // Handle opening post from notification (via location state)
+  useEffect(() => {
+    const openRecipeId = location.state?.openRecipeId;
+    if (openRecipeId && !isModalOpen) {
+      // Find the post in the current posts list
+      const post = posts.find(p => p.id === openRecipeId);
+      if (post) {
+        setSelectedRecipe(post);
+        setIsModalOpen(true);
+        // Clear the state to prevent reopening on re-render
+        navigate(location.pathname, { replace: true, state: {} });
+      } else {
+        // If post not in list yet, fetch it directly
+        getRecipeById(openRecipeId).then((recipe) => {
+          if (recipe) {
+            setSelectedRecipe({
+              id: recipe.id,
+              img: recipe.imageUrls?.[0] || "/posts/placeholder.jpg",
+              user: recipe.authorName || "user_name",
+              authorId: recipe.authorId || null,
+              title: recipe.title || null,
+            });
+            setIsModalOpen(true);
+            // Clear the state
+            navigate(location.pathname, { replace: true, state: {} });
+          }
+        }).catch(() => {
+          // Silent fail
+        });
+      }
+    }
+  }, [location.state, posts, isModalOpen, navigate, location.pathname]);
 
   return (
     <main className={`${styles.contentWrapper} px-4 w-24/25 flex justify-evenly`}>

@@ -40,6 +40,7 @@ import {
 import { db } from '../config/firebase-config';
 import { getUserProfile } from './users';
 import { isFollowing } from './followService';
+import { createNotification } from './notifications';
 
 const CONVERSATIONS_COLLECTION = 'conversations';
 const MESSAGES_COLLECTION = 'messages';
@@ -337,6 +338,19 @@ export const sendMessage = async (conversationId, senderId, messageData) => {
         // Update unread count for the other user
         const unreadCount = convData.unreadCount || {};
         unreadCount[otherUserId] = (unreadCount[otherUserId] || 0) + 1;
+        
+        // Create notification for message request if the recipient sees it as a request
+        // (i.e., they don't follow the sender and haven't engaged yet)
+        if (isRequest[otherUserId] === true) {
+          try {
+            await createNotification(otherUserId, senderId, 'message_request', {
+              messageThreadId: conversationId,
+            });
+          } catch (error) {
+            console.error('Error creating message request notification:', error);
+            // Don't throw - notification failure shouldn't break the message sending
+          }
+        }
         
         // Update conversation
         await updateDoc(conversationRef, {
