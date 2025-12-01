@@ -2,6 +2,10 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import HeaderSidebarLayout from "../components/HeaderSidebarLayout";
 import { useAuth } from "../contexts/AuthContext";
+import { getUserActivityLogs, groupActivityLogsByDate } from "../services/activityLogs";
+
+// Debug flag - set to false in production
+const DEBUG_ACTIVITY_LOGS = false;
 
 // Icon components for different activity types
 const ActivityIcon = ({ type }) => {
@@ -159,68 +163,68 @@ const ActivityLogGroup = ({ date, activities, onView }) => {
 
 const ActivityLogs = () => {
   const navigate = useNavigate();
-  const { currentUser } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [activityLogs, setActivityLogs] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Fetch activity logs from Firebase or use mock data
-    // For now, using mock data that matches the Figma design
-    const mockActivities = [
-      {
-        date: "28 August 2025",
-        activities: [
-          {
-            id: 1,
-            type: "like",
-            description: "You liked Anna_123's recipe",
-            time: "22:16",
-            recipeId: "recipe1",
-          }
-        ]
-      },
-      {
-        date: "27 August 2025",
-        activities: [
-          {
-            id: 2,
-            type: "comment",
-            description: "You commented on Elsa's recipe",
-            time: "20:16",
-            recipeId: "recipe2",
-          },
-          {
-            id: 3,
-            type: "rating",
-            description: "You rated Sven's recipe",
-            time: "19:16",
-            recipeId: "recipe3",
-          }
-        ]
-      },
-      {
-        date: "26 August 2025",
-        activities: [
-          {
-            id: 4,
-            type: "save",
-            description: "You added Sven's recipe to favorites",
-            time: "22:16",
-            recipeId: "recipe4",
-          }
-        ]
+    const fetchActivityLogs = async () => {
+      // Wait for auth to finish loading
+      if (authLoading) {
+        if (DEBUG_ACTIVITY_LOGS) {
+          console.log('[ActivityLogs] Auth still loading, waiting...');
+        }
+        return;
       }
-    ];
 
-    setActivityLogs(mockActivities);
-    setLoading(false);
-  }, [currentUser]);
+      if (!user?.uid) {
+        if (DEBUG_ACTIVITY_LOGS) {
+          console.log('[ActivityLogs] No user, skipping fetch. User:', user);
+        }
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        if (DEBUG_ACTIVITY_LOGS) {
+          console.log('[ActivityLogs] Fetching activity logs for user:', user.uid);
+        }
+        const logs = await getUserActivityLogs(user.uid);
+        if (DEBUG_ACTIVITY_LOGS) {
+          console.log('[ActivityLogs] Fetched logs:', logs.length, logs);
+        }
+        
+        const groupedLogs = groupActivityLogsByDate(logs);
+        if (DEBUG_ACTIVITY_LOGS) {
+          console.log('[ActivityLogs] Grouped logs:', groupedLogs);
+        }
+        
+        setActivityLogs(groupedLogs);
+      } catch (error) {
+        console.error('[ActivityLogs] Error fetching activity logs:', error);
+        setActivityLogs([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchActivityLogs();
+  }, [user, authLoading]);
 
   const handleViewActivity = (activity) => {
     // Handle view action - navigate to recipe or open modal
-    console.log("View activity:", activity);
-    // You can add navigation logic here
-    // navigate(`/recipe/${activity.recipeId}`);
+    if (activity.recipeId) {
+      // Navigate to recipe view (you may need to adjust the route based on your routing setup)
+      navigate(`/recipe/${activity.recipeId}`);
+    } else if (activity.userId) {
+      // Navigate to user profile for follow activities
+      navigate(`/profile/${activity.userId}`);
+    } else {
+      if (DEBUG_ACTIVITY_LOGS) {
+        console.log("View activity:", activity);
+      }
+    }
   };
 
   if (loading) {

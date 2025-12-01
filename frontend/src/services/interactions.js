@@ -17,6 +17,7 @@ import {
 import { db } from '../config/firebase-config';
 import { createNotification } from './notifications';
 import { getRecipeById } from './recipes';
+import { createActivityLog } from './activityLogs';
 
 const RECIPES_COLLECTION = 'recipes';
 const COMMENTS_COLLECTION = 'comments';
@@ -102,6 +103,16 @@ export const toggleRecipeLike = async (recipeId, userId) => {
       } catch (error) {
         console.error('[Like] Error creating like notification:', error);
         // Don't throw - notification failure shouldn't break the like action
+      }
+
+      // Create activity log for the user who liked
+      try {
+        await createActivityLog(userId, 'like_post', {
+          targetPostId: recipeId,
+        });
+      } catch (error) {
+        console.error('[Like] Error creating activity log:', error);
+        // Don't throw - activity log failure shouldn't break the like action
       }
 
       return true;
@@ -268,6 +279,20 @@ export const addRecipeComment = async (recipeId, userId, userName, userAvatar, t
       // Don't throw - notification failure shouldn't break the comment action
     }
 
+    // Create activity log for the user who commented
+    try {
+      const textSnippet = text.trim().substring(0, 100);
+      await createActivityLog(userId, 'comment', {
+        targetPostId: recipeId,
+        meta: {
+          textSnippet,
+        },
+      });
+    } catch (error) {
+      console.error('[Comment] Error creating activity log:', error);
+      // Don't throw - activity log failure shouldn't break the comment action
+    }
+
     return commentDocRef.id;
   } catch (error) {
     console.error('Error adding comment:', error);
@@ -339,6 +364,17 @@ export const toggleCommentLike = async (recipeId, commentId, userId) => {
       } catch (error) {
         console.error('[Comment Like] Error creating comment like notification:', error);
         // Don't throw - notification failure shouldn't break the like action
+      }
+
+      // Create activity log for the user who liked the comment
+      try {
+        await createActivityLog(userId, 'like_comment', {
+          targetPostId: recipeId,
+          targetCommentId: commentId,
+        });
+      } catch (error) {
+        console.error('[Comment Like] Error creating activity log:', error);
+        // Don't throw - activity log failure shouldn't break the like action
       }
 
       return true;

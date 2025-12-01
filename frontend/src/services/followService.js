@@ -24,6 +24,7 @@ import {
 import { db } from '../config/firebase-config';
 import { ensureConversation } from './messagingService';
 import { createNotification } from './notifications';
+import { createActivityLog } from './activityLogs';
 
 const FOLLOWS_COLLECTION = 'follows';
 
@@ -81,6 +82,16 @@ export const followUser = async (currentUserId, targetUserId) => {
     console.log('[Follow] Creating follow notification:', { follower: currentUserId, following: targetUserId });
     const notificationId = await createNotification(targetUserId, currentUserId, 'follow');
     console.log('[Follow] Notification created:', notificationId);
+
+    // Create activity log for the user who followed
+    try {
+      await createActivityLog(currentUserId, 'follow', {
+        targetUserId: targetUserId,
+      });
+    } catch (error) {
+      console.error('[Follow] Error creating activity log:', error);
+      // Don't throw - activity log failure shouldn't break the follow action
+    }
   } catch (error) {
     console.error('Error following user:', error);
     throw new Error(`Failed to follow user: ${error.message}`);
