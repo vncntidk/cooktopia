@@ -175,7 +175,7 @@ export default function AdminReview() {
               {/* Static 'All' Count Display */}
               <div className="self-stretch inline-flex justify-start items-center gap-3 flex-wrap">
                 <div
-                  className={`min-w-[80px] h-9 px-4 py-1.5 rounded-full shadow-md inline-flex justify-center items-center gap-1 bg-[#005236] font-bold text-white shadow-lg`}
+                  className={`min-w-[80px] h-9 px-4 py-1.5 rounded-full inline-flex justify-center items-center gap-1 bg-[#005236] font-bold text-white shadow-lg`}
                 >
                   <div className={`text-center text-xs sm:text-sm font-['Poppins']`}>
                     All ({feedbacks.length}) 
