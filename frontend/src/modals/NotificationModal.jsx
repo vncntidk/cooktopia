@@ -1,13 +1,22 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  deleteNotification, 
+  listenToUserNotifications,
+  markNotificationAsRead
+} from '../services/notifications';
 
 const DEFAULT_USER_AVATAR = "/src/assets/Logo (2).png";
 
 const NotificationModal = ({ isOpen, onClose, message = '' }) => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("all");
   const [activeSubFilter, setActiveSubFilter] = useState("See All");
+  const [notifications, setNotifications] = useState([]);
+  const [loading, setLoading] = useState(false);
 
   const name = user?.displayName || user?.email || 'Guest';
 
@@ -19,79 +28,168 @@ const NotificationModal = ({ isOpen, onClose, message = '' }) => {
     return () => window.removeEventListener('keydown', handleEsc);
   }, [onClose]);
 
-  {/* Static message */}
-  const staticNotifications = [
-    {
-      id: '1',
-      type: 'follow',
-      title: 'Tanya Lopez',
-      message: 'just followed you.',
-      avatar: '/src/assets/tanya.jpg',
-      createdAt: '3 min ago',
-      isRead: false,
-      isNew: true,
-      originalTimestamp: Date.now() - 3 * 60 * 1000,
-    },
-    {
-      id: '2',
-      type: 'comment',
-      title: 'Katik G',
-      message: 'commented on your "Sotanghon" recipe.',
-      avatar: '/src/assets/katik.jpg',
-      createdAt: '1 hr ago',
-      isRead: false,
-      isNew: true,
-      originalTimestamp: Date.now() - 60 * 60 * 1000,
-    },
-    {
-      id: '3',
-      type: 'follow',
-      title: 'Peppa Pig',
-      message: 'followed you.',
-      avatar: '/src/assets/peppa.jpeg',
-      createdAt: '2 hr ago',
-      isRead: false,
-      isNew: true,
-      originalTimestamp: Date.now() - 120 * 60 * 1000,
-    },
-    {
-      id: '4',
-      type: 'like',
-      title: 'Peppa Pig',
-      message: 'liked your post: "Tinolang Adobo Recipe".',
-      avatar: '/src/assets/peppa.jpeg',
-      createdAt: '2 hrs ago',
-      isRead: true,
-      isNew: true,
-      originalTimestamp: Date.now() - 120 * 60 * 1000,
-    },
-    {
-      id: '5',
-      type: 'mention',
-      title: 'Sassa Ghurl',
-      message: 'mentioned you in her comment',
-      avatar: '/src/assets/sassa.jpeg',
-      createdAt: '5 days ago',
-      isRead: true,
-      isNew: false,
-      originalTimestamp: Date.now() - 5 * 24 * 60 * 60 * 1000,
-    },
-  ];
+  // Note: We no longer mark all notifications as read when modal opens
+  // Only individual notifications are marked as read when clicked
 
-  {/* Welcome Message */}
-  const welcomeNotification = (name) => ({
-    id: 'welcome',
-    type: 'welcome',
-    title: '',
-    message: `Welcome ${name} to Cooktopia!`,
-    avatar: '/src/assets/Logo (2).png',
-    createdAt: '1 week ago',
-    isRead: true,
-    isNew: false,
-    originalTimestamp: Date.now() - 5 * 24 * 60 * 60 * 1000,
+  // Fetch notifications when modal opens - single listener per user
+  useEffect(() => {
+    if (!isOpen || !user?.uid) {
+      setNotifications([]);
+      return;
+    }
+
+    setLoading(true);
+    
+    // Set up real-time listener - will be cleaned up on unmount or when dependencies change
+    const unsubscribe = listenToUserNotifications(
+      user.uid,
+      (fetchedNotifications) => {
+        setNotifications(fetchedNotifications);
+        setLoading(false);
+      },
+      { limitCount: 50 }
+    );
+
+    return () => {
+      unsubscribe();
+    };
+  }, [isOpen, user?.uid]);
+
+  // Format timestamp to relative time
+  const formatTimestamp = (timestamp) => {
+    if (!timestamp) return 'Just now';
+    
+    try {
+      const now = new Date();
+      const time = timestamp?.toDate ? timestamp.toDate() : new Date(timestamp);
+      if (isNaN(time.getTime())) return 'Just now';
+      
+      const diffMs = now - time;
+      const diffMins = Math.floor(diffMs / 60000);
+      const diffHours = Math.floor(diffMs / 3600000);
+      const diffDays = Math.floor(diffMs / 86400000);
+
+      if (diffMins < 1) return 'Just now';
+      if (diffMins < 60) return `${diffMins} min${diffMins > 1 ? 's' : ''} ago`;
+      if (diffHours < 24) return `${diffHours} hr${diffHours > 1 ? 's' : ''} ago`;
+      if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+      return `${Math.floor(diffDays / 7)} week${Math.floor(diffDays / 7) > 1 ? 's' : ''} ago`;
+    } catch (error) {
+      console.error('Error formatting timestamp:', error);
+      return 'Just now';
+    }
+  };
+
+  // Format notification message based on type
+  const formatNotificationMessage = (notification) => {
+    const actorName = notification.actorName || 'Someone';
+    
+    switch (notification.type) {
+      case 'follow':
+        return 'just followed you.';
+      case 'comment':
+        const postTitle = notification.postTitle || 'your post';
+        return `commented on your "${postTitle}" recipe.`;
+      case 'like':
+        const likePostTitle = notification.postTitle || 'your post';
+        return `liked your post: "${likePostTitle}".`;
+      case 'message_request':
+        return 'sent you a message request.';
+      default:
+        return 'interacted with you.';
+    }
+  };
+
+  // Handle delete notification
+  const handleDeleteNotification = async (notificationId, e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    try {
+      if (!notificationId) {
+        return;
+      }
+      await deleteNotification(notificationId);
+      // The real-time listener will update the list automatically
+    } catch (error) {
+      // Silent fail - don't break UX
+    }
+  };
+
+  // Handle notification click - redirect based on type
+  const handleNotificationClick = async (notification) => {
+    if (!notification || !notification.id) {
+      return;
+    }
+
+    // Mark notification as read when clicked (if not already read)
+    if (!notification.read) {
+      try {
+        await markNotificationAsRead(notification.id);
+      } catch (error) {
+        // Silent fail - continue with navigation even if mark fails
+      }
+    }
+
+    switch (notification.type) {
+      case 'like':
+      case 'comment':
+        // Open post modal by navigating to home with recipe ID in state
+        if (notification.relatedPostId) {
+          onClose();
+          // Use a small delay to ensure modal closes first
+          setTimeout(() => {
+            navigate('/home', { 
+              state: { openRecipeId: notification.relatedPostId } 
+            });
+          }, 100);
+        }
+        break;
+      case 'follow':
+        // Redirect to follower's profile
+        if (notification.actorUserId) {
+          onClose();
+          navigate(`/profile/${notification.actorUserId}`);
+        }
+        break;
+      case 'message_request':
+        // Redirect to messages page (or specific conversation if messageThreadId is available)
+        onClose();
+        if (notification.messageThreadId) {
+          navigate(`/messages?conversation=${notification.messageThreadId}`);
+        } else {
+          navigate('/messages');
+        }
+        break;
+      default:
+        // Do nothing for unknown types
+        break;
+    }
+  };
+
+  // Transform notifications to match UI structure
+  const transformedNotifications = notifications.map((note) => {
+    const timestamp = note.createdAt?.toDate ? note.createdAt.toDate().getTime() : 
+                     (note.createdAt ? new Date(note.createdAt).getTime() : Date.now());
+    
+    // Use the read field directly from the notification data
+    const isRead = note.read === true;
+    
+    return {
+      id: note.id,
+      type: note.type,
+      title: note.actorName || 'User',
+      message: formatNotificationMessage(note),
+      avatar: note.actorAvatar || DEFAULT_USER_AVATAR,
+      createdAt: formatTimestamp(note.createdAt),
+      isRead: isRead,
+      isNew: !isRead,
+      originalTimestamp: timestamp,
+      // Keep original data for navigation
+      originalNotification: note,
+    };
   });
 
-  const filteredNotifications = staticNotifications
+  const filteredNotifications = transformedNotifications
     .slice()
     .sort((a, b) => b.originalTimestamp - a.originalTimestamp)
     .filter((note) => {
@@ -105,10 +203,7 @@ const NotificationModal = ({ isOpen, onClose, message = '' }) => {
       return true;
     });
 
-  const normalizedSubFilter = activeSubFilter.toLowerCase().replace(' ', '');
-  const shouldShowWelcome = activeTab === 'all' && normalizedSubFilter === 'seeall';
-  const notificationsToRender = shouldShowWelcome
-    ? [...filteredNotifications, welcomeNotification(name)] : filteredNotifications;
+  const notificationsToRender = filteredNotifications;
 
 
   return (
@@ -133,7 +228,7 @@ const NotificationModal = ({ isOpen, onClose, message = '' }) => {
 
           {/* Sliding Side Panel */}
           <motion.div
-            className="fixed top-16 h-[calc(100vh-4rem)] right-0 z-[9999] w-80 bg-white shadow-2xl rounded-l-2xl p-6 border-b-2 border-gray-200 overflow-y-auto"
+            className="fixed top-16 h-[calc(100vh-4rem)] right-0 z-[9999] w-96 max-w-[420px] min-w-[320px] bg-white shadow-2xl rounded-l-2xl p-6 border-b-2 border-gray-200 overflow-y-auto"
             style={{ top: '64px', right: '64px' }}
             initial={{ opacity: 0, scale: 0.8, originX: 1, originY: 0 }}
             animate={{ opacity: 1, scale: 1, originX: 1, originY: 0 }}
@@ -201,45 +296,81 @@ const NotificationModal = ({ isOpen, onClose, message = '' }) => {
 
             {/* Notifications List */}
             <div className="w-full flex flex-col gap-1 px-4 space-y-3">
-              {notificationsToRender.map((note) => {
-                const isUnread = !note.isRead;
+              {loading ? (
+                <div className="text-center py-8 text-gray-500">Loading notifications...</div>
+              ) : notificationsToRender.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">No notifications</div>
+              ) : (
+                notificationsToRender.map((note) => {
+                  const isUnread = !note.isRead;
 
-                return (
-                  <div
-                    key={note.id}
-                    className={`flex items-center gap-4 w-full max-w-[600px]
-                      h-[80px] px-4 py-3 
-                      border border-gray-200 rounded-xl
-                      hover:bg-gray-300 transition mx-auto
-                      ${
-                        isUnread
-                          ? 'bg-gray-200'
-                          : 'bg-gray-100'
-                      }`}>
-                    <div className="flex-shrink-0 ml-2">
-                      <img
-                        src={note.avatar || DEFAULT_USER_AVATAR}
-                        alt="Avatar"
-                        className="w-[50px] h-[50px] rounded-full object-cover border border-gray-300"/>
+                  return (
+                    <div
+                      key={note.id}
+                      onClick={() => handleNotificationClick(note.originalNotification)}
+                      className={`flex items-start gap-3 w-full
+                        min-h-[80px] px-4 py-3 
+                        border border-gray-200 rounded-xl
+                        hover:bg-gray-300 transition relative cursor-pointer
+                        ${
+                          isUnread
+                            ? 'bg-gray-200'
+                            : 'bg-gray-100'
+                        }`}>
+                      <div className="flex-shrink-0">
+                        <img
+                          src={note.avatar || DEFAULT_USER_AVATAR}
+                          alt={`${note.title}'s avatar`}
+                          className="w-[50px] h-[50px] rounded-full object-cover border border-gray-300"
+                          onError={(e) => {
+                            // Fallback to default avatar if image fails to load
+                            e.target.src = DEFAULT_USER_AVATAR;
+                          }}
+                        />
+                      </div>
+                          
+                      <div className="flex-1 flex flex-col min-w-0">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm leading-relaxed break-words">
+                              <span className="font-semibold">{note.title}</span>{' '}
+                              <span className="text-gray-800">{note.message}</span>
+                            </p>
+                            <span className="text-gray-500 text-xs italic mt-1 block">
+                              {note.createdAt}
+                            </span>
+                          </div>
+                          
+                          {/* Unread indicator and Delete button container */}
+                          <div className="flex items-start gap-2 flex-shrink-0">
+                            {isUnread && (
+                              <div className="mt-1 w-[8px] h-[8px] rounded-full bg-orange-500 flex-shrink-0"></div>
+                            )}
+                            
+                            {/* Delete button */}
+                            <button
+                              onClick={(e) => handleDeleteNotification(note.id, e)}
+                              className="text-gray-400 hover:text-red-500 transition-colors flex-shrink-0 p-1"
+                              title="Delete notification"
+                              aria-label="Delete notification"
+                            >
+                              <svg 
+                                xmlns="http://www.w3.org/2000/svg" 
+                                className="h-4 w-4" 
+                                fill="none" 
+                                viewBox="0 0 24 24" 
+                                stroke="currentColor"
+                              >
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                        
-                    <div className="flex flex-col w-full overflow-hidden">
-                      {isUnread && (
-                          <div className="ml-2 inline-block mt-[2px] relative left-60">
-                          <div className=" top-2 w-[8px] h-[8px] rounded-full bg-orange-500"></div>
-                          </div>)}
-                      
-                      <p className="text-sm truncate">
-                        <span className="font-semibold">{note.title}</span>{' '}
-                        <span className="text-gray-800">{note.message}</span>
-                      </p>
-                      <span className="text-gray-500 text-xs italic">
-                        {note.createdAt}
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
+                  );
+                })
+              )}
             </div>
           </motion.div>
         </>

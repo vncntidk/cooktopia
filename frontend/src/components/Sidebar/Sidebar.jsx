@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import { getUserProfile } from "../../services/users";
 import { listenToUnreadCount } from "../../services/messagingService";
+import { listenToUnreadNotificationCount } from "../../services/notifications";
 import styles from "./Sidebar.module.css";
 import NotificationModal from "../../modals/NotificationModal"; //for Notifications
 import ProfileMenu from "../../pages/ProfileMenu";
@@ -25,6 +26,9 @@ const Sidebar = () => {
   const [isImageLoaded, setIsImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
+  const [lastViewedNotificationCount, setLastViewedNotificationCount] = useState(0);
+  const prevModalOpenRef = useRef(false);
 
   // Update active state based on current route
   useEffect(() => {
@@ -120,6 +124,40 @@ const Sidebar = () => {
     };
   }, [user?.uid]);
 
+  // Listen to unread notifications count
+  useEffect(() => {
+    if (!user?.uid) {
+      setUnreadNotificationCount(0);
+      setLastViewedNotificationCount(0);
+      return;
+    }
+
+    const unsubscribe = listenToUnreadNotificationCount(user.uid, (count) => {
+      setUnreadNotificationCount(count);
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [user?.uid]);
+
+  // Reset badge count when modal opens (but don't mark notifications as read)
+  useEffect(() => {
+    // Only update when modal transitions from closed to open
+    if (isModalOpen && !prevModalOpenRef.current) {
+      // Store the current unread count as the "last viewed" count
+      // This resets the badge to 0 when modal opens
+      setLastViewedNotificationCount(unreadNotificationCount);
+    }
+    prevModalOpenRef.current = isModalOpen;
+  }, [isModalOpen, unreadNotificationCount]);
+
+  // Calculate displayed badge count: only show new notifications since last view
+  // When modal is open, badge is 0. When closed, badge shows new notifications since last open.
+  const displayedBadgeCount = isModalOpen 
+    ? 0 
+    : Math.max(0, unreadNotificationCount - lastViewedNotificationCount);
+
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const profileRef = useRef(null);
 
@@ -201,20 +239,26 @@ const Sidebar = () => {
         {/* Notifications */}
         <button
           onClick={() => {
-          setActive("notifications");
-          setIsModalOpen(prev => !prev);
+            setIsModalOpen(prev => !prev);
           }}
           className="relative p-3 transition-all duration-200"
           aria-label="Notifications"
         >
-          {active === "notifications" && (
+          {isModalOpen && (
             <span className={`${styles.icons} absolute left-0 top-1/2 -translate-y-1/2 w-[4px] h-10 bg-orange-500 rounded-r`}></span>
           )}
-          <img
-            src={active === "notifications" ? "/icons/notifActive.png" : "/icons/notificationIcon.png"}
-            alt="Notifications"
-            className="w-10 h-10"
-          />
+          <div className="relative">
+            <img
+              src={isModalOpen ? "/icons/notifActive.png" : "/icons/notificationIcon.png"}
+              alt="Notifications"
+              className="w-10 h-10"
+            />
+            {displayedBadgeCount > 0 && (
+              <span className={styles.unreadBadge} aria-label={`${displayedBadgeCount} new notifications`}>
+                {displayedBadgeCount > 99 ? '99+' : displayedBadgeCount}
+              </span>
+            )}
+          </div>
         </button>
 
 
