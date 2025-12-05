@@ -95,6 +95,8 @@ export const createActivityLog = async (userId, type, options = {}) => {
  * @param {string} userId - The user's UID
  * @param {Object} options - Query options
  * @param {number} options.limit - Maximum number of logs to fetch (default: 100)
+ * @param {string} options.currentUserId - The logged-in user's UID (for determining "You" vs name)
+ * @param {string} options.profileOwnerName - The profile owner's display name (for third-person descriptions)
  * @returns {Promise<Array>} - Array of activity log documents with formatted data
  */
 export const getUserActivityLogs = async (userId, options = {}) => {
@@ -140,7 +142,11 @@ export const getUserActivityLogs = async (userId, options = {}) => {
 
         // Format activity description based on type
         try {
-          activityLog.description = await formatActivityDescription(activityLog);
+          activityLog.description = await formatActivityDescription(
+            activityLog,
+            options.currentUserId,
+            options.profileOwnerName
+          );
         } catch (error) {
           console.error('[ActivityLog] Error formatting activity description:', error);
           activityLog.description = 'Activity';
@@ -178,7 +184,11 @@ export const getUserActivityLogs = async (userId, options = {}) => {
 
         // Format activity description based on type
         try {
-          activityLog.description = await formatActivityDescription(activityLog);
+          activityLog.description = await formatActivityDescription(
+            activityLog,
+            options.currentUserId,
+            options.profileOwnerName
+          );
         } catch (error) {
           console.error('[ActivityLog] Error formatting activity description:', error);
           activityLog.description = 'Activity';
@@ -219,10 +229,17 @@ export const getUserActivityLogs = async (userId, options = {}) => {
 /**
  * Format activity description for display
  * @param {Object} activityLog - Activity log document
+ * @param {string} currentUserId - The logged-in user's UID (for determining "You" vs name)
+ * @param {string} profileOwnerName - The profile owner's display name (for third-person descriptions)
  * @returns {Promise<string>} - Formatted description string
  */
-const formatActivityDescription = async (activityLog) => {
-  const { type, targetPostId, targetCommentId, targetUserId, meta } = activityLog;
+const formatActivityDescription = async (activityLog, currentUserId = null, profileOwnerName = null) => {
+  const { type, targetPostId, targetCommentId, targetUserId, userId, meta } = activityLog;
+  
+  // Determine if we should use "You" or the profile owner's name
+  // Use "You" if the profile owner is the logged-in user, otherwise use their name
+  const isOwnProfile = currentUserId && userId === currentUserId;
+  const actorName = isOwnProfile ? 'You' : (profileOwnerName || 'They');
 
   switch (type) {
     case 'comment':
@@ -234,13 +251,13 @@ const formatActivityDescription = async (activityLog) => {
             const textSnippet = meta?.textSnippet 
               ? `: "${meta.textSnippet.substring(0, 50)}${meta.textSnippet.length > 50 ? '...' : ''}"`
               : '';
-            return `You commented on ${authorName}'s recipe${textSnippet}`;
+            return `${actorName} commented on ${authorName}'s recipe${textSnippet}`;
           }
         } catch (error) {
           console.error('Error fetching recipe for activity log:', error);
         }
       }
-      return 'You commented on a recipe';
+      return `${actorName} commented on a recipe`;
 
     case 'like_post':
       if (targetPostId) {
@@ -248,13 +265,13 @@ const formatActivityDescription = async (activityLog) => {
           const recipe = await getRecipeById(targetPostId);
           if (recipe) {
             const authorName = recipe.authorName || 'a user';
-            return `You liked ${authorName}'s recipe`;
+            return `${actorName} liked ${authorName}'s recipe`;
           }
         } catch (error) {
           console.error('Error fetching recipe for activity log:', error);
         }
       }
-      return 'You liked a recipe';
+      return `${actorName} liked a recipe`;
 
     case 'like_comment':
       if (targetPostId && targetCommentId) {
@@ -262,25 +279,25 @@ const formatActivityDescription = async (activityLog) => {
           const recipe = await getRecipeById(targetPostId);
           if (recipe) {
             const authorName = recipe.authorName || 'a user';
-            return `You liked a comment on ${authorName}'s recipe`;
+            return `${actorName} liked a comment on ${authorName}'s recipe`;
           }
         } catch (error) {
           console.error('Error fetching recipe for activity log:', error);
         }
       }
-      return 'You liked a comment';
+      return `${actorName} liked a comment`;
 
     case 'follow':
       if (targetUserId) {
         try {
           const userProfile = await getUserProfile(targetUserId);
           const displayName = userProfile.displayName || userProfile.name || 'a user';
-          return `You followed ${displayName}`;
+          return `${actorName} followed ${displayName}`;
         } catch (error) {
           console.error('Error fetching user profile for activity log:', error);
         }
       }
-      return 'You followed a user';
+      return `${actorName} followed a user`;
 
     case 'rating':
       if (targetPostId) {
@@ -289,13 +306,13 @@ const formatActivityDescription = async (activityLog) => {
           if (recipe) {
             const authorName = recipe.authorName || 'a user';
             const rating = meta?.rating || '';
-            return `You rated ${authorName}'s recipe${rating ? ` ${rating} stars` : ''}`;
+            return `${actorName} rated ${authorName}'s recipe${rating ? ` ${rating} stars` : ''}`;
           }
         } catch (error) {
           console.error('Error fetching recipe for activity log:', error);
         }
       }
-      return 'You rated a recipe';
+      return `${actorName} rated a recipe`;
 
     case 'save':
       if (targetPostId) {
@@ -303,13 +320,13 @@ const formatActivityDescription = async (activityLog) => {
           const recipe = await getRecipeById(targetPostId);
           if (recipe) {
             const authorName = recipe.authorName || 'a user';
-            return `You added ${authorName}'s recipe to favorites`;
+            return `${actorName} added ${authorName}'s recipe to favorites`;
           }
         } catch (error) {
           console.error('Error fetching recipe for activity log:', error);
         }
       }
-      return 'You saved a recipe';
+      return `${actorName} saved a recipe`;
 
     default:
       return 'Activity';

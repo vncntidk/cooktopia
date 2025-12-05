@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import HeaderSidebarLayout from "../components/HeaderSidebarLayout";
 import { useAuth } from "../contexts/AuthContext";
 import { getUserActivityLogs, groupActivityLogsByDate } from "../services/activityLogs";
+import { getUserProfile } from "../services/users";
+import Avatar from "../components/Avatar";
 
 // Debug flag - set to false in production
 const DEBUG_ACTIVITY_LOGS = false;
@@ -63,16 +65,10 @@ const ActivityLogItem = ({ date, time, activity, showDate = true, onView }) => {
           )}
           <div className="flex items-center gap-3">
             {/* User avatar */}
-            <div className="w-[50px] h-[50px] bg-zinc-300 rounded-full flex items-center justify-center overflow-hidden">
-              <img 
-                src="/profile.png" 
-                alt="User" 
-                className="w-full h-full object-cover"
-                onError={(e) => {
-                  e.target.style.display = 'none';
-                }}
-              />
-            </div>
+            <Avatar
+              userId={activity.userId}
+              size="md"
+            />
             
             {/* Activity icon */}
             <ActivityIcon type={activity.type} />
@@ -119,16 +115,10 @@ const ActivityLogGroup = ({ date, activities, onView }) => {
               )}
               <div className="flex items-center gap-3">
                 {/* User avatar */}
-                <div className="w-[50px] h-[50px] bg-zinc-300 rounded-full flex items-center justify-center overflow-hidden">
-                  <img 
-                    src="/profile.png" 
-                    alt="User" 
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      e.target.style.display = 'none';
-                    }}
-                  />
-                </div>
+                <Avatar
+                  userId={activity.userId}
+                  size="md"
+                />
                 
                 {/* Activity icon */}
                 <ActivityIcon type={activity.type} />
@@ -163,23 +153,30 @@ const ActivityLogGroup = ({ date, activities, onView }) => {
 
 const ActivityLogs = () => {
   const navigate = useNavigate();
+  const { userId: profileUserId } = useParams();
   const { user, loading: authLoading } = useAuth();
   const [activityLogs, setActivityLogs] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // Determine which user's activity logs to show
+  // If profileUserId is provided in URL, use it; otherwise use logged-in user's ID
+  const targetUserId = profileUserId || user?.uid;
+  const isOwnProfile = !profileUserId || profileUserId === user?.uid;
+
   useEffect(() => {
     const fetchActivityLogs = async () => {
-      // Wait for auth to finish loading
-      if (authLoading) {
+      // Wait for auth to finish loading (only needed if we're using logged-in user)
+      if (!profileUserId && authLoading) {
         if (DEBUG_ACTIVITY_LOGS) {
           console.log('[ActivityLogs] Auth still loading, waiting...');
         }
         return;
       }
 
-      if (!user?.uid) {
+      // If no target user ID, can't fetch
+      if (!targetUserId) {
         if (DEBUG_ACTIVITY_LOGS) {
-          console.log('[ActivityLogs] No user, skipping fetch. User:', user);
+          console.log('[ActivityLogs] No target user ID, skipping fetch. profileUserId:', profileUserId, 'user.uid:', user?.uid);
         }
         setLoading(false);
         return;
@@ -187,10 +184,27 @@ const ActivityLogs = () => {
 
       try {
         setLoading(true);
-        if (DEBUG_ACTIVITY_LOGS) {
-          console.log('[ActivityLogs] Fetching activity logs for user:', user.uid);
+        // Clear previous logs immediately when switching users
+        setActivityLogs([]);
+        
+        // Fetch profile owner's display name for third-person descriptions
+        let profileOwnerName = null;
+        if (!isOwnProfile && profileUserId) {
+          try {
+            const profileData = await getUserProfile(profileUserId);
+            profileOwnerName = profileData.displayName || profileData.name || null;
+          } catch (error) {
+            console.error('[ActivityLogs] Error fetching profile owner name:', error);
+          }
         }
-        const logs = await getUserActivityLogs(user.uid);
+        
+        if (DEBUG_ACTIVITY_LOGS) {
+          console.log('[ActivityLogs] Fetching activity logs for user:', targetUserId, '(profileUserId:', profileUserId, 'logged-in user:', user?.uid, 'isOwnProfile:', isOwnProfile, 'profileOwnerName:', profileOwnerName);
+        }
+        const logs = await getUserActivityLogs(targetUserId, {
+          currentUserId: user?.uid || null,
+          profileOwnerName: profileOwnerName,
+        });
         if (DEBUG_ACTIVITY_LOGS) {
           console.log('[ActivityLogs] Fetched logs:', logs.length, logs);
         }
@@ -210,7 +224,7 @@ const ActivityLogs = () => {
     };
 
     fetchActivityLogs();
-  }, [user, authLoading]);
+  }, [targetUserId, profileUserId, user?.uid, authLoading, isOwnProfile]);
 
   const handleViewActivity = (activity) => {
     // Handle view action - navigate to recipe or open modal

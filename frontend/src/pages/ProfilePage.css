@@ -405,6 +405,43 @@
   font-size: 0.9rem;
 }
 
+.profile-recipes__edit-button {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  background: rgba(255, 255, 255, 0.9);
+  border: none;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #374151;
+  transition: all 0.2s;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  z-index: 10;
+}
+
+.profile-recipes__edit-button:hover {
+  background: white;
+  color: #FE982A;
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.profile-recipes__credit {
+  margin: 0.5rem 0 0;
+  font-size: 0.75rem;
+  color: var(--profile-muted);
+}
+
+.profile-recipes__credit-author {
+  font-weight: 500;
+  color: #FE982A;
+}
+
 .profile-recipes__state {
   border-radius: 18px;
   padding: 1.75rem;

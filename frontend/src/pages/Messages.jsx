@@ -7,6 +7,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Search, Paperclip, Send, X, Image as ImageIcon, Loader, CheckCheck, Check, Trash2, Edit2, MoreVertical } from 'lucide-react';
 import HeaderSidebarLayout from '../components/HeaderSidebarLayout';
 import MessengerReactions from '../components/MessengerReactions';
+import Avatar from '../components/Avatar';
 import './Messages.css';
 import '../styles/messages.css';
 
@@ -491,9 +492,11 @@ export default function Messages() {
                       }`}
                     >
                       <div className="messages-conversation-avatar">
-                        <img
-                          src={convOtherUser?.profileImage || '/profile.png'}
-                          alt={convOtherUser?.displayName || 'User'}
+                        <Avatar
+                          userId={convOtherUser?.uid}
+                          profileImage={convOtherUser?.profileImage}
+                          displayName={convOtherUser?.displayName}
+                          size="sm"
                         />
                       </div>
 
@@ -570,9 +573,11 @@ export default function Messages() {
                 {/* Chat Header */}
                 <div className="messages-chat-header">
                   <div className="messages-chat-header-avatar">
-                    <img
-                      src={otherUser?.profileImage || '/profile.png'}
-                      alt={otherUser?.displayName || 'User'}
+                    <Avatar
+                      userId={otherUser?.uid}
+                      profileImage={otherUser?.profileImage}
+                      displayName={otherUser?.displayName}
+                      size="md"
                     />
                   </div>
                   <div className="messages-chat-header-info">
@@ -604,9 +609,11 @@ export default function Messages() {
                             <div className={`messages-message-container ${isOwnMessage ? 'own' : 'other'}`}>
                               <div className={`messages-message-content ${isOwnMessage ? 'own' : ''}`}>
                                 {!isOwnMessage && (
-                                  <img
-                                    src={otherUser?.profileImage || '/profile.png'}
-                                    alt={otherUser?.displayName || 'User'}
+                                  <Avatar
+                                    userId={message.senderId}
+                                    profileImage={otherUser?.profileImage}
+                                    displayName={otherUser?.displayName}
+                                    size="sm"
                                     className="messages-message-avatar"
                                   />
                                 )}
@@ -830,9 +837,11 @@ export default function Messages() {
                       onClick={() => handleStartNewChat(u.userId)}
                       className="messages-modal-user-item"
                     >
-                      <img
-                        src={u.profileImage || '/profile.png'}
-                        alt={u.displayName || 'User'}
+                      <Avatar
+                        userId={u.userId}
+                        profileImage={u.profileImage}
+                        displayName={u.displayName}
+                        size="sm"
                         className="messages-modal-user-avatar"
                       />
                       <div className="messages-modal-user-info">

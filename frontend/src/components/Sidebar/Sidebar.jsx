@@ -3,7 +3,9 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import { getUserProfile } from "../../services/users";
 import { listenToUnreadCount } from "../../services/messagingService";
-import { listenToUnreadNotificationCount } from "../../services/notifications";
+import { listenToUnreadNotificationCount, listenToUserNotifications } from "../../services/notifications";
+import { getLastOpenedNotificationAt, updateLastOpenedNotificationAt } from "../../services/userPreferences";
+import Avatar from "../Avatar";
 import styles from "./Sidebar.module.css";
 import NotificationModal from "../../modals/NotificationModal"; //for Notifications
 import ProfileMenu from "../../pages/ProfileMenu";
@@ -22,13 +24,11 @@ const Sidebar = () => {
     };
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [notificationMessage, setNotificationMessage] = useState('');
-  const [profileImage, setProfileImage] = useState(null);
-  const [isImageLoaded, setIsImageLoaded] = useState(false);
-  const [imageError, setImageError] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
-  const [lastViewedNotificationCount, setLastViewedNotificationCount] = useState(0);
+  const [lastOpenedNotificationAt, setLastOpenedNotificationAt] = useState(null);
   const prevModalOpenRef = useRef(false);
+  const notificationUnsubscribeRef = useRef(() => {});
 
   // Update active state based on current route
   useEffect(() => {
@@ -44,69 +44,6 @@ const Sidebar = () => {
     }
   }, [location]);
 
-  // Load user profile image
-  useEffect(() => {
-    const loadProfileImage = async () => {
-      if (user?.uid) {
-        try {
-          const userProfile = await getUserProfile(user.uid);
-          // Use profileImage from Firestore, or photoURL from Auth, or fallback
-          const imageUrl = userProfile?.profileImage || user?.photoURL || null;
-          setProfileImage(imageUrl);
-          setIsImageLoaded(false);
-          setImageError(false);
-        } catch (error) {
-          console.error("Error loading profile image:", error);
-          // Fallback to Auth photoURL or null
-          const imageUrl = user?.photoURL || null;
-          setProfileImage(imageUrl);
-          setIsImageLoaded(false);
-          setImageError(false);
-        }
-      } else {
-        setProfileImage(null);
-        setIsImageLoaded(false);
-        setImageError(false);
-      }
-    };
-
-    loadProfileImage();
-  }, [user?.uid, user?.photoURL]);
-
-  // Preload image to check if it exists and is loadable
-  useEffect(() => {
-    if (!profileImage) {
-      setIsImageLoaded(false);
-      setImageError(true);
-      return;
-    }
-
-    const img = new Image();
-    img.onload = () => {
-      setIsImageLoaded(true);
-      setImageError(false);
-    };
-    img.onerror = () => {
-      setIsImageLoaded(false);
-      setImageError(true);
-    };
-    img.src = profileImage;
-
-    return () => {
-      img.onload = null;
-      img.onerror = null;
-    };
-  }, [profileImage]);
-
-  const handleImageLoad = () => {
-    setIsImageLoaded(true);
-    setImageError(false);
-  };
-
-  const handleImageError = () => {
-    setIsImageLoaded(false);
-    setImageError(true);
-  };
 
   // Listen to unread conversations count
   useEffect(() => {
@@ -124,39 +61,82 @@ const Sidebar = () => {
     };
   }, [user?.uid]);
 
-  // Listen to unread notifications count
+  // Set up persistent real-time notification badge listener (like messages)
   useEffect(() => {
     if (!user?.uid) {
       setUnreadNotificationCount(0);
-      setLastViewedNotificationCount(0);
+      setLastOpenedNotificationAt(null);
+      notificationUnsubscribeRef.current();
+      notificationUnsubscribeRef.current = () => {};
       return;
     }
 
-    const unsubscribe = listenToUnreadNotificationCount(user.uid, (count) => {
-      setUnreadNotificationCount(count);
-    });
+    let isMounted = true;
+
+    // Load last opened timestamp and set up badge count listener
+    const setupBadgeListener = async () => {
+      try {
+        const lastOpened = await getLastOpenedNotificationAt(user.uid);
+        if (!isMounted) return;
+        
+        setLastOpenedNotificationAt(lastOpened);
+        
+        // Set up badge count listener with timestamp - always active
+        notificationUnsubscribeRef.current = listenToUnreadNotificationCount(user.uid, (count) => {
+          if (isMounted) {
+            setUnreadNotificationCount(count);
+          }
+        }, lastOpened);
+      } catch (error) {
+        console.error('Error loading last opened notification timestamp:', error);
+        if (isMounted) {
+          setLastOpenedNotificationAt(null);
+          // Fallback to unread count without timestamp - always active
+          notificationUnsubscribeRef.current = listenToUnreadNotificationCount(user.uid, (count) => {
+            if (isMounted) {
+              setUnreadNotificationCount(count);
+            }
+          });
+        }
+      }
+    };
+
+    setupBadgeListener();
 
     return () => {
-      unsubscribe();
+      isMounted = false;
+      notificationUnsubscribeRef.current();
+      notificationUnsubscribeRef.current = () => {};
     };
   }, [user?.uid]);
 
-  // Reset badge count when modal opens (but don't mark notifications as read)
+  // Update lastOpenedNotificationAt when modal opens
   useEffect(() => {
-    // Only update when modal transitions from closed to open
-    if (isModalOpen && !prevModalOpenRef.current) {
-      // Store the current unread count as the "last viewed" count
-      // This resets the badge to 0 when modal opens
-      setLastViewedNotificationCount(unreadNotificationCount);
+    if (isModalOpen && !prevModalOpenRef.current && user?.uid) {
+      // Update timestamp when modal opens
+      const updateTimestamp = async () => {
+        try {
+          await updateLastOpenedNotificationAt(user.uid);
+          const newTimestamp = new Date();
+          setLastOpenedNotificationAt(newTimestamp);
+          
+          // Re-setup badge count listener with new timestamp
+          notificationUnsubscribeRef.current();
+          notificationUnsubscribeRef.current = listenToUnreadNotificationCount(user.uid, (count) => {
+            setUnreadNotificationCount(count);
+          }, newTimestamp);
+        } catch (error) {
+          console.error('Error updating last opened notification timestamp:', error);
+        }
+      };
+      updateTimestamp();
     }
     prevModalOpenRef.current = isModalOpen;
-  }, [isModalOpen, unreadNotificationCount]);
+  }, [isModalOpen, user?.uid]);
 
-  // Calculate displayed badge count: only show new notifications since last view
+  // Calculate displayed badge count: only show new notifications since last open
   // When modal is open, badge is 0. When closed, badge shows new notifications since last open.
-  const displayedBadgeCount = isModalOpen 
-    ? 0 
-    : Math.max(0, unreadNotificationCount - lastViewedNotificationCount);
+  const displayedBadgeCount = isModalOpen ? 0 : unreadNotificationCount;
 
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const profileRef = useRef(null);
@@ -169,6 +149,7 @@ const Sidebar = () => {
       {/* Profile */}
       <div className={`${styles.profileWrapper} flex flex-col items-center relative`}>
         <div 
+          ref={profileRef}
           className="relative w-10 h-10 rounded-full overflow-hidden cursor-pointer hover:scale-105 transition-transform"
           onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
           role="button"
@@ -181,31 +162,13 @@ const Sidebar = () => {
             }
           }}
         >
-          {/* Skeleton placeholder - shown while image is loading */}
-          {profileImage && !isImageLoaded && (
-            <div className={styles.profileSkeleton} aria-hidden="true" />
-          )}
-          
-          {/* Actual image - only shown once loaded */}
-          {profileImage && (
-            <img
-              ref={profileRef}
-              src={profileImage}
-              alt="Profile"
-              className={`${styles.profileImage} ${
-                isImageLoaded ? styles.profileImageLoaded : styles.profileImageHidden
-              }`}
-              onLoad={handleImageLoad}
-              onError={handleImageError}
-            />
-          )}
-          
-          {/* Fallback placeholder - shown when no image or image failed */}
-          {(!profileImage || imageError) && (
-            <div className={styles.profilePlaceholder} aria-hidden="true">
-              {user?.email?.charAt(0).toUpperCase() || 'U'}
-            </div>
-          )}
+          <Avatar
+            userId={user?.uid}
+            profileImage={user?.photoURL}
+            displayName={user?.displayName || user?.email?.split('@')[0] || 'User'}
+            size="md"
+            className={styles.profileAvatar}
+          />
         </div>
         <ProfileMenu
           isOpen={isProfileMenuOpen}

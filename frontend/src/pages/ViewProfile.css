@@ -25,6 +25,49 @@
   outline-offset: 2px;
 }
 
+/* Saved Recipe Credit Styles */
+.saved-recipe-credit {
+  margin: 1rem 0;
+  padding: 0.75rem 1rem;
+  background: #fef3c7;
+  border-radius: 8px;
+  border: 1px solid #fde68a;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.saved-recipe-credit-text {
+  margin: 0;
+  font-size: 0.875rem;
+  color: #92400e;
+}
+
+.saved-recipe-credit-text strong {
+  color: #78350f;
+  font-weight: 600;
+}
+
+.saved-recipe-view-original {
+  padding: 0.5rem 1rem;
+  background: #FE982A;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.saved-recipe-view-original:hover {
+  background: #e88620;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(254, 152, 42, 0.3);
+}
+
 /* Follow state - Orange gradient (matching post view) */
 .follow-button--not-following {
   background: linear-gradient(to right, #f97316, #ea580c);

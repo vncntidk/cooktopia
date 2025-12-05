@@ -7,8 +7,7 @@ import {
   listenToUserNotifications,
   markNotificationAsRead
 } from '../services/notifications';
-
-const DEFAULT_USER_AVATAR = "/src/assets/Logo (2).png";
+import Avatar from '../components/Avatar';
 
 const NotificationModal = ({ isOpen, onClose, message = '' }) => {
   const { user } = useAuth();
@@ -31,21 +30,30 @@ const NotificationModal = ({ isOpen, onClose, message = '' }) => {
   // Note: We no longer mark all notifications as read when modal opens
   // Only individual notifications are marked as read when clicked
 
-  // Fetch notifications when modal opens - single listener per user
+  // Set up real-time listener for notifications (always active when user is logged in)
   useEffect(() => {
-    if (!isOpen || !user?.uid) {
+    if (!user?.uid) {
       setNotifications([]);
+      setLoading(false);
       return;
     }
 
+    let isFirstLoad = true;
     setLoading(true);
     
-    // Set up real-time listener - will be cleaned up on unmount or when dependencies change
+    // Set up real-time listener - always active, not just when modal is open
+    // This ensures notifications update in real-time even when modal is closed
     const unsubscribe = listenToUserNotifications(
       user.uid,
       (fetchedNotifications) => {
+        // Update notifications immediately (no delays)
+        // The callback is called twice: once with raw data (instant), then with enriched data
         setNotifications(fetchedNotifications);
-        setLoading(false);
+        // Only show loading on first load
+        if (isFirstLoad) {
+          setLoading(false);
+          isFirstLoad = false;
+        }
       },
       { limitCount: 50 }
     );
@@ -53,7 +61,7 @@ const NotificationModal = ({ isOpen, onClose, message = '' }) => {
     return () => {
       unsubscribe();
     };
-  }, [isOpen, user?.uid]);
+  }, [user?.uid]); // Remove isOpen dependency so listener stays active
 
   // Format timestamp to relative time
   const formatTimestamp = (timestamp) => {
@@ -93,6 +101,9 @@ const NotificationModal = ({ isOpen, onClose, message = '' }) => {
       case 'like':
         const likePostTitle = notification.postTitle || 'your post';
         return `liked your post: "${likePostTitle}".`;
+      case 'rating':
+        const ratingPostTitle = notification.postTitle || 'your recipe';
+        return `rated your recipe "${ratingPostTitle}".`;
       case 'message_request':
         return 'sent you a message request.';
       default:
@@ -133,6 +144,7 @@ const NotificationModal = ({ isOpen, onClose, message = '' }) => {
     switch (notification.type) {
       case 'like':
       case 'comment':
+      case 'rating':
         // Open post modal by navigating to home with recipe ID in state
         if (notification.relatedPostId) {
           onClose();
@@ -179,7 +191,7 @@ const NotificationModal = ({ isOpen, onClose, message = '' }) => {
       type: note.type,
       title: note.actorName || 'User',
       message: formatNotificationMessage(note),
-      avatar: note.actorAvatar || DEFAULT_USER_AVATAR,
+      avatar: note.actorAvatar || null, // Avatar component will handle fallback
       createdAt: formatTimestamp(note.createdAt),
       isRead: isRead,
       isNew: !isRead,
@@ -318,14 +330,11 @@ const NotificationModal = ({ isOpen, onClose, message = '' }) => {
                             : 'bg-gray-100'
                         }`}>
                       <div className="flex-shrink-0">
-                        <img
-                          src={note.avatar || DEFAULT_USER_AVATAR}
-                          alt={`${note.title}'s avatar`}
-                          className="w-[50px] h-[50px] rounded-full object-cover border border-gray-300"
-                          onError={(e) => {
-                            // Fallback to default avatar if image fails to load
-                            e.target.src = DEFAULT_USER_AVATAR;
-                          }}
+                        <Avatar
+                          userId={note.originalNotification?.actorUserId}
+                          profileImage={note.avatar}
+                          displayName={note.title}
+                          size="md"
                         />
                       </div>
                           
