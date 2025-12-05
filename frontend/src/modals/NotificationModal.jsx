@@ -9,8 +9,7 @@ import {
   // 💡 ADDED: Assuming this function exists in your services
   markAllNotificationsAsRead 
 } from '../services/notifications';
-
-const DEFAULT_USER_AVATAR = "/src/assets/Logo (2).png";
+import Avatar from '../components/Avatar';
 
 const NotificationModal = ({ isOpen, onClose, message = '' }) => {
   const { user } = useAuth();
@@ -33,29 +32,38 @@ const NotificationModal = ({ isOpen, onClose, message = '' }) => {
     return () => window.removeEventListener('keydown', handleEsc);
   }, [onClose]);
 
-  // Fetch notifications when modal opens - single listener per user
-  useEffect(() => {
-    if (!isOpen || !user?.uid) {
-      setNotifications([]);
-      return;
-    }
+  // Set up real-time listener for notifications (always active when user is logged in)
+  useEffect(() => {
+    if (!user?.uid) {
+      setNotifications([]);
+      setLoading(false);
+      return;
+    }
 
-    setLoading(true);
-    
-    // Set up real-time listener - will be cleaned up on unmount or when dependencies change
-    const unsubscribe = listenToUserNotifications(
-      user.uid,
-      (fetchedNotifications) => {
-        setNotifications(fetchedNotifications);
-        setLoading(false);
-      },
-      { limitCount: 50 }
-    );
+    let isFirstLoad = true;
+    setLoading(true);
+    
+    // Set up real-time listener - always active, not just when modal is open
+    // This ensures notifications update in real-time even when modal is closed
+    const unsubscribe = listenToUserNotifications(
+      user.uid,
+      (fetchedNotifications) => {
+        // Update notifications immediately (no delays)
+        // The callback is called twice: once with raw data (instant), then with enriched data
+        setNotifications(fetchedNotifications);
+        // Only show loading on first load
+        if (isFirstLoad) {
+          setLoading(false);
+          isFirstLoad = false;
+        }
+      },
+      { limitCount: 50 }
+    );
 
-    return () => {
-      unsubscribe();
-    };
-  }, [isOpen, user?.uid]);
+    return () => {
+      unsubscribe();
+    };
+  }, [user?.uid]); // Remove isOpen dependency so listener stays active
 
   // Format timestamp to relative time
   const formatTimestamp = (timestamp) => {
@@ -82,25 +90,28 @@ const NotificationModal = ({ isOpen, onClose, message = '' }) => {
     }
   };
 
-  // Format notification message based on type
-  const formatNotificationMessage = (notification) => {
-    const actorName = notification.actorName || 'Someone';
-    
-    switch (notification.type) {
-      case 'follow':
-        return 'just followed you.';
-      case 'comment':
-        const postTitle = notification.postTitle || 'your post';
-        return `commented on your "${postTitle}" recipe.`;
-      case 'like':
-        const likePostTitle = notification.postTitle || 'your post';
-        return `liked your post: "${likePostTitle}".`;
-      case 'message_request':
-        return 'sent you a message request.';
-      default:
-        return 'interacted with you.';
-    }
-  };
+  // Format notification message based on type
+  const formatNotificationMessage = (notification) => {
+    const actorName = notification.actorName || 'Someone';
+    
+    switch (notification.type) {
+      case 'follow':
+        return 'just followed you.';
+      case 'comment':
+        const postTitle = notification.postTitle || 'your post';
+        return `commented on your "${postTitle}" recipe.`;
+      case 'like':
+        const likePostTitle = notification.postTitle || 'your post';
+        return `liked your post: "${likePostTitle}".`;
+      case 'rating':
+        const ratingPostTitle = notification.postTitle || 'your recipe';
+        return `rated your recipe "${ratingPostTitle}".`;
+      case 'message_request':
+        return 'sent you a message request.';
+      default:
+        return 'interacted with you.';
+    }
+  };
 
   // Handle delete notification
   const handleDeleteNotification = async (notificationId, e) => {
@@ -153,64 +164,65 @@ const NotificationModal = ({ isOpen, onClose, message = '' }) => {
       }
     }
 
-    switch (notification.type) {
-      case 'like':
-      case 'comment':
-        // Open post modal by navigating to home with recipe ID in state
-        if (notification.relatedPostId) {
-          onClose();
-          // Use a small delay to ensure modal closes first
-          setTimeout(() => {
-            navigate('/home', { 
-              state: { openRecipeId: notification.relatedPostId } 
-            });
-          }, 100);
-        }
-        break;
-      case 'follow':
-        // Redirect to follower's profile
-        if (notification.actorUserId) {
-          onClose();
-          navigate(`/profile/${notification.actorUserId}`);
-        }
-        break;
-      case 'message_request':
-        // Redirect to messages page (or specific conversation if messageThreadId is available)
-        onClose();
-        if (notification.messageThreadId) {
-          navigate(`/messages?conversation=${notification.messageThreadId}`);
-        } else {
-          navigate('/messages');
-        }
-        break;
-      default:
-        // Do nothing for unknown types
-        break;
-    }
-  };
+    switch (notification.type) {
+      case 'like':
+      case 'comment':
+      case 'rating':
+        // Open post modal by navigating to home with recipe ID in state
+        if (notification.relatedPostId) {
+          onClose();
+          // Use a small delay to ensure modal closes first
+          setTimeout(() => {
+            navigate('/home', { 
+              state: { openRecipeId: notification.relatedPostId } 
+            });
+          }, 100);
+        }
+        break;
+      case 'follow':
+        // Redirect to follower's profile
+        if (notification.actorUserId) {
+          onClose();
+          navigate(`/profile/${notification.actorUserId}`);
+        }
+        break;
+      case 'message_request':
+        // Redirect to messages page (or specific conversation if messageThreadId is available)
+        onClose();
+        if (notification.messageThreadId) {
+          navigate(`/messages?conversation=${notification.messageThreadId}`);
+        } else {
+          navigate('/messages');
+        }
+        break;
+      default:
+        // Do nothing for unknown types
+        break;
+    }
+  };
 
-  // Transform notifications to match UI structure
-  const transformedNotifications = notifications.map((note) => {
-    const timestamp = note.createdAt?.toDate ? note.createdAt.toDate().getTime() : 
-                     (note.createdAt ? new Date(note.createdAt).getTime() : Date.now());
-    
-    // Use the read field directly from the notification data
-    const isRead = note.read === true;
-    
-    return {
-      id: note.id,
-      type: note.type,
-      title: note.actorName || 'User',
-      message: formatNotificationMessage(note),
-      avatar: note.actorAvatar || DEFAULT_USER_AVATAR,
-      createdAt: formatTimestamp(note.createdAt),
-      isRead: isRead,
-      isNew: !isRead,
-      originalTimestamp: timestamp,
-      // Keep original data for navigation
-      originalNotification: note,
-    };
-  });
+  // Transform notifications to match UI structure
+  const transformedNotifications = notifications.map((note) => {
+    const timestamp = note.createdAt?.toDate ? note.createdAt.toDate().getTime() : 
+                     (note.createdAt ? new Date(note.createdAt).getTime() : Date.now());
+    
+    // Use the read field directly from the notification data
+    const isRead = note.read === true;
+    
+    return {
+      id: note.id,
+      type: note.type,
+      title: note.actorName || 'User',
+      message: formatNotificationMessage(note),
+      avatar: note.actorAvatar || null, // Avatar component will handle fallback
+      createdAt: formatTimestamp(note.createdAt),
+      isRead: isRead,
+      isNew: !isRead,
+      originalTimestamp: timestamp,
+      // Keep original data for navigation
+      originalNotification: note,
+    };
+  });
 
   const filteredNotifications = transformedNotifications
     .slice()
@@ -368,82 +380,76 @@ const NotificationModal = ({ isOpen, onClose, message = '' }) => {
                 notificationsToRender.map((note) => {
                   const isUnread = !note.isRead;
 
-                  return (
-                    <div
-                      key={note.id}
-                      onClick={() => handleNotificationClick(note.originalNotification)}
-                      className={`flex items-start gap-4 w-full
-                        min-h-[80px] px-4 py-3 
-                        border-b border-gray-100
-                        hover:bg-gray-300 transition relative cursor-pointer
-                        ${
-                          isUnread
-                            ? 'bg-gray-200'
-                            : ''
-                        }`}
-                        >
-                      <div className="flex-shrink-0">
-                        <img
-                          src={note.avatar || DEFAULT_USER_AVATAR}
-                          alt={`${note.title}'s avatar`}
-                          className="w-[50px] h-[50px] rounded-full object-cover border border-gray-300"
-                          onError={(e) => {
-                            // Fallback to default avatar if image fails to load
-                            e.target.src = DEFAULT_USER_AVATAR;
-                          }}
-                          style={{marginLeft: 10, marginTop: 15}}
-                        />
-                      </div>
-                          
-                      <div className="flex-1 flex flex-col min-w-0"style={{marginTop: 12}}>
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm leading-relaxed break-words">
-                              <span className="font-semibold">{note.title}</span>{' '}
-                              <span className="text-gray-800">{note.message}</span>
-                            </p>
-                            <span className="text-gray-500 text-xs italic mt-1 block">
-                              {note.createdAt}
-                            </span>
-                          </div>
-                          
-                          {/* Unread indicator and Delete button container */}
-                          <div className="flex items-start gap-2 flex-shrink-0">
-                            {isUnread && (
-                              <div className="mt-1 w-[8px] h-[8px] rounded-full bg-orange-500 flex-shrink-0"style={{marginTop: 19}}></div>
-                            )}
-                            
-                            {/* Delete button */}
-                            <button
-                              onClick={(e) => handleDeleteNotification(note.id, e)}
-                              className="text-gray-400 hover:text-red-500 transition-colors flex-shrink-0 p-1"
-                              title="Delete notification"
-                              aria-label="Delete notification"
-                              style={{marginRight: 10}}
-                            >
-                              <svg 
-                                xmlns="http://www.w3.org/2000/svg" 
-                                className="h-12 w-4" 
-                                fill="none" 
-                                viewBox="0 0 24 24" 
-                                stroke="currentColor"
-                              >
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                              </svg>
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
-  );
+                  return (
+                    <div
+                      key={note.id}
+                      onClick={() => handleNotificationClick(note.originalNotification)}
+                      className={`flex items-start gap-3 w-full
+                        min-h-[80px] px-4 py-3 
+                        border border-gray-200 rounded-xl
+                        hover:bg-gray-300 transition relative cursor-pointer
+                        ${
+                          isUnread
+                            ? 'bg-gray-200'
+                            : 'bg-gray-100'
+                        }`}>
+                      <div className="flex-shrink-0">
+                        <Avatar
+                          userId={note.originalNotification?.actorUserId}
+                          profileImage={note.avatar}
+                          displayName={note.title}
+                          size="md"
+                        />
+                      </div>
+                          
+                      <div className="flex-1 flex flex-col min-w-0">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm leading-relaxed break-words">
+                              <span className="font-semibold">{note.title}</span>{' '}
+                              <span className="text-gray-800">{note.message}</span>
+                            </p>
+                            <span className="text-gray-500 text-xs italic mt-1 block">
+                              {note.createdAt}
+                            </span>
+                          </div>
+                          
+                          {/* Unread indicator and Delete button container */}
+                          <div className="flex items-start gap-2 flex-shrink-0">
+                            {isUnread && (
+                              <div className="mt-1 w-[8px] h-[8px] rounded-full bg-orange-500 flex-shrink-0"></div>
+                            )}
+                            
+                            {/* Delete button */}
+                            <button
+                              onClick={(e) => handleDeleteNotification(note.id, e)}
+                              className="text-gray-400 hover:text-red-500 transition-colors flex-shrink-0 p-1"
+                              title="Delete notification"
+                              aria-label="Delete notification"
+                            >
+                              <svg 
+                                xmlns="http://www.w3.org/2000/svg" 
+                                className="h-4 w-4" 
+                                fill="none" 
+                                viewBox="0 0 24 24" 
+                                stroke="currentColor"
+                              >
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  );
 };
 
 export default NotificationModal;

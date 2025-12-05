@@ -6,7 +6,7 @@
  * Document structure:
  *   - recipientUserId: uid of the user receiving the notification
  *   - actorUserId: uid of the user who triggered the notification
- *   - type: 'follow' | 'comment' | 'like' | 'message_request'
+ *   - type: 'follow' | 'comment' | 'like' | 'message_request' | 'rating'
  *   - relatedPostId: recipe/post ID (nullable, for comment/like notifications)
  *   - messageThreadId: conversation ID (nullable, for message_request notifications)
  *   - createdAt: serverTimestamp
@@ -43,10 +43,11 @@ const DEBUG_NOTIFICATIONS = false;
  * Create a notification
  * @param {string} recipientUserId - The user receiving the notification
  * @param {string} actorUserId - The user who triggered the notification
- * @param {string} type - 'follow' | 'comment' | 'like' | 'message_request'
+ * @param {string} type - 'follow' | 'comment' | 'like' | 'message_request' | 'rating'
  * @param {Object} options - Additional options
- * @param {string} options.relatedPostId - Recipe/post ID (for comment/like)
+ * @param {string} options.relatedPostId - Recipe/post ID (for comment/like/rating)
  * @param {string} options.messageThreadId - Conversation ID (for message_request)
+ * @param {number} options.ratingValue - Rating value 1-5 (for rating)
  * @returns {Promise<string>} - Notification document ID
  */
 export const createNotification = async (recipientUserId, actorUserId, type, options = {}) => {
@@ -107,6 +108,7 @@ export const createNotification = async (recipientUserId, actorUserId, type, opt
       type,
       relatedPostId: options.relatedPostId || null,
       messageThreadId: options.messageThreadId || null,
+      ratingValue: options.ratingValue || null, // For rating notifications
       createdAt: serverTimestamp(),
       read: false,
       deleted: false,
@@ -208,8 +210,8 @@ export const getUserNotifications = async (userId, options = {}) => {
         notificationData.actorAvatar = null;
       }
 
-      // Get post/recipe data for comment/like notifications
-      if (notificationData.relatedPostId && (notificationData.type === 'comment' || notificationData.type === 'like')) {
+      // Get post/recipe data for comment/like/rating notifications
+      if (notificationData.relatedPostId && (notificationData.type === 'comment' || notificationData.type === 'like' || notificationData.type === 'rating')) {
         try {
           const recipe = await getRecipeById(notificationData.relatedPostId);
           notificationData.postTitle = recipe?.title || 'your post';
@@ -339,54 +341,70 @@ export const listenToUserNotifications = (userId, callback, options = {}) => {
     const unsubscribe = onSnapshot(
       q,
       async (querySnapshot) => {
-        const notifications = [];
-
-        // Enrich notifications with user and post data
-        for (const docSnap of querySnapshot.docs) {
-          const notificationData = {
-            id: docSnap.id,
-            ...docSnap.data(),
-          };
-
-          // Get actor user profile
-          try {
-            if (notificationData.actorUserId) {
-              const actorProfile = await getUserProfile(notificationData.actorUserId);
-              notificationData.actorName = actorProfile?.displayName || actorProfile?.email?.split('@')[0] || 'User';
-              // Try profileImage first, then photoURL from auth, then null
-              notificationData.actorAvatar = actorProfile?.profileImage || actorProfile?.photoURL || null;
-            } else {
-              notificationData.actorName = 'User';
-              notificationData.actorAvatar = null;
-            }
-          } catch (error) {
-            console.error('Error fetching actor profile:', error);
-            notificationData.actorName = 'User';
-            notificationData.actorAvatar = null;
-          }
-
-          // Get post/recipe data for comment/like notifications
-          if (notificationData.relatedPostId && (notificationData.type === 'comment' || notificationData.type === 'like')) {
-            try {
-              const recipe = await getRecipeById(notificationData.relatedPostId);
-              notificationData.postTitle = recipe?.title || 'your post';
-            } catch (error) {
-              console.error('Error fetching recipe:', error);
-              notificationData.postTitle = 'your post';
-            }
-          }
-
-          notifications.push(notificationData);
-        }
+        // First, create raw notifications array immediately (no async delays)
+        const rawNotifications = querySnapshot.docs.map((docSnap) => ({
+          id: docSnap.id,
+          ...docSnap.data(),
+          // Set default values immediately so notification appears instantly
+          actorName: 'User',
+          actorAvatar: null,
+          postTitle: 'your post',
+        }));
 
         // Sort by createdAt if we couldn't use orderBy in query
-        notifications.sort((a, b) => {
+        rawNotifications.sort((a, b) => {
           const aTime = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : 0;
           const bTime = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : 0;
           return bTime - aTime;
         });
 
-        callback(notifications);
+        // Call callback immediately with raw data so notifications appear instantly
+        callback(rawNotifications);
+
+        // Then enrich notifications in parallel (non-blocking)
+        const enrichedNotifications = await Promise.all(
+          rawNotifications.map(async (notificationData) => {
+            const enrichmentPromises = [];
+
+            // Get actor user profile (parallel)
+            if (notificationData.actorUserId) {
+              enrichmentPromises.push(
+                getUserProfile(notificationData.actorUserId)
+                  .then((actorProfile) => {
+                    notificationData.actorName = actorProfile?.displayName || actorProfile?.email?.split('@')[0] || 'User';
+                    notificationData.actorAvatar = actorProfile?.profileImage || actorProfile?.photoURL || null;
+                  })
+                  .catch((error) => {
+                    console.error('Error fetching actor profile:', error);
+                    notificationData.actorName = 'User';
+                    notificationData.actorAvatar = null;
+                  })
+              );
+            }
+
+            // Get post/recipe data for comment/like/rating notifications (parallel)
+            if (notificationData.relatedPostId && (notificationData.type === 'comment' || notificationData.type === 'like' || notificationData.type === 'rating')) {
+              enrichmentPromises.push(
+                getRecipeById(notificationData.relatedPostId)
+                  .then((recipe) => {
+                    notificationData.postTitle = recipe?.title || 'your post';
+                  })
+                  .catch((error) => {
+                    console.error('Error fetching recipe:', error);
+                    notificationData.postTitle = 'your post';
+                  })
+              );
+            }
+
+            // Wait for all enrichment for this notification to complete
+            await Promise.all(enrichmentPromises);
+
+            return notificationData;
+          })
+        );
+
+        // Update with enriched data (this will trigger a re-render with full data)
+        callback(enrichedNotifications);
       },
       (error) => {
         console.error('Error in notifications listener:', error);
@@ -477,28 +495,60 @@ export const getUnreadNotificationCount = async (userId) => {
 };
 
 /**
- * Listen to unread notification count in real-time
+ * Listen to unread notification count in real-time (based on timestamp, like messages)
  * @param {string} userId - The user's UID
  * @param {Function} callback - Callback function that receives the count
+ * @param {Date|null} lastOpenedAt - Timestamp of when notifications were last opened (optional)
  * @returns {Function} - Unsubscribe function
  */
-export const listenToUnreadNotificationCount = (userId, callback) => {
+export const listenToUnreadNotificationCount = (userId, callback, lastOpenedAt = null) => {
   if (!userId) {
     return () => {};
   }
 
   try {
-    const q = query(
-      collection(db, NOTIFICATIONS_COLLECTION),
-      where('recipientUserId', '==', userId),
-      where('deleted', '==', false),
-      where('read', '==', false)
-    );
+    // If lastOpenedAt is provided, count notifications created after that timestamp
+    // Otherwise, count all unread notifications (backward compatibility)
+    let q;
+    if (lastOpenedAt) {
+      // Count notifications created after lastOpenedAt
+      q = query(
+        collection(db, NOTIFICATIONS_COLLECTION),
+        where('recipientUserId', '==', userId),
+        where('deleted', '==', false),
+        orderBy('createdAt', 'desc')
+      );
+    } else {
+      // Fallback to unread count (for backward compatibility)
+      q = query(
+        collection(db, NOTIFICATIONS_COLLECTION),
+        where('recipientUserId', '==', userId),
+        where('deleted', '==', false),
+        where('read', '==', false)
+      );
+    }
 
     const unsubscribe = onSnapshot(
       q,
       (querySnapshot) => {
-        const count = querySnapshot.size;
+        let count = 0;
+        
+        if (lastOpenedAt) {
+          // Count notifications created after lastOpenedAt
+          const lastOpenedTime = lastOpenedAt instanceof Date ? lastOpenedAt.getTime() : new Date(lastOpenedAt).getTime();
+          querySnapshot.docs.forEach((docSnap) => {
+            const data = docSnap.data();
+            const createdAt = data.createdAt?.toDate ? data.createdAt.toDate().getTime() : 
+                           (data.createdAt ? new Date(data.createdAt).getTime() : 0);
+            if (createdAt > lastOpenedTime) {
+              count++;
+            }
+          });
+        } else {
+          // Count all unread notifications
+          count = querySnapshot.size;
+        }
+        
         callback(count);
       },
       (error) => {

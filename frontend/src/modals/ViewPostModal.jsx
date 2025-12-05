@@ -1,16 +1,149 @@
 import React, { useState, useEffect } from 'react';
-import { X, Heart, MessageCircle, Bookmark, Star, Trash2, Pencil, Edit2, MoreVertical, Clock, ChefHat, Users } from 'lucide-react';
+import { X, Heart, MessageCircle, Bookmark, Star, Trash2, Pencil, Edit2, MoreVertical, Clock, ChefHat, Users, Play } from 'lucide-react';
 
 
 import { useAuth } from '../contexts/AuthContext';
 import { getRecipeById, updateRecipe, deleteRecipe } from '../services/recipes';
 import { getRecipeInteractionCounts, toggleRecipeLike, hasUserLikedRecipe, toggleRecipeSave, hasUserSavedRecipe, getRecipeComments, addRecipeComment, deleteRecipeComment, toggleCommentLike } from '../services/interactions';
 import { followUser, unfollowUser, isFollowing as checkIsFollowing } from '../services/followService';
+import { getUserRating, saveUserRating, getRecipeRatingStats } from '../services/ratings';
+import { createActivityLog } from '../services/activityLogs';
+import { createNotification } from '../services/notifications';
 import { useNavigate } from 'react-router-dom';
 import Avatar from '../components/Avatar';
 import ConfirmDialog from '../components/ConfirmDialog';
 import toast from 'react-hot-toast';
 import '../pages/ViewProfile.css';
+
+// Helper function to extract YouTube video ID from URL
+const extractYouTubeId = (url) => {
+  if (!url) return null;
+  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+  const match = url.match(regExp);
+  return (match && match[2].length === 11) ? match[2] : null;
+};
+
+// Helper function to get YouTube thumbnail URL
+const getYouTubeThumbnail = (videoId) => {
+  return `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
+};
+
+// Media Gallery Component
+const MediaGallery = ({ recipe, selectedMediaIndex, mediaType, onMediaSelect }) => {
+  const imageUrls = recipe?.imageUrls || [];
+  const youtubeLink = recipe?.youtubeLink;
+  const youtubeId = youtubeLink ? extractYouTubeId(youtubeLink) : null;
+  
+  // Calculate total media items (images + video if exists)
+  const totalImages = imageUrls.length;
+  const hasVideo = !!youtubeId;
+  const totalMedia = totalImages + (hasVideo ? 1 : 0);
+  
+  // Get current media to display
+  const getCurrentMedia = () => {
+    if (mediaType === 'video' && youtubeId) {
+      return { type: 'video', youtubeId };
+    }
+    if (selectedMediaIndex >= 0 && selectedMediaIndex < totalImages) {
+      return { type: 'image', url: imageUrls[selectedMediaIndex], index: selectedMediaIndex };
+    }
+    // Fallback to first image
+    return { type: 'image', url: imageUrls[0] || '/posts/placeholder.jpg', index: 0 };
+  };
+  
+  const currentMedia = getCurrentMedia();
+  
+  return (
+    <div className="media-gallery">
+      {/* Main Media Area */}
+      <div className="media-main-container">
+        {currentMedia.type === 'video' ? (
+          <div className="media-video-container">
+            <iframe
+              width="100%"
+              height="100%"
+              src={`https://www.youtube.com/embed/${youtubeId}`}
+              title="YouTube video player"
+              frameBorder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+              style={{ minHeight: '400px' }}
+            />
+          </div>
+        ) : (
+          <div className="media-image-container">
+            <img 
+              src={currentMedia.url} 
+              alt={recipe?.title || 'Recipe image'}
+              className="media-main-image"
+            />
+          </div>
+        )}
+        
+        {/* Quick Stats Overlay */}
+        {(recipe?.duration || recipe?.servings) && (
+          <div className="stats-overlay">
+            {recipe.duration && (
+              <div className="stat-badge">
+                <Clock className="w-4 h-4 text-gray-600" />
+                <span className="stat-badge-text">{recipe.duration} min</span>
+              </div>
+            )}
+            {recipe.servings && (
+              <div className="stat-badge">
+                <Users className="w-4 h-4 text-gray-600" />
+                <span className="stat-badge-text">{recipe.servings} servings</span>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+      
+      {/* Thumbnails Strip */}
+      {totalMedia > 1 && (
+        <div className="media-thumbnails">
+          {/* Image thumbnails */}
+          {imageUrls.map((url, index) => (
+            <button
+              key={`img-${index}`}
+              onClick={() => onMediaSelect(index, 'image')}
+              className={`media-thumbnail ${mediaType === 'image' && selectedMediaIndex === index ? 'active' : ''}`}
+              aria-label={`View image ${index + 1}`}
+            >
+              <img 
+                src={url} 
+                alt={`Recipe image ${index + 1}`}
+                className="media-thumbnail-image"
+              />
+            </button>
+          ))}
+          
+          {/* Video thumbnail */}
+          {hasVideo && (
+            <button
+              onClick={() => onMediaSelect(-1, 'video')}
+              className={`media-thumbnail media-thumbnail-video ${mediaType === 'video' ? 'active' : ''}`}
+              aria-label="View video"
+            >
+              <img 
+                src={getYouTubeThumbnail(youtubeId)} 
+                alt="Recipe video"
+                className="media-thumbnail-image"
+                onError={(e) => {
+                  // Fallback if thumbnail fails to load
+                  e.target.style.display = 'none';
+                }}
+              />
+              <div className="media-thumbnail-play-overlay">
+                <Play className="w-6 h-6 text-white" fill="white" />
+              </div>
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
 
 export default function ViewPostModal({ isOpen, onClose, recipe: recipeInput }) {
   // Your actual hooks and state management from old code
@@ -26,6 +159,9 @@ export default function ViewPostModal({ isOpen, onClose, recipe: recipeInput }) 
   const [followLoading, setFollowLoading] = useState(false);
   const [userRating, setUserRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
+  const [averageRating, setAverageRating] = useState(0);
+  const [ratingCount, setRatingCount] = useState(0);
+  const [ratingLoading, setRatingLoading] = useState(false);
   const [comments, setComments] = useState([]);
   const [replyTo, setReplyTo] = useState(null);
   const [replyText, setReplyText] = useState('');
@@ -40,6 +176,8 @@ export default function ViewPostModal({ isOpen, onClose, recipe: recipeInput }) 
   const [showRecipeMenu, setShowRecipeMenu] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [selectedMediaIndex, setSelectedMediaIndex] = useState(0); // 0 = first image, -1 = video
+  const [mediaType, setMediaType] = useState('image'); // 'image' or 'video'
 
   // Load real recipe data from Firebase (from old code)
   useEffect(() => {
@@ -51,8 +189,23 @@ export default function ViewPostModal({ isOpen, onClose, recipe: recipeInput }) 
       try {
         setLoading(true);
         
-        // Fetch recipe from Firebase
-        const recipeData = await getRecipeById(recipeInput.id);
+        // For saved recipes, use the recipe data directly if it's already loaded
+        // Otherwise fetch from Firebase
+        let recipeData;
+        const isSavedRecipe = recipeInput.isSavedRecipe || false;
+        const isCustomized = recipeInput.isCustomized || false;
+        
+        if (isSavedRecipe && recipeInput.originalPostId && recipeInput.originalPostId !== recipeInput.id) {
+          // For saved recipes, fetch the original recipe for metadata
+          recipeData = await getRecipeById(recipeInput.originalPostId);
+          if (!recipeData) {
+            // Fallback to current recipe if original not found
+            recipeData = await getRecipeById(recipeInput.id);
+          }
+        } else {
+          // Regular recipe fetch
+          recipeData = await getRecipeById(recipeInput.id);
+        }
         
         if (!recipeData) {
           console.error('Recipe not found');
@@ -61,22 +214,28 @@ export default function ViewPostModal({ isOpen, onClose, recipe: recipeInput }) 
         }
         
         // Set recipe state with real Firebase data
+        // For saved recipes, use customized fields if available, otherwise use original
         setRecipe({
-          id: recipeData.id,
-          title: recipeData.title || 'Untitled Recipe',
-          description: recipeData.description || '',
-          difficulty: recipeData.difficulty || 'Easy',
-          duration: recipeData.duration || 0,
+          id: recipeInput.id, // Use the saved recipe ID
+          title: (isSavedRecipe && isCustomized && recipeInput.title) ? recipeInput.title : (recipeData.title || 'Untitled Recipe'),
+          description: (isSavedRecipe && isCustomized && recipeInput.description) ? recipeInput.description : (recipeData.description || ''),
+          difficulty: recipeInput.difficulty || recipeData.difficulty || 'Easy',
+          duration: recipeInput.duration || recipeData.duration || 0,
           servings: recipeData.servings || 4,
-          ingredients: Array.isArray(recipeData.ingredients) ? recipeData.ingredients : [],
-          steps: Array.isArray(recipeData.steps) ? recipeData.steps : [],
-          instructions: Array.isArray(recipeData.steps) ? recipeData.steps : [],
-          imageUrls: Array.isArray(recipeData.imageUrls) ? recipeData.imageUrls : [],
-          authorId: recipeData.authorId,
-          authorName: recipeData.authorName || 'Unknown',
-          youtubeLink: recipeData.youtubeLink || null,
-          image: recipeData.imageUrls?.[0] || '/posts/placeholder.jpg',
+          ingredients: (isSavedRecipe && isCustomized && recipeInput.ingredients) ? recipeInput.ingredients : (Array.isArray(recipeData.ingredients) ? recipeData.ingredients : []),
+          steps: (isSavedRecipe && isCustomized && recipeInput.steps) ? recipeInput.steps : (Array.isArray(recipeData.steps) ? recipeData.steps : []),
+          instructions: (isSavedRecipe && isCustomized && recipeInput.steps) ? recipeInput.steps : (Array.isArray(recipeData.steps) ? recipeData.steps : []),
+          imageUrls: (isSavedRecipe && isCustomized && recipeInput.imageUrls) ? recipeInput.imageUrls : (Array.isArray(recipeData.imageUrls) ? recipeData.imageUrls : []),
+          authorId: recipeData.authorId, // Original author
+          authorName: recipeData.authorName || 'Unknown', // Original author name
+          youtubeLink: recipeInput.youtubeLink || recipeData.youtubeLink || null,
+          image: (isSavedRecipe && isCustomized && recipeInput.imageUrls?.[0]) ? recipeInput.imageUrls[0] : (recipeData.imageUrls?.[0] || '/posts/placeholder.jpg'),
           userAvatar: null, // Will be loaded via Avatar component
+          // Preserve saved recipe metadata
+          originalPostId: recipeInput.originalPostId || recipeData.id,
+          originalAuthorId: recipeInput.originalAuthorId || recipeData.authorId,
+          isSavedRecipe: isSavedRecipe,
+          isCustomized: isCustomized,
         });
 
         // Load real interaction counts from Firebase
@@ -90,22 +249,40 @@ export default function ViewPostModal({ isOpen, onClose, recipe: recipeInput }) 
               ? checkIsFollowing(user.uid, recipeData.authorId)
               : Promise.resolve(false);
 
-            const [liked, saved, following] = await Promise.all([
+            const [liked, saved, following, userRatingValue] = await Promise.all([
               hasUserLikedRecipe(recipeData.id, user.uid),
               hasUserSavedRecipe(recipeData.id, user.uid),
               checkFollowing,
+              getUserRating(recipeData.id, user.uid),
             ]);
             setIsLiked(liked);
             setIsSaved(saved);
             setIsFollowing(following);
+            setUserRating(userRatingValue || 0);
           } catch (error) {
             console.error('Error checking user interactions:', error);
             // Set defaults on error
             setIsLiked(false);
             setIsSaved(false);
             setIsFollowing(false);
+            setUserRating(0);
           }
         }
+
+        // Load rating stats (average and count) - works for all users
+        try {
+          const stats = await getRecipeRatingStats(recipeData.id);
+          setAverageRating(stats.average);
+          setRatingCount(stats.count);
+        } catch (error) {
+          console.error('Error loading rating stats:', error);
+          setAverageRating(0);
+          setRatingCount(0);
+        }
+
+        // Reset media selection when recipe changes
+        setSelectedMediaIndex(0);
+        setMediaType('image');
 
         // Load comments from Firebase
         const recipeComments = await getRecipeComments(recipeData.id);
@@ -500,6 +677,125 @@ export default function ViewPostModal({ isOpen, onClose, recipe: recipeInput }) 
           width: 55%;
           position: relative;
           background-color: #f3f4f6;
+        }
+
+        .media-gallery {
+          width: 100%;
+          height: 100%;
+          display: flex;
+          flex-direction: column;
+          gap: 1rem;
+        }
+
+        .media-main-container {
+          width: 100%;
+          flex: 1;
+          position: relative;
+          border-radius: 16px;
+          overflow: hidden;
+          background: #f3f4f6;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          min-height: 400px;
+        }
+
+        .media-image-container {
+          width: 100%;
+          height: 100%;
+          position: relative;
+        }
+
+        .media-main-image {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+
+        .media-video-container {
+          width: 100%;
+          height: 100%;
+          position: relative;
+          background: #000;
+        }
+
+        .media-video-container iframe {
+          width: 100%;
+          height: 100%;
+          min-height: 400px;
+        }
+
+        .media-thumbnails {
+          display: flex;
+          gap: 0.75rem;
+          overflow-x: auto;
+          padding: 0.5rem 0;
+          scrollbar-width: thin;
+          scrollbar-color: #d1d5db transparent;
+        }
+
+        .media-thumbnails::-webkit-scrollbar {
+          height: 6px;
+        }
+
+        .media-thumbnails::-webkit-scrollbar-track {
+          background: transparent;
+        }
+
+        .media-thumbnails::-webkit-scrollbar-thumb {
+          background: #d1d5db;
+          border-radius: 3px;
+        }
+
+        .media-thumbnail {
+          flex-shrink: 0;
+          width: 80px;
+          height: 80px;
+          border-radius: 8px;
+          overflow: hidden;
+          border: 2px solid transparent;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          background: #f3f4f6;
+          position: relative;
+          padding: 0;
+        }
+
+        .media-thumbnail:hover {
+          border-color: #fbbf24;
+          transform: scale(1.05);
+        }
+
+        .media-thumbnail.active {
+          border-color: #f59e0b;
+          border-width: 3px;
+        }
+
+        .media-thumbnail-image {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+
+        .media-thumbnail-video {
+          position: relative;
+        }
+
+        .media-thumbnail-play-overlay {
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: rgba(0, 0, 0, 0.4);
+          transition: background 0.2s ease;
+        }
+
+        .media-thumbnail-video:hover .media-thumbnail-play-overlay {
+          background: rgba(0, 0, 0, 0.6);
         }
 
         .image-container {
@@ -1374,33 +1670,17 @@ export default function ViewPostModal({ isOpen, onClose, recipe: recipeInput }) 
             <X className="w-5 h-5 text-gray-700" />
           </button>
 
-          {/* LEFT SECTION - Featured Image */}
+          {/* LEFT SECTION - Media Gallery */}
           <div className="image-section">
-            <div className="image-container">
-              <img 
-                src={recipe.image} 
-                alt={recipe.title}
-                className="recipe-image"
-              />
-              
-              {/* Quick Stats Overlay */}
-              {(recipe.duration || recipe.servings) && (
-                <div className="stats-overlay">
-                  {recipe.duration && (
-                    <div className="stat-badge">
-                      <Clock className="w-4 h-4 text-gray-600" />
-                      <span className="stat-badge-text">{recipe.duration} min</span>
-                    </div>
-                  )}
-                  {recipe.servings && (
-                    <div className="stat-badge">
-                      <Users className="w-4 h-4 text-gray-600" />
-                      <span className="stat-badge-text">{recipe.servings} servings</span>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
+            <MediaGallery 
+              recipe={recipe}
+              selectedMediaIndex={selectedMediaIndex}
+              mediaType={mediaType}
+              onMediaSelect={(index, type) => {
+                setSelectedMediaIndex(index);
+                setMediaType(type);
+              }}
+            />
           </div>
 
           {/* RIGHT SECTION - Content */}
@@ -1477,31 +1757,119 @@ export default function ViewPostModal({ isOpen, onClose, recipe: recipeInput }) 
 
               {/* Recipe Title */}
               <h1 className="recipe-title">{recipe.title}</h1>
+
+              {/* Credit for saved recipes */}
+              {recipe.isSavedRecipe && recipe.originalAuthorId && recipe.originalAuthorId !== user?.uid && (
+                <div className="saved-recipe-credit">
+                  <p className="saved-recipe-credit-text">
+                    Credit: <strong>@{recipe.authorName || 'Original Author'}</strong>
+                  </p>
+                  {recipe.originalPostId && recipe.originalPostId !== recipe.id && (
+                    <button
+                      onClick={async () => {
+                        // Close current modal and fetch original recipe
+                        onClose();
+                        try {
+                          const originalRecipe = await getRecipeById(recipe.originalPostId);
+                          if (originalRecipe) {
+                            // The parent component should handle opening the original
+                            // For now, we'll use a small delay and let the parent handle it
+                            setTimeout(() => {
+                              // This will be handled by the parent component's ViewPostModal
+                              // The parent should listen for this or we can use a callback
+                              window.dispatchEvent(new CustomEvent('viewOriginalRecipe', { 
+                                detail: { recipeId: recipe.originalPostId } 
+                              }));
+                            }, 300);
+                          }
+                        } catch (error) {
+                          console.error('Error loading original recipe:', error);
+                        }
+                      }}
+                      className="saved-recipe-view-original"
+                    >
+                      View Original Post
+                    </button>
+                  )}
+                </div>
+              )}
               
               {/* Star Rating - Interactive */}
               <div className="rating-section">
-                <div className="star-rating">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <button
-                      key={star}
-                      onClick={() => setUserRating(star)}
-                      onMouseEnter={() => setHoverRating(star)}
-                      onMouseLeave={() => setHoverRating(0)}
-                      className="star-button"
-                    >
-                      <Star 
-                        className={`star-icon ${
-                          star <= (hoverRating || userRating) ? 'filled' : 'empty'
-                        }`}
-                      />
-                    </button>
-                  ))}
-                </div>
-                <div className="average-rating">
-                  <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                  <span className="rating-value">{recipe.rating}</span>
-                  <span className="rating-count">(256 ratings)</span>
-                </div>
+                {user?.uid ? (
+                  <>
+                    <div className="star-rating">
+                      <span style={{ fontSize: '0.875rem', color: '#6b7280', marginRight: '0.5rem' }}>Your rating:</span>
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <button
+                          key={star}
+                          onClick={async () => {
+                            if (!user?.uid || !recipe?.id) return;
+                            const newRating = star;
+                            setUserRating(newRating);
+                            setRatingLoading(true);
+                            try {
+                              await saveUserRating(recipe.id, user.uid, newRating);
+                              // Update average rating stats
+                              const stats = await getRecipeRatingStats(recipe.id);
+                              setAverageRating(stats.average);
+                              setRatingCount(stats.count);
+                              // Create activity log
+                              try {
+                                await createActivityLog(user.uid, 'rating', {
+                                  targetPostId: recipe.id,
+                                  meta: { rating: newRating },
+                                });
+                              } catch (error) {
+                                console.error('Error creating rating activity log:', error);
+                              }
+                              // Create notification for recipe owner (if not rating own recipe)
+                              if (recipe.authorId && recipe.authorId !== user.uid) {
+                                try {
+                                  await createNotification(recipe.authorId, user.uid, 'rating', {
+                                    relatedPostId: recipe.id,
+                                    ratingValue: newRating,
+                                  });
+                                } catch (error) {
+                                  console.error('Error creating rating notification:', error);
+                                }
+                              }
+                            } catch (error) {
+                              console.error('Error saving rating:', error);
+                              toast.error('Failed to save rating. Please try again.');
+                              // Revert on error
+                              const currentRating = await getUserRating(recipe.id, user.uid);
+                              setUserRating(currentRating || 0);
+                            } finally {
+                              setRatingLoading(false);
+                            }
+                          }}
+                          onMouseEnter={() => setHoverRating(star)}
+                          onMouseLeave={() => setHoverRating(0)}
+                          className="star-button"
+                          disabled={ratingLoading}
+                        >
+                          <Star 
+                            className={`star-icon ${
+                              star <= (hoverRating || userRating) ? 'filled' : 'empty'
+                            }`}
+                          />
+                        </button>
+                      ))}
+                    </div>
+                    <div className="average-rating">
+                      <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                      <span className="rating-value">{averageRating > 0 ? averageRating.toFixed(1) : '0.0'}</span>
+                      <span className="rating-count">({ratingCount} {ratingCount === 1 ? 'rating' : 'ratings'})</span>
+                    </div>
+                  </>
+                ) : (
+                  <div className="average-rating">
+                    <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                    <span className="rating-value">{averageRating > 0 ? averageRating.toFixed(1) : '0.0'}</span>
+                    <span className="rating-count">({ratingCount} {ratingCount === 1 ? 'rating' : 'ratings'})</span>
+                  </div>
+                )}
               </div>
 
               {/* Difficulty Badge */}

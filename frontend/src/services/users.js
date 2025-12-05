@@ -94,15 +94,31 @@ export const getUserProfile = async (userId) => {
       };
     } else {
       // Create default profile if it doesn't exist
-      // Try to get email from Auth if this is the current user
-      let email = '';
+      // Initialize displayName from auth data if available
+      let displayName = null;
+      let email = null;
+      
+      // Try to get displayName from auth if this is the current user
       if (auth.currentUser && auth.currentUser.uid === userId) {
-        email = auth.currentUser.email || '';
+        displayName = auth.currentUser.displayName || null;
+        email = auth.currentUser.email || null;
+      }
+      
+      // Fallback to email prefix if no displayName
+      if (!displayName && email) {
+        displayName = email.split('@')[0];
+      }
+      
+      // Final fallback
+      if (!displayName) {
+        displayName = `user_${userId.slice(0, 8)}`;
       }
       
       const defaultProfile = {
         bio: 'Add bio',
-        email: email,
+        displayName: displayName, // Initialize displayName from auth data
+        name: displayName, // Also set name field for compatibility
+        email: email || '',
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       };
@@ -141,6 +157,40 @@ export const updateUserProfile = async (userId, profileData) => {
     if (userDocSnap.exists()) {
       await updateDoc(userDocRef, updateData);
     } else {
+      // Initialize displayName from auth data if creating new profile
+      let displayName = updateData.displayName || null;
+      let email = updateData.email || null;
+      
+      // Try to get displayName from auth if this is the current user
+      if (!displayName && auth.currentUser && auth.currentUser.uid === userId) {
+        displayName = auth.currentUser.displayName || null;
+        email = auth.currentUser.email || email || null;
+      }
+      
+      // Fallback to email prefix if no displayName
+      if (!displayName && email) {
+        displayName = email.split('@')[0];
+      }
+      
+      // Final fallback
+      if (!displayName) {
+        displayName = `user_${userId.slice(0, 8)}`;
+      }
+      
+      // Ensure displayName and name are set
+      if (!updateData.displayName) {
+        updateData.displayName = displayName;
+      }
+      if (!updateData.name) {
+        updateData.name = displayName;
+      }
+      if (!updateData.bio) {
+        updateData.bio = 'Add bio';
+      }
+      if (!updateData.email && email) {
+        updateData.email = email;
+      }
+      
       await setDoc(userDocRef, {
         ...updateData,
         createdAt: serverTimestamp()

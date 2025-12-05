@@ -35,6 +35,7 @@ import {
 import FollowersFollowingModal from '../modals/FollowersFollowingModal';
 import { followUser, unfollowUser, isFollowing, listenToFollowStatus } from '../services/followService';
 import ViewPostModal from '../modals/ViewPostModal';
+import EditSavedRecipeModal from '../modals/EditSavedRecipeModal';
 import Avatar from '../components/Avatar';
 import './ProfilePage.css';
 import './ViewProfile.css';
@@ -118,7 +119,37 @@ export default function ProfilePage() {
       hasProfileImage: false,
     };
   });
+  // Reset activeTab to 'own-recipes' when switching users (especially when going from another user to own profile)
   const [activeTab, setActiveTab] = useState('own-recipes');
+  
+  useEffect(() => {
+    // When profileUserId changes, reset to 'own-recipes' tab
+    setActiveTab('own-recipes');
+  }, [profileUserId]);
+
+  // Listen for view original recipe event from ViewPostModal
+  useEffect(() => {
+    const handleViewOriginal = async (event) => {
+      const { recipeId } = event.detail;
+      if (recipeId) {
+        try {
+          const { getRecipeById } = await import('../services/recipes');
+          const originalRecipe = await getRecipeById(recipeId);
+          if (originalRecipe) {
+            setSelectedRecipe(originalRecipe);
+            setIsRecipeModalOpen(true);
+          }
+        } catch (error) {
+          console.error('Error loading original recipe:', error);
+        }
+      }
+    };
+
+    window.addEventListener('viewOriginalRecipe', handleViewOriginal);
+    return () => {
+      window.removeEventListener('viewOriginalRecipe', handleViewOriginal);
+    };
+  }, []);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [followersModalOpen, setFollowersModalOpen] = useState(false);
@@ -148,6 +179,20 @@ export default function ProfilePage() {
   useEffect(() => {
     sectionsRef.current = sections;
   }, [sections]);
+
+  // Reset sections when profileUserId changes to prevent showing stale data
+  useEffect(() => {
+    if (!profileUserId) {
+      return;
+    }
+
+    // Reset all sections to initial state when switching users
+    setSections({
+      'own-recipes': { ...initialSectionState },
+      'liked-recipes': { ...initialSectionState },
+      'saved-recipes': { ...initialSectionState },
+    });
+  }, [profileUserId]);
 
   // Load user profile data and stats from Firestore
   // Reset userData when profileUserId changes to prevent showing wrong user's data
@@ -474,22 +519,69 @@ export default function ProfilePage() {
           }
 
           const snapshot = await getDocs(query(subCollectionRef, ...constraints));
-          const recipeIds = snapshot.docs
+          const recipeEntries = snapshot.docs
             .map((docSnapshot) => ({
               id: docSnapshot.id,
+              data: docSnapshot.data(),
               recipeId: docSnapshot.data()?.recipeId || docSnapshot.id,
               createdAt: docSnapshot.data()?.createdAt || null,
             }))
             .filter((entry) => Boolean(entry.recipeId));
 
-          const recipePromises = recipeIds.map(async (entry) => {
+          const recipePromises = recipeEntries.map(async (entry) => {
             const recipeDoc = await getDoc(doc(db, 'recipes', entry.recipeId));
             if (recipeDoc.exists()) {
-              return {
-                id: recipeDoc.id,
-                ...recipeDoc.data(),
-                bookmarkedAt: entry.createdAt,
-              };
+              const recipeData = recipeDoc.data();
+              const savedData = entry.data;
+              
+              // Get original recipe if this is a saved recipe with originalPostId
+              let originalRecipeData = recipeData;
+              if (sectionKey === 'saved-recipes' && savedData.originalPostId && savedData.originalPostId !== entry.recipeId) {
+                try {
+                  const originalDoc = await getDoc(doc(db, 'recipes', savedData.originalPostId));
+                  if (originalDoc.exists()) {
+                    originalRecipeData = originalDoc.data();
+                  }
+                } catch (error) {
+                  console.error('Error fetching original recipe:', error);
+                }
+              }
+              
+              // For saved recipes, check if it's customized
+              if (sectionKey === 'saved-recipes' && savedData.isCustomized) {
+                // Return customized version with original metadata
+                return {
+                  id: entry.id, // Use saved recipe document ID
+                  ...recipeData,
+                  // Override with customized fields if they exist
+                  title: savedData.customTitle || recipeData.title,
+                  description: savedData.customDescription || recipeData.description,
+                  ingredients: savedData.customIngredients || recipeData.ingredients,
+                  steps: savedData.customSteps || recipeData.steps,
+                  imageUrls: savedData.customImageUrls || recipeData.imageUrls,
+                  // Metadata - use original recipe's author info
+                  originalPostId: savedData.originalPostId || entry.recipeId,
+                  originalAuthorId: savedData.originalAuthorId || originalRecipeData.authorId,
+                  authorName: originalRecipeData.authorName || recipeData.authorName, // Original author name for credit
+                  isCustomized: true,
+                  isSavedRecipe: true,
+                  savedRecipeId: entry.id,
+                  bookmarkedAt: entry.createdAt,
+                };
+              } else {
+                // Return original recipe with metadata
+                return {
+                  id: recipeDoc.id,
+                  ...recipeData,
+                  originalPostId: savedData.originalPostId || recipeDoc.id,
+                  originalAuthorId: savedData.originalAuthorId || recipeData.authorId,
+                  authorName: originalRecipeData.authorName || recipeData.authorName, // Original author name for credit
+                  isCustomized: savedData.isCustomized || false,
+                  isSavedRecipe: sectionKey === 'saved-recipes',
+                  savedRecipeId: sectionKey === 'saved-recipes' ? entry.id : null,
+                  bookmarkedAt: entry.createdAt,
+                };
+              }
             }
             return null;
           });
@@ -541,10 +633,10 @@ export default function ProfilePage() {
 
   useEffect(() => {
     const state = sections[activeTab];
-    if (!state.initialised && !state.loading) {
+    if (!state.initialised && !state.loading && profileUserId) {
       fetchRecipesBySection(activeTab, true);
     }
-  }, [activeTab, fetchRecipesBySection, sections]);
+  }, [activeTab, fetchRecipesBySection, sections, profileUserId]);
 
   const handleTabChange = useCallback(
     (nextTab) => {
@@ -640,6 +732,14 @@ export default function ProfilePage() {
 
   const [selectedRecipe, setSelectedRecipe] = useState(null);
   const [isRecipeModalOpen, setIsRecipeModalOpen] = useState(false);
+  const [isEditSavedModalOpen, setIsEditSavedModalOpen] = useState(false);
+  const [recipeToEdit, setRecipeToEdit] = useState(null);
+
+  const handleEditSavedRecipe = useCallback((e, recipe) => {
+    e.stopPropagation();
+    setRecipeToEdit(recipe);
+    setIsEditSavedModalOpen(true);
+  }, []);
 
   const recipeCards = useMemo(
     () =>
@@ -668,6 +768,19 @@ export default function ProfilePage() {
               alt={recipe.title || 'Recipe image'}
               loading="lazy"
             />
+            {/* Edit button for saved recipes */}
+            {activeTab === 'saved-recipes' && recipe.isSavedRecipe && isOwnProfile && (
+              <button
+                onClick={(e) => handleEditSavedRecipe(e, recipe)}
+                className="profile-recipes__edit-button"
+                aria-label="Edit saved recipe"
+                title="Edit saved recipe"
+              >
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M11.333 2.00001C11.5084 1.82465 11.7163 1.68626 11.9441 1.59331C12.1719 1.50036 12.4151 1.45459 12.6663 1.45459C12.9176 1.45459 13.1608 1.50036 13.3886 1.59331C13.6164 1.68626 13.8243 1.82465 13.9997 2.00001C14.175 2.17537 14.3134 2.38326 14.4064 2.61108C14.4993 2.8389 14.5451 3.08205 14.5451 3.33334C14.5451 3.58463 14.4993 3.82778 14.4064 4.0556C14.3134 4.28342 14.175 4.49131 13.9997 4.66667L5.33301 13.3333L1.33301 14.6667L2.66634 10.6667L11.333 2.00001Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </button>
+            )}
           </div>
           <div className="profile-recipes__body">
             <h3 className="profile-recipes__title">{recipe.title || 'Untitled recipe'}</h3>
@@ -675,16 +788,23 @@ export default function ProfilePage() {
               {recipe.duration ? `${recipe.duration} mins • ` : ''}
               {recipe.difficulty || 'Difficulty not set'}
             </p>
+            {/* Credit for saved recipes */}
+            {activeTab === 'saved-recipes' && recipe.originalAuthorId && recipe.originalAuthorId !== profileUserId && (
+              <p className="profile-recipes__credit">
+                Credit: <span className="profile-recipes__credit-author">@{recipe.authorName || 'Original Author'}</span>
+              </p>
+            )}
           </div>
         </article>
       )),
-    [activeSection.items],
+    [activeSection.items, activeTab, isOwnProfile, profileUserId, handleEditSavedRecipe],
   );
 
   const handleViewActivityLogs = useCallback(() => {
     setIsMenuOpen(false);
-    navigate('/activity-logs');
-  }, [navigate]);
+    // Navigate to activity logs with the profile user's ID
+    navigate(`/activity-logs/${profileUserId}`);
+  }, [navigate, profileUserId]);
 
   // Follow button component with real-time sync and improved UI/UX
   const FollowButton = ({ targetUserId, currentUserId }) => {
@@ -989,6 +1109,22 @@ export default function ProfilePage() {
               setSelectedRecipe(null);
             }}
             recipe={selectedRecipe}
+          />
+        )}
+
+        {/* Edit Saved Recipe Modal */}
+        {isEditSavedModalOpen && recipeToEdit && (
+          <EditSavedRecipeModal
+            isOpen={isEditSavedModalOpen}
+            onClose={() => {
+              setIsEditSavedModalOpen(false);
+              setRecipeToEdit(null);
+            }}
+            savedRecipe={recipeToEdit}
+            onSave={() => {
+              // Refresh the saved recipes section
+              fetchRecipesBySection('saved-recipes', true);
+            }}
           />
         )}
 

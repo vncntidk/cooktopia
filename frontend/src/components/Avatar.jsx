@@ -105,7 +105,43 @@ export default function Avatar({
   };
 
   const sizeClass = sizeClasses[size] || sizeClasses.md;
-  const firstLetter = avatarData.name.charAt(0).toUpperCase();
+  
+  // Generate initials from name (first letter of first name + first letter of last name if available)
+  const getInitials = (name) => {
+    if (!name || name === 'U' || name === 'User') return 'U';
+    const parts = name.trim().split(/\s+/);
+    if (parts.length >= 2) {
+      return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+    }
+    return name.charAt(0).toUpperCase();
+  };
+  
+  const initials = getInitials(avatarData.name);
+  
+  // Generate deterministic background color from user name
+  const getColorFromName = (name) => {
+    if (!name || name === 'U' || name === 'User') {
+      return { bg: 'rgba(107, 114, 128, 0.2)', color: '#6b7280' }; // Gray for unknown
+    }
+    
+    // Simple hash function to generate consistent color
+    let hash = 0;
+    for (let i = 0; i < name.length; i++) {
+      hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    
+    // Generate a color from the hash (warm color palette)
+    const hue = Math.abs(hash % 360);
+    const saturation = 60 + (Math.abs(hash) % 20); // 60-80%
+    const lightness = 85 + (Math.abs(hash) % 10); // 85-95% (light backgrounds)
+    
+    return {
+      bg: `hsla(${hue}, ${saturation}%, ${lightness}%, 0.2)`,
+      color: `hsl(${hue}, ${saturation}%, 40%)`, // Darker text color
+    };
+  };
+  
+  const colorScheme = getColorFromName(avatarData.name);
   const hasImage = Boolean(avatarData.image) && !imageError;
   const showSkeleton = hasImage && !isImageLoaded;
 
@@ -138,9 +174,13 @@ export default function Avatar({
       {/* Fallback placeholder - shown when no image or image failed to load */}
       <div 
         className={`avatar-placeholder ${hasImage && isImageLoaded ? 'avatar-placeholder-hidden' : ''}`}
+        style={{
+          background: colorScheme.bg,
+          color: colorScheme.color,
+        }}
         aria-hidden="true"
       >
-        {firstLetter}
+        {initials}
       </div>
     </Component>
   );

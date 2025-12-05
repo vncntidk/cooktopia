@@ -74,6 +74,11 @@ export const toggleRecipeLike = async (recipeId, userId) => {
       await updateDoc(doc(db, RECIPES_COLLECTION, recipeId), {
         likes: increment(-1),
       });
+      // Remove from user's likedRecipes subcollection
+      const userLikeRef = doc(db, 'users', userId, 'likedRecipes', recipeId);
+      await deleteDoc(userLikeRef).catch(() => {
+        // Ignore if it doesn't exist (for backward compatibility)
+      });
       return false;
     } else {
       // Like
@@ -84,6 +89,12 @@ export const toggleRecipeLike = async (recipeId, userId) => {
       // Increment likes count in recipe
       await updateDoc(doc(db, RECIPES_COLLECTION, recipeId), {
         likes: increment(1),
+      });
+      // Add to user's likedRecipes subcollection for profile page queries
+      const userLikeRef = doc(db, 'users', userId, 'likedRecipes', recipeId);
+      await setDoc(userLikeRef, {
+        recipeId,
+        createdAt: serverTimestamp(),
       });
 
       // Create notification for recipe author
@@ -167,15 +178,22 @@ export const toggleRecipeSave = async (recipeId, userId) => {
       await deleteDoc(userSaveRef);
       return false;
     } else {
+      // Get recipe to store metadata
+      const recipe = await getRecipeById(recipeId);
+      
       // Save
       await setDoc(saveDocRef, {
         userId,
         createdAt: serverTimestamp(),
       });
-      // Also add to user's savedRecipes subcollection
+      // Also add to user's savedRecipes subcollection with metadata
       const userSaveRef = doc(db, 'users', userId, 'savedRecipes', recipeId);
       await setDoc(userSaveRef, {
         recipeId,
+        originalPostId: recipeId,
+        originalAuthorId: recipe?.authorId || null,
+        savedByUserId: userId,
+        isCustomized: false,
         createdAt: serverTimestamp(),
       });
       return true;
@@ -204,6 +222,53 @@ export const hasUserSavedRecipe = async (recipeId, userId) => {
   } catch (error) {
     console.error('Error checking save status:', error);
     return false;
+  }
+};
+
+/**
+ * Update a saved recipe with customized fields
+ * @param {string} savedRecipeId - The saved recipe document ID in users/{userId}/savedRecipes
+ * @param {string} userId - The user's UID
+ * @param {Object} customFields - Customized recipe fields
+ * @param {string} customFields.title - Custom title
+ * @param {string} customFields.description - Custom description
+ * @param {Array<string>} customFields.ingredients - Custom ingredients
+ * @param {Array<string>} customFields.steps - Custom steps
+ * @param {Array<string>} customFields.imageUrls - Custom image URLs
+ * @returns {Promise<void>}
+ */
+export const updateSavedRecipe = async (savedRecipeId, userId, customFields) => {
+  try {
+    if (!savedRecipeId || !userId) {
+      throw new Error('Saved recipe ID and User ID are required');
+    }
+
+    const savedRecipeRef = doc(db, 'users', userId, 'savedRecipes', savedRecipeId);
+    const updateData = {
+      isCustomized: true,
+      updatedAt: serverTimestamp(),
+    };
+
+    if (customFields.title) {
+      updateData.customTitle = customFields.title;
+    }
+    if (customFields.description) {
+      updateData.customDescription = customFields.description;
+    }
+    if (customFields.ingredients) {
+      updateData.customIngredients = customFields.ingredients;
+    }
+    if (customFields.steps) {
+      updateData.customSteps = customFields.steps;
+    }
+    if (customFields.imageUrls) {
+      updateData.customImageUrls = customFields.imageUrls;
+    }
+
+    await updateDoc(savedRecipeRef, updateData);
+  } catch (error) {
+    console.error('Error updating saved recipe:', error);
+    throw new Error(`Failed to update saved recipe: ${error.message}`);
   }
 };
 

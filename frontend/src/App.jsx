@@ -48,6 +48,7 @@ function AppContent() {
         <Route path="/create-recipe" element={<Protected><CreateRecipe /></Protected>} />
         <Route path="/edit-recipe/:recipeId" element={<Protected><CreateRecipe /></Protected>} />
         <Route path="/messages" element={<Protected><Messages /></Protected>} />
+        <Route path="/activity-logs/:userId" element={<Protected><ActivityLogs /></Protected>} />
         <Route path="/activity-logs" element={<Protected><ActivityLogs /></Protected>} />
         <Route path="/search" element={<Protected><SearchResults /></Protected>} />
         <Route path="/reactions-demo" element={<ReactionsDemo />} />

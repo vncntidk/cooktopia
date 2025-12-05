@@ -8,8 +8,7 @@
   border-radius: 50%;
   overflow: hidden;
   flex-shrink: 0;
-  background: linear-gradient(135deg, rgba(249, 115, 22, 0.2), rgba(234, 88, 12, 0.2));
-  border: 2px solid rgba(249, 115, 22, 0.3);
+  border: 2px solid rgba(0, 0, 0, 0.1);
 }
 
 .avatar-button {
@@ -116,10 +115,9 @@
   align-items: center;
   justify-content: center;
   font-weight: 600;
-  color: #f97316;
-  background: linear-gradient(135deg, rgba(249, 115, 22, 0.15), rgba(234, 88, 12, 0.15));
   border-radius: 50%;
   z-index: 0;
+  /* Color is set inline via style prop from Avatar component */
 }
 
 .avatar-placeholder-hidden {
