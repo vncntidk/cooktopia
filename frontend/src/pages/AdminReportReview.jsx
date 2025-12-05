@@ -1,8 +1,8 @@
 import React, { useState, useMemo } from "react";
 import SidebarLogoAdmin from "../components/SidebarLogoAdmin";
 import ReviewHeader from "../components/ReviewHeader";
-import { Pen, X } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { Pen } from "lucide-react";
+import Repreplymodal from "../modals/Repreplymodal";
 
 // Utility to generate filters based on date format
 const getUniqueMonthYearFilters = (data) => {
@@ -26,89 +26,149 @@ const getUniqueMonthYearFilters = (data) => {
 
 export default function AdminReportReview() {
   const [selectedReport, setSelectedReport] = useState(null);
-  const [replyText, setReplyText] = useState("");
+  const [isModalOpen, setIsModalOpen] = useState(false);
   
   // State for search and sort
   const [searchQuery, setSearchQuery] = useState('');
   const [sortFilter, setSortFilter] = useState('All Time');
+  const [activeFilter, setActiveFilter] = useState('all'); // 'all', 'replied', 'awaiting'
 
   // Data array
-  const reports = [
+  const [reports, setReports] = useState([
     {
       id: 1,
-      username: "@KpopDemonRumi",
+      username: "@ConcernedUser",
       avatar: "https://placehold.co/50x50",
-      title: "THE BEST WEBSITE!",
-      content: "I love this website! I enjoy cooking and I'm glad that I can see other's recipe as well!!",
-      date: "October 28, 2025",
+      title: "Inappropriate Recipe Content",
+      content: "User @TrollAccount123 posted a recipe with offensive language in the description. The recipe titled 'Special Dish' contains inappropriate words. Please review and take action.",
+      date: "November 18, 2025",
       status: ["New", "Pending"],
     },
     {
       id: 2,
-      username: "@DerekRamsay",
+      username: "@SafetyFirst",
       avatar: "https://placehold.co/50x50",
-      title: "AMAZING!",
-      content: "This site is amazing because I can share my own recipes to the world!",
-      date: "July 01, 2025",
-      status: ["Pending"],
-    },
-    {
-      id: 3,
-      username: "@ImDoneShiningNowImHiding",
-      avatar: "https://placehold.co/50x50",
-      title: "I like it",
-      content: "This is the best!",
-      date: "October 25, 2025",
+      title: "Dangerous Recipe Instructions",
+      content: "Someone posted a recipe with unsafe cooking instructions that could cause injury. The recipe tells users to heat oil at extremely high temperatures without proper warnings.",
+      date: "November 12, 2025",
       status: ["New", "Pending"],
     },
     {
-      id: 4,
-      username: "@ImVegan",
+      id: 3,
+      username: "@HealthWatch",
       avatar: "https://placehold.co/50x50",
-      title: "So convenient",
-      content: "Grabe! I searched just \"lettuce\" and it displayed all recipes that has lettuce in it?! THIS IS SO GREAT!",
-      date: "October 02, 2025",
+      title: "Misleading Health Claims",
+      content: "A recipe is claiming to cure diseases which is misleading and potentially dangerous. The post by @MiracleChef claims their soup can cure diabetes. This is irresponsible.",
+      date: "October 30, 2025",
+      status: ["Pending"],
+    },
+    {
+      id: 4,
+      username: "@OriginalChef",
+      avatar: "https://placehold.co/50x50",
+      title: "Stolen Recipe - Copyright Issue",
+      content: "User @CopyPaste stole my original recipe word-for-word and posted it as their own! I spent weeks perfecting my Chicken Adobo recipe and they just copied everything including my photos.",
+      date: "October 25, 2025",
       status: ["Pending"],
     },
     {
       id: 5,
-      username: "@FoodEnthusiast",
+      username: "@CommunityHelper",
       avatar: "https://placehold.co/50x50",
-      title: "Instant chef",
-      content: "OMG! I didn't have lots of food in my ref rn so I opened this site to search for recipes that has the same ingredients as I have right now. AND BRUH! I'm so busog!",
-      date: "July 03, 2025",
+      title: "Spam Account Detected",
+      content: "The account @BuyNowCheap is posting spam links in recipe comments. They're promoting external websites and scam products. I've seen them comment on at least 10 recipes today.",
+      date: "September 20, 2025",
       status: ["Replied"],
       hasReply: true,
+      adminReplies: [
+        {
+          adminName: "Admin Mike",
+          adminReply: "Thank you for reporting this spam account. We have reviewed the activity and permanently banned @BuyNowCheap from the platform. All spam comments have been removed. We appreciate your help keeping the community safe!",
+          replyDate: "September 21, 2025",
+        }
+      ],
     },
     {
       id: 6,
-      username: "@FoodLover",
+      username: "@RespectfulUser",
       avatar: "https://placehold.co/50x50",
-      title: "Love it!",
-      content: "Papara papa! LOVE KO TO!",
-      date: "August 30, 2025",
+      title: "Harassment in Comments",
+      content: "User @MeanCommenter has been leaving rude and hurtful comments on multiple recipes. They insulted my cooking and used offensive language. This behavior is affecting the community.",
+      date: "September 10, 2025",
       status: ["Replied"],
       hasReply: true,
+      adminReplies: [
+        {
+          adminName: "Admin Sarah",
+          adminReply: "We're sorry you experienced this harassment. We have reviewed the reported comments and taken action against @MeanCommenter. They have received a warning and their offensive comments have been removed. If this continues, their account will be suspended.",
+          replyDate: "September 11, 2025",
+        }
+      ],
     },
-  ];
+    {
+      id: 7,
+      username: "@AllergyAware",
+      avatar: "https://placehold.co/50x50",
+      title: "Missing Allergen Information",
+      content: "A popular recipe contains peanuts but doesn't list it in the ingredients or allergen warnings. This could be dangerous for people with peanut allergies. Please require allergen labels.",
+      date: "August 28, 2025",
+      status: ["Replied"],
+      hasReply: true,
+      adminReplies: [
+        {
+          adminName: "Admin Mike",
+          adminReply: "Thank you for bringing this important safety concern to our attention. We have contacted the recipe author to update the allergen information. We're also working on implementing mandatory allergen labels for all recipes. Your feedback helps make Cooktopia safer for everyone!",
+          replyDate: "August 29, 2025",
+        }
+      ],
+    },
+    {
+      id: 8,
+      username: "@TechSupport",
+      avatar: "https://placehold.co/50x50",
+      title: "Bug: Images Not Loading",
+      content: "I've noticed that recipe images are not loading properly on mobile devices. This has been happening for the past 3 days. Other users in the community are experiencing the same issue.",
+      date: "August 15, 2025",
+      status: ["Pending"],
+    },
+  ]);
+
+  const handleReplySubmit = (replyData) => {
+    const newReply = {
+      adminReply: replyData.adminReply,
+      adminName: replyData.adminName,
+      replyDate: replyData.replyDate,
+    };
+
+    setReports(prevReports => 
+      prevReports.map(report => 
+        report.id === replyData.id 
+          ? { 
+              ...report, 
+              hasReply: true,
+              adminReplies: [...(report.adminReplies || []), newReply],
+              status: ["Replied"]
+            }
+          : report
+      )
+    );
+    // Update selectedReport to show the reply immediately
+    setSelectedReport(prev => prev ? {
+      ...prev,
+      hasReply: true,
+      adminReplies: [...(prev.adminReplies || []), newReply],
+      status: ["Replied"]
+    } : null);
+  };
 
   const handleCardClick = (report) => {
     setSelectedReport(report);
-    setReplyText("");
+    setIsModalOpen(true);
   };
 
   const handleCloseModal = () => {
+    setIsModalOpen(false);
     setSelectedReport(null);
-    setReplyText("");
-  };
-
-  const handleReplySubmit = (e) => {
-    e.preventDefault();
-    if (replyText.trim()) {
-      console.log("Reply submitted:", replyText);
-      alert("Reply submitted successfully!");
-      handleCloseModal();
-    }
   };
 
   // --- Dynamic Filters and Filtered Array ---
@@ -136,12 +196,19 @@ export default function AdminReportReview() {
                    reportDate.getFullYear().toString() === year;
         });
     }
+
+    // 3. Filtering by reply status
+    if (activeFilter === 'replied') {
+      tempReports = tempReports.filter(report => report.hasReply);
+    } else if (activeFilter === 'awaiting') {
+      tempReports = tempReports.filter(report => !report.hasReply);
+    }
     
-    // 3. Sorting (Default to Recent date)
+    // 4. Sorting (Default to Recent date)
     tempReports.sort((a, b) => new Date(b.date) - new Date(a.date));
 
     return tempReports;
-  }, [reports, searchQuery, sortFilter]);
+  }, [reports, searchQuery, sortFilter, activeFilter]);
 
 
   return (
@@ -173,15 +240,40 @@ export default function AdminReportReview() {
                 </div>
               </div>
 
-              {/* Static 'All' Count Display */}
+              {/* Filter Buttons */}
               <div className="self-stretch inline-flex justify-start items-center gap-3 flex-wrap">
-                <div
-                  className={`min-w-[80px] h-9 px-4 py-1.5 rounded-full shadow-md inline-flex justify-center items-center gap-1 bg-[#005236] font-bold text-white shadow-lg`}
+                <button
+                  onClick={() => setActiveFilter('all')}
+                  className={`min-w-[80px] h-9 px-4 py-1.5 rounded-full shadow-md inline-flex justify-center items-center gap-1 font-bold text-white shadow-lg transition-colors duration-200 cursor-pointer ${
+                    activeFilter === 'all' ? 'bg-[#005236]' : 'bg-[#6BC4A6] hover:bg-[#005236]'
+                  }`}
                 >
                   <div className={`text-center text-xs sm:text-sm font-['Poppins']`}>
                     All ({reports.length}) 
                   </div>
-                </div>
+                </button>
+                <button
+                  onClick={() => setActiveFilter('replied')}
+                  className={`min-w-[80px] h-9 px-4 py-1.5 rounded-full shadow-md inline-flex justify-center items-center gap-1 font-bold text-white shadow-lg transition-colors duration-200 cursor-pointer ${
+                    activeFilter === 'replied' ? 'bg-[#005236]' : 'bg-[#6BC4A6] hover:bg-[#005236]'
+                  }`}
+                  style={{padding: 10}}
+                >
+                  <div className={`text-center text-xs sm:text-sm font-['Poppins']`}>
+                    Replied ({reports.filter(r => r.hasReply).length}) 
+                  </div>
+                </button>
+                <button
+                  onClick={() => setActiveFilter('awaiting')}
+                  className={`min-w-[80px] h-9 px-4 py-1.5 rounded-full shadow-md inline-flex justify-center items-center gap-1 font-bold text-white shadow-lg transition-colors duration-200 cursor-pointer ${
+                    activeFilter === 'awaiting' ? 'bg-[#005236]' : 'bg-[#6BC4A6] hover:bg-[#005236]'
+                  }`}
+                  style={{padding: 10}}
+                >
+                  <div className={`text-center text-xs sm:text-sm font-['Poppins']`}>
+                    Awaiting ({reports.filter(r => !r.hasReply).length}) 
+                  </div>
+                </button>
               </div>
             </div>
             
@@ -190,17 +282,17 @@ export default function AdminReportReview() {
               className="
                 grid
                 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4
-                gap-6
+                gap-5
                 place-items-center
               "
-              style={{marginLeft: 120}} 
+              style={{marginLeft: 80, paddingRight: 40, paddingBottom: 40}} 
             >
               {/* Iterating over filteredAndSortedReports */}
               {filteredAndSortedReports.map((report) => ( 
                 <div
                   key={report.id}
-                  onClick={() => handleCardClick(report)}
-                  className="w-100 h-52 bg-white rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300 border border-gray-300 flex flex-col justify-between cursor-pointer"
+                  className="h-44 bg-white rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300 border border-gray-300 flex flex-col justify-between"
+                  style={{paddingLeft: 15, paddingRight: 15, minWidth: 270, width: '100%'}}
                 >
                   {/* Top: User Info and Avatar - PRESERVING INLINE STYLE */}
                   <div className="p-4 flex items-center gap-3">
@@ -216,32 +308,32 @@ export default function AdminReportReview() {
                   </div>
 
                   {/* Middle: Title and Content Snippet - PRESERVING INLINE STYLE */}
-                  <div className="px-4 flex flex-col justify-start items-start gap-1.5 overflow-hidden flex-1" style={{marginTop: 15, marginLeft: 20}}>
-                    <div className="text-black text-xl font-extrabold font-['Afacad'] leading-snug truncate w-full">
+                  <div className="px-4 flex flex-col justify-start items-start gap-1 overflow-hidden flex-1" style={{marginTop: 5, marginLeft: 15}}>
+                    <div className="text-black text-base font-extrabold font-['Afacad'] leading-snug w-full">
                       {report.title}
                     </div>
-                    <div className="text-black text-sm font-normal font-['Afacad'] line-clamp-3">
+                    <div className="text-black text-xs font-normal font-['Afacad'] line-clamp-2">
                       {report.content}
                     </div>
                   </div>
 
                   {/* Bottom: Date, Status, and Action Button - PRESERVING INLINE STYLE */}
-                  <div className="p-4 pt-2 flex justify-between items-center" style={{marginLeft: 15}}>
+                  <div className="p-3 pt-1 flex justify-between items-center" style={{marginLeft: 10}}>
                     <div className="text-neutral-500 text-xs font-normal font-['Afacad']">
                       {report.date}
                     </div>
         
                       {/* Reply Button (Action) */}
                       <button
-                        className="w-8 h-8 p-1 bg-[#6BC4A6] rounded-full flex justify-center items-center cursor-pointer hover:bg-[#005236] transition-colors flex-shrink-0" 
-                        style={{marginRight:10, marginBottom:10}}
+                        className="w-6 h-6 p-1 bg-[#6BC4A6] rounded-full flex justify-center items-center cursor-pointer hover:bg-[#005236] transition-colors flex-shrink-0" 
+                        style={{marginRight: 10, marginBottom: 5}}
                         title="Reply"
                         onClick={(e) => {
                           e.stopPropagation();
                           handleCardClick(report);
                         }}
                       >
-                        <Pen className="w-4 h-4 text-black"/>
+                        <Pen className="w-3 h-3 text-black"/>
                       </button>
                     </div>
                   </div>            
@@ -251,98 +343,13 @@ export default function AdminReportReview() {
         </main>
       </div>
 
-      {/* Report Modal */}
-      <AnimatePresence>
-        {selectedReport && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={handleCloseModal}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm"
-          >
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              transition={{ type: "spring", stiffness: 200, damping: 20 }}
-              onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-2xl mx-4 bg-white rounded-[20px] shadow-2xl p-6 sm:p-8 max-h-[95vh] overflow-y-auto relative" 
-            >
-              {/* Close Button */}
-              <button
-                onClick={handleCloseModal}
-                className="absolute top-4 right-4 w-9 h-9 flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-full transition-colors shadow-md z-10" 
-              >
-                <X className="w-5 h-5 text-gray-700" />
-              </button>
-
-              {/* Report Content */}
-              <div className="flex flex-col gap-6 sm:gap-8 items-center pt-2">
-                
-                {/* User Info */}
-                <div className="flex flex-col items-center gap-3">
-                  <img
-                    className="w-16 h-16 rounded-full shadow-lg object-cover"
-                    src={selectedReport.avatar}
-                    alt={selectedReport.username}
-                  />
-                  <div className="text-center">
-                    <div className="text-black text-xl font-bold font-['Poppins'] mb-0.5"> 
-                      {selectedReport.username}
-                    </div>
-                    <div className="text-neutral-500 text-sm font-normal font-['Afacad']">
-                      {selectedReport.date}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Title and Content */}
-                <div className="flex flex-col gap-3 items-center text-center w-full max-w-3xl px-4">
-                  <div className="text-black text-3xl font-extrabold font-['Poppins']"> 
-                    {selectedReport.title}
-                  </div>
-                  <div className="text-black text-base font-normal font-['Afacad'] leading-relaxed px-2 border-t border-b border-gray-100 py-4"> 
-                    {selectedReport.content}
-                  </div>
-                </div>
-
-                {/* Reply Form */}
-                <form
-                  onSubmit={handleReplySubmit}
-                  className="flex flex-col gap-4 pt-6 border-t border-gray-200 w-full"
-                >
-                  <label className="text-black text-xl font-bold font-['Poppins'] text-center">
-                    Reply to Report
-                  </label>
-                  <textarea
-                    value={replyText}
-                    onChange={(e) => setReplyText(e.target.value)}
-                    placeholder="Type your reply here..."
-                    className="w-full min-h-[140px] px-4 py-3 bg-zinc-100/80 rounded-xl border-2 border-transparent outline-none text-black text-base font-normal font-['Afacad'] resize-none focus:border-[#6BC4A6] focus:ring-4 focus:ring-[#6BC4A6]/20 placeholder:text-center placeholder:text-gray-500 placeholder:opacity-80"
-                  />
-                  <div className="flex justify-center gap-4 pt-2">
-                    <button
-                      type="button"
-                      onClick={handleCloseModal}
-                      className="min-w-[100px] h-11 px-6 bg-gray-200 rounded-full text-black text-base font-medium font-['Poppins'] hover:bg-gray-300 transition-colors shadow-md"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={!replyText.trim()}
-                      className="min-w-[120px] h-11 px-6 bg-[#6BC4A6] rounded-full text-black text-base font-bold font-['Poppins'] hover:bg-[#005236] transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
-                    >
-                      Send Reply
-                    </button>
-                  </div>
-                </form>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Report Reply Modal */}
+      <Repreplymodal 
+        isOpen={isModalOpen} 
+        onClose={handleCloseModal} 
+        report={selectedReport}
+        onReplySubmit={handleReplySubmit}
+      />
     </div>
   );
 }
