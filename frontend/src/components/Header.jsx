@@ -17,9 +17,9 @@ const Header = () => {
 
         {/* Navigation aligned right with spacing from edge */}
         <nav className="w-96 h-11 right-1 top-[38px] absolute flex justify-center items-start gap-10 text-base md:text-lg lg:text-xl text-black font-['Poppins']">
-          <div className="hover:text-cyan-800 transition-colors duration-300 cursor-pointer">About</div>
-          <div className="hover:text-cyan-800 transition-colors duration-300 cursor-pointer">Contact</div>
-          <div className="hover:text-cyan-800 transition-colors duration-300 cursor-pointer">FAQ</div>
+          <div className="hover:text-orange-800 transition-colors duration-300 cursor-pointer">About</div>
+          <div className="hover:text-orange-800 transition-colors duration-300 cursor-pointer">Contact</div>
+          <div className="hover:text-orange-800 transition-colors duration-300 cursor-pointer">FAQ</div>
         </nav>
       </div>
 

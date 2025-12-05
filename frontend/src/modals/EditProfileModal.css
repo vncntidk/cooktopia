@@ -19,6 +19,7 @@
   grid-template-rows: auto 1fr;
   overflow: hidden;
   outline: none;
+  min-height: 580px;
 }
 
 .edit-profile-modal__header {
@@ -64,7 +65,7 @@
   display: grid;
   gap: 1.5rem;
   overflow-y: auto;
-  max-height: clamp(320px, 60vh, 520px);
+  max-height: clamp(400px, 70vh, 600px);
 }
 
 .edit-profile-modal__fieldset {

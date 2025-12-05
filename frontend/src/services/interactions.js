@@ -15,6 +15,9 @@ import {
   updateDoc,
 } from 'firebase/firestore';
 import { db } from '../config/firebase-config';
+import { createNotification } from './notifications';
+import { getRecipeById } from './recipes';
+import { createActivityLog } from './activityLogs';
 
 const RECIPES_COLLECTION = 'recipes';
 const COMMENTS_COLLECTION = 'comments';
@@ -82,6 +85,36 @@ export const toggleRecipeLike = async (recipeId, userId) => {
       await updateDoc(doc(db, RECIPES_COLLECTION, recipeId), {
         likes: increment(1),
       });
+
+      // Create notification for recipe author
+      try {
+        console.log('[Like] Fetching recipe to get author ID:', recipeId);
+        const recipe = await getRecipeById(recipeId);
+        console.log('[Like] Recipe data:', { recipeId, authorId: recipe?.authorId, userId });
+        if (recipe?.authorId) {
+          console.log('[Like] Creating notification for author:', recipe.authorId);
+          const notificationId = await createNotification(recipe.authorId, userId, 'like', {
+            relatedPostId: recipeId,
+          });
+          console.log('[Like] Notification created:', notificationId);
+        } else {
+          console.warn('[Like] Recipe has no authorId:', recipe);
+        }
+      } catch (error) {
+        console.error('[Like] Error creating like notification:', error);
+        // Don't throw - notification failure shouldn't break the like action
+      }
+
+      // Create activity log for the user who liked
+      try {
+        await createActivityLog(userId, 'like_post', {
+          targetPostId: recipeId,
+        });
+      } catch (error) {
+        console.error('[Like] Error creating activity log:', error);
+        // Don't throw - activity log failure shouldn't break the like action
+      }
+
       return true;
     }
   } catch (error) {
@@ -233,10 +266,122 @@ export const addRecipeComment = async (recipeId, userId, userName, userAvatar, t
       comments: increment(1),
     });
 
+    // Create notification for recipe author
+    try {
+      const recipe = await getRecipeById(recipeId);
+      if (recipe?.authorId) {
+        await createNotification(recipe.authorId, userId, 'comment', {
+          relatedPostId: recipeId,
+        });
+      }
+    } catch (error) {
+      console.error('Error creating comment notification:', error);
+      // Don't throw - notification failure shouldn't break the comment action
+    }
+
+    // Create activity log for the user who commented
+    try {
+      const textSnippet = text.trim().substring(0, 100);
+      await createActivityLog(userId, 'comment', {
+        targetPostId: recipeId,
+        meta: {
+          textSnippet,
+        },
+      });
+    } catch (error) {
+      console.error('[Comment] Error creating activity log:', error);
+      // Don't throw - activity log failure shouldn't break the comment action
+    }
+
     return commentDocRef.id;
   } catch (error) {
     console.error('Error adding comment:', error);
     throw new Error(`Failed to add comment: ${error.message}`);
+  }
+};
+
+/**
+ * Toggle like on a comment
+ * @param {string} recipeId - The recipe document ID
+ * @param {string} commentId - The comment document ID
+ * @param {string} userId - The user's UID
+ * @returns {Promise<boolean>} - True if liked, false if unliked
+ */
+export const toggleCommentLike = async (recipeId, commentId, userId) => {
+  try {
+    if (!recipeId || !commentId || !userId) {
+      throw new Error('Recipe ID, Comment ID, and User ID are required');
+    }
+
+    const COMMENT_LIKES_COLLECTION = 'likes';
+    const likeDocRef = doc(db, RECIPES_COLLECTION, recipeId, COMMENTS_COLLECTION, commentId, COMMENT_LIKES_COLLECTION, userId);
+    const likeDoc = await getDoc(likeDocRef);
+
+    if (likeDoc.exists()) {
+      // Unlike
+      await deleteDoc(likeDocRef);
+      // Decrement likes count in comment
+      const commentRef = doc(db, RECIPES_COLLECTION, recipeId, COMMENTS_COLLECTION, commentId);
+      await updateDoc(commentRef, {
+        likes: increment(-1),
+      });
+      return false;
+    } else {
+      // Like
+      await setDoc(likeDocRef, {
+        userId,
+        createdAt: serverTimestamp(),
+      });
+      // Increment likes count in comment
+      const commentRef = doc(db, RECIPES_COLLECTION, recipeId, COMMENTS_COLLECTION, commentId);
+      await updateDoc(commentRef, {
+        likes: increment(1),
+      });
+
+      // Create notification for comment author
+      try {
+        console.log('[Comment Like] Fetching comment to get author ID:', commentId);
+        const commentRef = doc(db, RECIPES_COLLECTION, recipeId, COMMENTS_COLLECTION, commentId);
+        const commentDoc = await getDoc(commentRef);
+        if (commentDoc.exists()) {
+          const commentData = commentDoc.data();
+          const commentAuthorId = commentData.userId;
+          console.log('[Comment Like] Comment data:', { commentId, authorId: commentAuthorId, userId });
+          
+          if (commentAuthorId && commentAuthorId !== userId) {
+            // Get recipe to include in notification
+            const recipe = await getRecipeById(recipeId);
+            console.log('[Comment Like] Creating notification for comment author:', commentAuthorId);
+            const notificationId = await createNotification(commentAuthorId, userId, 'like', {
+              relatedPostId: recipeId,
+              commentId: commentId, // Store comment ID for reference
+            });
+            console.log('[Comment Like] Notification created:', notificationId);
+          } else {
+            console.log('[Comment Like] Skipping notification (self-like or no author)');
+          }
+        }
+      } catch (error) {
+        console.error('[Comment Like] Error creating comment like notification:', error);
+        // Don't throw - notification failure shouldn't break the like action
+      }
+
+      // Create activity log for the user who liked the comment
+      try {
+        await createActivityLog(userId, 'like_comment', {
+          targetPostId: recipeId,
+          targetCommentId: commentId,
+        });
+      } catch (error) {
+        console.error('[Comment Like] Error creating activity log:', error);
+        // Don't throw - activity log failure shouldn't break the like action
+      }
+
+      return true;
+    }
+  } catch (error) {
+    console.error('Error toggling comment like:', error);
+    throw new Error(`Failed to toggle comment like: ${error.message}`);
   }
 };
 
