@@ -9,7 +9,10 @@ import {
   // 💡 ADDED: Assuming this function exists in your services
   markAllNotificationsAsRead 
 } from '../services/notifications';
-import Avatar from '../components/Avatar';
+// 💡 ADDED: Import the custom Avatar component
+import Avatar from '../components/Avatar'; 
+
+// Removed DEFAULT_USER_AVATAR since the Avatar component handles fallbacks
 
 const NotificationModal = ({ isOpen, onClose, message = '' }) => {
   const { user } = useAuth();
@@ -18,8 +21,8 @@ const NotificationModal = ({ isOpen, onClose, message = '' }) => {
   const [activeSubFilter, setActiveSubFilter] = useState("See All");
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(false);
-  // 💡 NEW STATE: Controls the visibility of the "More Options" dropdown
-  const [isMenuOpen, setIsMenuOpen] = useState(false); 
+  // 💡 NEW STATE: Controls the visibility of the "More Options" dropdown
+  const [isMenuOpen, setIsMenuOpen] = useState(false); 
 
 
   const name = user?.displayName || user?.email || 'Guest';
@@ -32,38 +35,29 @@ const NotificationModal = ({ isOpen, onClose, message = '' }) => {
     return () => window.removeEventListener('keydown', handleEsc);
   }, [onClose]);
 
-  // Set up real-time listener for notifications (always active when user is logged in)
-  useEffect(() => {
-    if (!user?.uid) {
-      setNotifications([]);
-      setLoading(false);
-      return;
-    }
+  // Fetch notifications when modal opens - single listener per user
+  useEffect(() => {
+    if (!isOpen || !user?.uid) {
+      setNotifications([]);
+      return;
+    }
 
-    let isFirstLoad = true;
-    setLoading(true);
-    
-    // Set up real-time listener - always active, not just when modal is open
-    // This ensures notifications update in real-time even when modal is closed
-    const unsubscribe = listenToUserNotifications(
-      user.uid,
-      (fetchedNotifications) => {
-        // Update notifications immediately (no delays)
-        // The callback is called twice: once with raw data (instant), then with enriched data
-        setNotifications(fetchedNotifications);
-        // Only show loading on first load
-        if (isFirstLoad) {
-          setLoading(false);
-          isFirstLoad = false;
-        }
-      },
-      { limitCount: 50 }
-    );
+    setLoading(true);
+    
+    // Set up real-time listener - will be cleaned up on unmount or when dependencies change
+    const unsubscribe = listenToUserNotifications(
+      user.uid,
+      (fetchedNotifications) => {
+        setNotifications(fetchedNotifications);
+        setLoading(false);
+      },
+      { limitCount: 50 }
+    );
 
-    return () => {
-      unsubscribe();
-    };
-  }, [user?.uid]); // Remove isOpen dependency so listener stays active
+    return () => {
+      unsubscribe();
+    };
+  }, [isOpen, user?.uid]);
 
   // Format timestamp to relative time
   const formatTimestamp = (timestamp) => {
@@ -90,28 +84,25 @@ const NotificationModal = ({ isOpen, onClose, message = '' }) => {
     }
   };
 
-  // Format notification message based on type
-  const formatNotificationMessage = (notification) => {
-    const actorName = notification.actorName || 'Someone';
-    
-    switch (notification.type) {
-      case 'follow':
-        return 'just followed you.';
-      case 'comment':
-        const postTitle = notification.postTitle || 'your post';
-        return `commented on your "${postTitle}" recipe.`;
-      case 'like':
-        const likePostTitle = notification.postTitle || 'your post';
-        return `liked your post: "${likePostTitle}".`;
-      case 'rating':
-        const ratingPostTitle = notification.postTitle || 'your recipe';
-        return `rated your recipe "${ratingPostTitle}".`;
-      case 'message_request':
-        return 'sent you a message request.';
-      default:
-        return 'interacted with you.';
-    }
-  };
+  // Format notification message based on type
+  const formatNotificationMessage = (notification) => {
+    const actorName = notification.actorName || 'Someone';
+    
+    switch (notification.type) {
+      case 'follow':
+        return 'just followed you.';
+      case 'comment':
+        const postTitle = notification.postTitle || 'your post';
+        return `commented on your "${postTitle}" recipe.`;
+      case 'like':
+        const likePostTitle = notification.postTitle || 'your post';
+        return `liked your post: "${likePostTitle}".`;
+      case 'message_request':
+        return 'sent you a message request.';
+      default:
+        return 'interacted with you.';
+    }
+  };
 
   // Handle delete notification
   const handleDeleteNotification = async (notificationId, e) => {
@@ -128,25 +119,25 @@ const NotificationModal = ({ isOpen, onClose, message = '' }) => {
     }
   };
 
-  /**
-   * Marks all unread notifications for the current user as read.
-   */
-  const handleMarkAllAsRead = async () => {
-    setIsMenuOpen(false); // Close the menu immediately
-    if (!user?.uid || !markAllNotificationsAsRead) {
-      console.warn("User ID or markAllNotificationsAsRead function is missing.");
-      return;
-    }
-    setLoading(true);
-    try {
-      await markAllNotificationsAsRead(user.uid);
-      // Real-time listener will update the 'notifications' state automatically
-    } catch (error) {
-      console.error("Error marking all notifications as read:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  /**
+   * Marks all unread notifications for the current user as read.
+   */
+  const handleMarkAllAsRead = async () => {
+    setIsMenuOpen(false); // Close the menu immediately
+    if (!user?.uid || !markAllNotificationsAsRead) {
+      console.warn("User ID or markAllNotificationsAsRead function is missing.");
+      return;
+    }
+    setLoading(true);
+    try {
+      await markAllNotificationsAsRead(user.uid);
+      // Real-time listener will update the 'notifications' state automatically
+    } catch (error) {
+      console.error("Error marking all notifications as read:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
 
   // Handle notification click - redirect based on type
@@ -164,65 +155,64 @@ const NotificationModal = ({ isOpen, onClose, message = '' }) => {
       }
     }
 
-    switch (notification.type) {
-      case 'like':
-      case 'comment':
-      case 'rating':
-        // Open post modal by navigating to home with recipe ID in state
-        if (notification.relatedPostId) {
-          onClose();
-          // Use a small delay to ensure modal closes first
-          setTimeout(() => {
-            navigate('/home', { 
-              state: { openRecipeId: notification.relatedPostId } 
-            });
-          }, 100);
-        }
-        break;
-      case 'follow':
-        // Redirect to follower's profile
-        if (notification.actorUserId) {
-          onClose();
-          navigate(`/profile/${notification.actorUserId}`);
-        }
-        break;
-      case 'message_request':
-        // Redirect to messages page (or specific conversation if messageThreadId is available)
-        onClose();
-        if (notification.messageThreadId) {
-          navigate(`/messages?conversation=${notification.messageThreadId}`);
-        } else {
-          navigate('/messages');
-        }
-        break;
-      default:
-        // Do nothing for unknown types
-        break;
-    }
-  };
+    switch (notification.type) {
+      case 'like':
+      case 'comment':
+        // Open post modal by navigating to home with recipe ID in state
+        if (notification.relatedPostId) {
+          onClose();
+          // Use a small delay to ensure modal closes first
+          setTimeout(() => {
+            navigate('/home', { 
+              state: { openRecipeId: notification.relatedPostId } 
+            });
+          }, 100);
+        }
+        break;
+      case 'follow':
+        // Redirect to follower's profile
+        if (notification.actorUserId) {
+          onClose();
+          navigate(`/profile/${notification.actorUserId}`);
+        }
+        break;
+      case 'message_request':
+        // Redirect to messages page (or specific conversation if messageThreadId is available)
+        onClose();
+        if (notification.messageThreadId) {
+          navigate(`/messages?conversation=${notification.messageThreadId}`);
+        } else {
+          navigate('/messages');
+        }
+        break;
+      default:
+        // Do nothing for unknown types
+        break;
+    }
+  };
 
-  // Transform notifications to match UI structure
-  const transformedNotifications = notifications.map((note) => {
-    const timestamp = note.createdAt?.toDate ? note.createdAt.toDate().getTime() : 
-                     (note.createdAt ? new Date(note.createdAt).getTime() : Date.now());
-    
-    // Use the read field directly from the notification data
-    const isRead = note.read === true;
-    
-    return {
-      id: note.id,
-      type: note.type,
-      title: note.actorName || 'User',
-      message: formatNotificationMessage(note),
-      avatar: note.actorAvatar || null, // Avatar component will handle fallback
-      createdAt: formatTimestamp(note.createdAt),
-      isRead: isRead,
-      isNew: !isRead,
-      originalTimestamp: timestamp,
-      // Keep original data for navigation
-      originalNotification: note,
-    };
-  });
+  // Transform notifications to match UI structure
+  const transformedNotifications = notifications.map((note) => {
+    const timestamp = note.createdAt?.toDate ? note.createdAt.toDate().getTime() : 
+                     (note.createdAt ? new Date(note.createdAt).getTime() : Date.now());
+    
+    // Use the read field directly from the notification data
+    const isRead = note.read === true;
+    
+    return {
+      id: note.id,
+      type: note.type,
+      title: note.actorName || 'User',
+      message: formatNotificationMessage(note),
+      avatar: note.actorAvatar, // Pass URL directly to Avatar as profileImage prop
+      createdAt: formatTimestamp(note.createdAt),
+      isRead: isRead,
+      isNew: !isRead,
+      originalTimestamp: timestamp,
+      // Keep original data for navigation
+      originalNotification: note,
+    };
+  });
 
   const filteredNotifications = transformedNotifications
     .slice()
@@ -239,9 +229,9 @@ const NotificationModal = ({ isOpen, onClose, message = '' }) => {
     });
 
   const notificationsToRender = filteredNotifications;
-  
-  // Check if there are any unread notifications to enable the "Mark All as Read" button
-  const hasUnreadNotifications = notifications.some(n => !n.read);
+  
+  // Check if there are any unread notifications to enable the "Mark All as Read" button
+  const hasUnreadNotifications = notifications.some(n => !n.read);
 
 
   return (
@@ -276,44 +266,44 @@ const NotificationModal = ({ isOpen, onClose, message = '' }) => {
             <div className="flex justify-between items-center mb-4 relative h-10">
               <h1 className="absolute top-2 left-4 font-bold text-2xl font-Poppins">Notifications</h1>
               
-              {/* 💡 MODIFIED: Options Menu Button */}
+              {/* 💡 MODIFIED: Options Menu Button */}
               <div className="absolute top-2 right-4 z-10">
-                <button
-                  onClick={() => setIsMenuOpen(!isMenuOpen)}
-                  aria-expanded={isMenuOpen}
-                  aria-label="More notification options"
-                  className="font-bold text-2xl font-Poppins text-gray-600 hover:text-orange-500 transition-colors"
-                >
-                  ...
-                </button>
-              
-                {/* 💡 ADDED: Dropdown Menu for Mark All as Read */}
-                {isMenuOpen && (
-                  <div 
-                    className="absolute right-0 mt-2 w-48 h-7 bg-white border border-gray-200 rounded-md shadow-lg py-1"
-                    // Add an onClick handler to prevent clicks inside the menu from closing the modal via the overlay
-                    onClick={(e) => e.stopPropagation()} 
-                  >
-                    <button
-                      onClick={handleMarkAllAsRead}
-                      disabled={loading || !hasUnreadNotifications}
-                      className={`w-full text-left px-4 py-2 text-sm font-semibold transition-colors duration-200 
-                        ${
-                          loading || !hasUnreadNotifications
-                            ? 'text-gray-400 cursor-not-allowed'
-                            : 'text-gray-700 hover:bg-gray-100 hover:text-orange-500'
-                        }`}
-                        style={{marginLeft: 5}}
-                    >
-                      Mark all as Read
-                    </button>
-                  </div>
-                )}
-              </div>
+                <button
+                  onClick={() => setIsMenuOpen(!isMenuOpen)}
+                  aria-expanded={isMenuOpen}
+                  aria-label="More notification options"
+                  className="font-bold text-2xl font-Poppins text-gray-600 hover:text-orange-500 transition-colors"
+                >
+                  ...
+                </button>
+              
+                {/* 💡 ADDED: Dropdown Menu for Mark All as Read */}
+                {isMenuOpen && (
+                  <div 
+                    className="absolute right-0 mt-2 w-48 h-7 bg-white border border-gray-200 rounded-md shadow-lg py-1"
+                    // Add an onClick handler to prevent clicks inside the menu from closing the modal via the overlay
+                    onClick={(e) => e.stopPropagation()} 
+                  >
+                    <button
+                      onClick={handleMarkAllAsRead}
+                      disabled={loading || !hasUnreadNotifications}
+                      className={`w-full text-left px-4 py-2 text-sm font-semibold transition-colors duration-200 
+                        ${
+                          loading || !hasUnreadNotifications
+                            ? 'text-gray-400 cursor-not-allowed'
+                            : 'text-gray-700 hover:bg-gray-100 hover:text-orange-500'
+                        }`}
+                        style={{marginLeft: 5}}
+                    >
+                      Mark all as Read
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
 
-            <div className="pt-10"> 
-            {/* All or Unread toggle */}
+            <div className="pt-10"> 
+            {/* All or Unread toggle */}
             <div className="flex gap-4 h-10 px-4 mb-4 relative">
               <button
                 onClick={() => setActiveTab('all')}
@@ -339,9 +329,9 @@ const NotificationModal = ({ isOpen, onClose, message = '' }) => {
                 Unread
               </button>
             </div>
-            </div>
+            </div>
 
-            <div className="pt-2">
+            <div className="pt-2">
             {/* Sub-filters: New and See All */}
             <div className="flex gap-4 h-10 px-4 mb-4 relative">
               <button
@@ -368,7 +358,7 @@ const NotificationModal = ({ isOpen, onClose, message = '' }) => {
                 See All
               </button>
             </div>
-            </div>
+            </div>
 
             {/* Notifications List */}
             <div className="w-full flex flex-col gap-1 px-4 space-y-3">
@@ -377,79 +367,85 @@ const NotificationModal = ({ isOpen, onClose, message = '' }) => {
               ) : notificationsToRender.length === 0 ? (
                 <div className="text-center py-8 text-gray-500">No notifications</div>
               ) : (
-                notificationsToRender.map((note) => {
+                notificationsToRender.map((note, index) => { // 💡 ADDED: index for border control
                   const isUnread = !note.isRead;
+                  const isLast = index === notificationsToRender.length - 1; // 💡 ADDED: last item check
 
-                  return (
-                    <div
-                      key={note.id}
-                      onClick={() => handleNotificationClick(note.originalNotification)}
-                      className={`flex items-start gap-3 w-full
-                        min-h-[80px] px-4 py-3 
-                        border border-gray-200 rounded-xl
-                        hover:bg-gray-300 transition relative cursor-pointer
-                        ${
-                          isUnread
-                            ? 'bg-gray-200'
-                            : 'bg-gray-100'
-                        }`}>
-                      <div className="flex-shrink-0">
+                  return (
+                    <div
+                      key={note.id}
+                      onClick={() => handleNotificationClick(note.originalNotification)}
+                      className={`flex items-start gap-4 w-full
+                        min-h-[80px] px-4 py-3 
+                        ${!isLast ? 'border-b border-gray-200' : ''} // 💡 MODIFIED: Border-b only on non-last item
+                        hover:bg-gray-300 transition relative cursor-pointer
+                        ${
+                          isUnread
+                            ? 'bg-gray-200'
+                            : '' // 💡 MODIFIED: Added consistent bg-gray-100 for read items
+                        }`}
+                        >
+                      <div className="flex-shrink-0"style={{marginTop:5, marginLeft:10}}>
+                        {/* 💡 REPLACED <img> with custom <Avatar> component */}
                         <Avatar
-                          userId={note.originalNotification?.actorUserId}
-                          profileImage={note.avatar}
-                          displayName={note.title}
-                          size="md"
+                            userId={note.originalNotification?.actorUserId}
+                            profileImage={note.avatar}
+                            displayName={note.title}
+                            // Using 'md' as a standard size. You can change this to 'sm', 'lg', 'xl'
+                            // or verify what size provides 50x50 in your CSS file
+                            size="lg"   
                         />
-                      </div>
-                          
-                      <div className="flex-1 flex flex-col min-w-0">
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm leading-relaxed break-words">
-                              <span className="font-semibold">{note.title}</span>{' '}
-                              <span className="text-gray-800">{note.message}</span>
-                            </p>
-                            <span className="text-gray-500 text-xs italic mt-1 block">
-                              {note.createdAt}
-                            </span>
-                          </div>
-                          
-                          {/* Unread indicator and Delete button container */}
-                          <div className="flex items-start gap-2 flex-shrink-0">
-                            {isUnread && (
-                              <div className="mt-1 w-[8px] h-[8px] rounded-full bg-orange-500 flex-shrink-0"></div>
-                            )}
-                            
-                            {/* Delete button */}
-                            <button
-                              onClick={(e) => handleDeleteNotification(note.id, e)}
-                              className="text-gray-400 hover:text-red-500 transition-colors flex-shrink-0 p-1"
-                              title="Delete notification"
-                              aria-label="Delete notification"
-                            >
-                              <svg 
-                                xmlns="http://www.w3.org/2000/svg" 
-                                className="h-4 w-4" 
-                                fill="none" 
-                                viewBox="0 0 24 24" 
-                                stroke="currentColor"
-                              >
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                              </svg>
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
-  );
+                      </div>
+                          
+                      <div className="flex-1 flex flex-col min-w-0"style={{marginTop: 12}}>
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm leading-relaxed break-words">
+                              <span className="font-semibold">{note.title}</span>{' '}
+                              <span className="text-gray-800">{note.message}</span>
+                            </p>
+                            <span className="text-gray-500 text-xs italic mt-1 block">
+                              {note.createdAt}
+                            </span>
+                          </div>
+                          
+                          {/* Unread indicator and Delete button container */}
+                          <div className="flex items-start gap-2 flex-shrink-0">
+                            {isUnread && (
+                              <div className="mt-1 w-[8px] h-[8px] rounded-full bg-orange-500 flex-shrink-0"style={{marginTop: 19}}></div>
+                            )}
+                            
+                            {/* Delete button */}
+                            <button
+                              onClick={(e) => handleDeleteNotification(note.id, e)}
+                              className="text-gray-400 hover:text-red-500 transition-colors flex-shrink-0 p-1"
+                              title="Delete notification"
+                              aria-label="Delete notification"
+                              style={{marginRight: 10}}
+                            >
+                              <svg 
+                                xmlns="http://www.w3.org/2000/svg" 
+                                className="h-12 w-4" 
+                                fill="none" 
+                                viewBox="0 0 24 24" 
+                                stroke="currentColor"
+                              >
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  );
 };
 
 export default NotificationModal;

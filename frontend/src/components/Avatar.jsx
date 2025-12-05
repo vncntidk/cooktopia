@@ -19,7 +19,7 @@ export default function Avatar({
   userId, 
   profileImage, 
   displayName, 
-  size = 'md',
+  size = '',
   className = '',
   onClick 
 }) {
