@@ -374,12 +374,12 @@ const NotificationModal = ({ isOpen, onClose, message = '' }) => {
                       onClick={() => handleNotificationClick(note.originalNotification)}
                       className={`flex items-start gap-4 w-full
                         min-h-[80px] px-4 py-3 
-                        border border-gray-200
+                        border-b border-gray-100
                         hover:bg-gray-300 transition relative cursor-pointer
                         ${
                           isUnread
                             ? 'bg-gray-200'
-                            : 'bg-gray-100'
+                            : ''
                         }`}
                         >
                       <div className="flex-shrink-0">
