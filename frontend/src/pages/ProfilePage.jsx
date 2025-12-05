@@ -59,7 +59,7 @@ const SECTION_KEYS = {
   },
 };
 
-const PAGE_SIZE = 6;
+const PAGE_SIZE = 4;
 
 const initialSectionState = {
   items: [],
