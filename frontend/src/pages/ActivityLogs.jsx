@@ -4,7 +4,6 @@ import HeaderSidebarLayout from "../components/HeaderSidebarLayout";
 import { useAuth } from "../contexts/AuthContext";
 import { getUserActivityLogs, groupActivityLogsByDate } from "../services/activityLogs";
 import { getUserProfile } from "../services/users";
-import Avatar from "../components/Avatar";
 
 // Debug flag - set to false in production
 const DEBUG_ACTIVITY_LOGS = false;
@@ -64,11 +63,7 @@ const ActivityLogItem = ({ date, time, activity, showDate = true, onView }) => {
             </div>
           )}
           <div className="flex items-center gap-3">
-            {/* User avatar */}
-            <Avatar
-              userId={activity.userId}
-              size="md"
-            />
+        
             
             {/* Activity icon */}
             <ActivityIcon type={activity.type} />
@@ -114,11 +109,6 @@ const ActivityLogGroup = ({ date, activities, onView }) => {
                 </div>
               )}
               <div className="flex items-center gap-3">
-                {/* User avatar */}
-                <Avatar
-                  userId={activity.userId}
-                  size="md"
-                />
                 
                 {/* Activity icon */}
                 <ActivityIcon type={activity.type} />
