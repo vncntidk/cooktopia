@@ -1,17 +1,27 @@
 import React, { useState } from "react";
 import AboutModal from './Aboutmodal';
 import ContactModal from './ContactModal';
+import FAQModal from './FAQModal';
 
 const Header = () => {
   // State to control whether the modals are open or closed
   const [isAboutModalOpen, setIsAboutModalOpen] = useState(false);
   const [isContactModalOpen, setIsContactModalOpen] = useState(false);
+  const [isFAQModalOpen, setIsFAQModalOpen] = useState(false);
 
   const openAboutModal = () => setIsAboutModalOpen(true);
   const closeAboutModal = () => setIsAboutModalOpen(false);
   
   const openContactModal = () => setIsContactModalOpen(true);
   const closeContactModal = () => setIsContactModalOpen(false);
+  
+  const openFAQModal = () => setIsFAQModalOpen(true);
+  const closeFAQModal = () => setIsFAQModalOpen(false);
+
+  // Handler for when "Contact us!" is clicked in FAQ modal
+  const handleContactFromFAQ = () => {
+    openContactModal();
+  };
 
   return (
     <>
@@ -46,7 +56,13 @@ const Header = () => {
               Contact
             </div>
             
-            <div className="hover:text-orange-800 transition-colors duration-300 cursor-pointer">FAQ</div>
+            {/* FAQ link */}
+            <div 
+              className="hover:text-orange-800 transition-colors duration-300 cursor-pointer"
+              onClick={openFAQModal}
+            >
+              FAQ
+            </div>
           </nav>
         </div>
 
@@ -59,6 +75,13 @@ const Header = () => {
       
       {/* The Contact Modal component */}
       <ContactModal isOpen={isContactModalOpen} onClose={closeContactModal} />
+      
+      {/* The FAQ Modal component with onContactClick prop */}
+      <FAQModal 
+        isOpen={isFAQModalOpen} 
+        onClose={closeFAQModal}
+        onContactClick={handleContactFromFAQ}
+      />
     </>
   );
 };

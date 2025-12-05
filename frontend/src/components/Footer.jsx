@@ -1,12 +1,28 @@
 import React, { useState } from 'react';
 import AboutModal from './Aboutmodal';
+import ContactModal from './ContactModal';
+import FAQModal from './FAQModal';
 
 const Footer = () => {
-  // State to control whether the modal is open or closed
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  // States for all modals
+  const [isAboutModalOpen, setIsAboutModalOpen] = useState(false);
+  const [isContactModalOpen, setIsContactModalOpen] = useState(false);
+  const [isFAQModalOpen, setIsFAQModalOpen] = useState(false);
 
-  const openModal = () => setIsModalOpen(true);
-  const closeModal = () => setIsModalOpen(false);
+  // Modal handlers
+  const openAboutModal = () => setIsAboutModalOpen(true);
+  const closeAboutModal = () => setIsAboutModalOpen(false);
+  
+  const openContactModal = () => setIsContactModalOpen(true);
+  const closeContactModal = () => setIsContactModalOpen(false);
+  
+  const openFAQModal = () => setIsFAQModalOpen(true);
+  const closeFAQModal = () => setIsFAQModalOpen(false);
+
+  // Handler for when "Contact us!" is clicked in FAQ modal
+  const handleContactFromFAQ = () => {
+    openContactModal();
+  };
 
   return (
     <>
@@ -25,15 +41,29 @@ const Footer = () => {
 
         {/* Navigation Links */}
         <nav className="flex gap-8 md:gap-12 lg:gap-16 text-xl md:text-xl font-['Poppins'] flex-wrap justify-center"> 
-          {/* About link now opens the modal */}
+          {/* About link */}
           <div 
             className="hover:text-orange-800 text-gray-800 transition-colors duration-300 cursor-pointer p-1"
-            onClick={openModal} // Handler to open the modal
+            onClick={openAboutModal}
           >
             About
           </div> 
-          <div className="hover:text-orange-800 text-gray-800 transition-colors duration-300 cursor-pointer p-1">Contact</div>
-          <div className="hover:text-orange-800 text-gray-800 transition-colors duration-300 cursor-pointer p-1">FAQ</div>
+          
+          {/* Contact link */}
+          <div 
+            className="hover:text-orange-800 text-gray-800 transition-colors duration-300 cursor-pointer p-1"
+            onClick={openContactModal}
+          >
+            Contact
+          </div>
+          
+          {/* FAQ link */}
+          <div 
+            className="hover:text-orange-800 text-gray-800 transition-colors duration-300 cursor-pointer p-1"
+            onClick={openFAQModal}
+          >
+            FAQ
+          </div>
         </nav>
 
         {/* Copyright notice */}
@@ -42,8 +72,16 @@ const Footer = () => {
         </div>
       </footer>
 
-      {/* The About Modal component, controlled by state */}
-      <AboutModal isOpen={isModalOpen} onClose={closeModal} />
+      {/* Modal Components */}
+      <AboutModal isOpen={isAboutModalOpen} onClose={closeAboutModal} />
+      <ContactModal isOpen={isContactModalOpen} onClose={closeContactModal} />
+      
+      {/* FAQ Modal with onContactClick prop */}
+      <FAQModal 
+        isOpen={isFAQModalOpen} 
+        onClose={closeFAQModal}
+        onContactClick={handleContactFromFAQ}
+      />
     </>
   );
 }
