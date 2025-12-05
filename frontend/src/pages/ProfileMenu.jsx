@@ -2,12 +2,14 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { logOut } from '../services/auth';
+import SupportCenter from '../modals/SupportCenter';
 
 const ProfileMenu = ({ isOpen, onClose, profileRef }) => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const dropdownRef = useRef(null);
+  const [isSupportCenterOpen, setIsSupportCenterOpen] = useState(false);
   
   // Check if currently on profile page
   const isOnProfilePage = location.pathname === '/profile' || location.pathname.startsWith('/profile/');
@@ -62,8 +64,8 @@ const ProfileMenu = ({ isOpen, onClose, profileRef }) => {
   };
 
   const handleSupportCenter = () => {
-    // Support Center handles both feedback and issue reporting
-    console.log('Support Center clicked - handles both feedback and issue reporting');
+    setIsSupportCenterOpen(true);
+    onClose(); // Close the dropdown menu
   };
 
   const menuItems = [
@@ -72,33 +74,42 @@ const ProfileMenu = ({ isOpen, onClose, profileRef }) => {
     { id: 'logout', label: 'Log Out', action: handleLogOut, isLast: true }
   ];
 
-  if (!isOpen) return null;
-
   return (
-    <div
-      ref={dropdownRef}
-      className="absolute top-16 right-0 w-56 bg-white rounded-xl shadow-lg overflow-hidden z-50"
-      style={{
-        boxShadow: '5px 5px 4px 0px rgba(0,0,0,0.25)',
-        animation: 'fadeInSlideDown 0.2s ease-out forwards'
-      }}
-    >
-      {menuItems.map((item, index) => (
-        <button
-          key={item.id}
-          onClick={item.action}
-          className={`w-full h-14 p-2.5 flex items-center justify-center gap-2.5 transition-colors duration-150 ${
-            item.id === 'view-profile' && isOnProfilePage
-              ? 'bg-orange-300 hover:bg-orange-400' 
-              : 'bg-white hover:bg-gray-100'
-          } ${item.isLast ? 'border-t border-gray-200' : ''}`}
+    <>
+      {/* Dropdown Menu */}
+      {isOpen && (
+        <div
+          ref={dropdownRef}
+          className="absolute top-16 right-0 w-56 bg-white rounded-xl shadow-lg overflow-hidden z-50"
+          style={{
+            boxShadow: '5px 5px 4px 0px rgba(0,0,0,0.25)',
+            animation: 'fadeInSlideDown 0.2s ease-out forwards'
+          }}
         >
-          <div className="text-black text-xl font-medium font-[system-ui] leading-5">
-            {item.label}
-          </div>
-        </button>
-      ))}
-    </div>
+          {menuItems.map((item, index) => (
+            <button
+              key={item.id}
+              onClick={item.action}
+              className={`w-full h-14 p-2.5 flex items-center justify-center gap-2.5 transition-colors duration-150 ${
+                item.id === 'view-profile' && isOnProfilePage
+                  ? 'bg-orange-300 hover:bg-orange-400' 
+                  : 'bg-white hover:bg-gray-100'
+              } ${item.isLast ? 'border-t border-gray-200' : ''}`}
+            >
+              <div className="text-black text-xl font-medium font-['Inter'] leading-5">
+                {item.label}
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Support Center Modal */}
+      <SupportCenter
+        isOpen={isSupportCenterOpen}
+        onClose={() => setIsSupportCenterOpen(false)}
+      />
+    </>
   );
 };
 
