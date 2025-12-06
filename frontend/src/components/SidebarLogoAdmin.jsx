@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { LayoutDashboard, Star, Users, Activity, Menu, X, LogOut } from "lucide-react";
+import { signOut } from "firebase/auth";
+import { auth } from "../config/firebase-config";
+import toast from "react-hot-toast";
 
 export default function SidebarLogoAdmin() {
   const navigate = useNavigate();
@@ -28,10 +31,16 @@ export default function SidebarLogoAdmin() {
     setIsSidebarOpen(false);
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     setIsSidebarOpen(false);
-    console.log("Admin signing out...");
-    navigate("/");
+    try {
+      await signOut(auth);
+      toast.success("Signed out successfully!");
+      navigate("/admin/login", { replace: true });
+    } catch (error) {
+      console.error("Error signing out:", error);
+      toast.error("Failed to sign out. Please try again.");
+    }
   };
 
   const navItemBaseClass =

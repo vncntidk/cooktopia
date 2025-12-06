@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { onAuthStateChange } from '../services/auth';
-import { auth } from '../config/firebase-config';
+import { auth, db } from '../config/firebase-config';
+import { doc, getDoc } from 'firebase/firestore';
+import { signOut as firebaseSignOut } from 'firebase/auth';
 
 const AuthContext = createContext();
 
@@ -16,15 +18,45 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isVerified, setIsVerified] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChange((user) => {
       setUser(user);
       setIsVerified(!!user?.emailVerified);
+      
+      // Check if user is admin
+      if (user) {
+        checkIfAdmin(user.uid);
+      } else {
+        setIsAdmin(false);
+      }
+      
       setLoading(false);
     });
 
     return () => unsubscribe();
+  }, []);
+
+  const checkIfAdmin = useCallback(async (uid) => {
+    try {
+      const adminDoc = await getDoc(doc(db, 'admins', uid));
+      setIsAdmin(adminDoc.exists());
+    } catch (error) {
+      console.error('Error checking admin status:', error);
+      setIsAdmin(false);
+    }
+  }, []);
+
+  const logoutNonAdminUser = useCallback(async () => {
+    try {
+      await firebaseSignOut(auth);
+      setUser(null);
+      setIsAdmin(false);
+      setIsVerified(false);
+    } catch (error) {
+      console.error('Error logging out non-admin user:', error);
+    }
   }, []);
 
   useEffect(() => {
@@ -86,8 +118,10 @@ export const AuthProvider = ({ children }) => {
     loading,
     isAuthenticated: !!user,
     isVerified,
+    isAdmin,
     reloadUser,
-    checkEmailVerification
+    checkEmailVerification,
+    logoutNonAdminUser
   };
 
   return (

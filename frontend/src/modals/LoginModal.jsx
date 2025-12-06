@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { signIn, signInWithGoogle, sendVerificationEmail } from '../services/auth';
 import { useAuth } from '../contexts/AuthContext';
+import { signOut } from 'firebase/auth';
+import { auth } from '../config/firebase-config';
 import toast from 'react-hot-toast';
 import Logo from '../assets/LOGO FINAL.svg';
 
@@ -62,6 +64,14 @@ const LoginModal = ({ isOpen = true, onClose = () => {}, onForgotPassword = () =
     setVerificationSent(false);
 
     try {
+      // First, sign out any currently logged-in account (admin or non-admin)
+      try {
+        await signOut(auth);
+      } catch (error) {
+        console.error('Error signing out previous account:', error);
+      }
+
+      // Then sign in as non-admin user
       const user = await signIn(email, password);
       
       // Check if user is verified
@@ -99,6 +109,14 @@ const LoginModal = ({ isOpen = true, onClose = () => {}, onForgotPassword = () =
   const handleGoogle = async () => {
     setLoading(true);
     try {
+      // First, sign out any currently logged-in account (admin or non-admin)
+      try {
+        await signOut(auth);
+      } catch (error) {
+        console.error('Error signing out previous account:', error);
+      }
+
+      // Then sign in with Google
       await signInWithGoogle();
       await reloadUser();
       toast.success('Login successful!');
