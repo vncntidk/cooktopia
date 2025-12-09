@@ -5,6 +5,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Search, Paperclip, Send, X, Image as ImageIcon, Loader, CheckCheck, Check, Trash2, Edit2, MoreVertical } from 'lucide-react';
+import { logPageVisit } from '../services/pageTracking';
 import HeaderSidebarLayout from '../components/HeaderSidebarLayout';
 import MessengerReactions from '../components/MessengerReactions';
 import Avatar from '../components/Avatar';
@@ -41,6 +42,11 @@ if (typeof document !== 'undefined') {
 
 export default function Messages() {
   const { user } = useAuth();
+
+  // Track page visit
+  useEffect(() => {
+    logPageVisit('messages');
+  }, []);
 
   // State management
   const [conversations, setConversations] = useState([]);

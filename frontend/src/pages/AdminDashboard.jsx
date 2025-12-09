@@ -1,8 +1,228 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import SidebarLogoAdmin from "../components/SidebarLogoAdmin";
 import { User } from "lucide-react";
+import { db } from "../config/firebase-config";
+import { collection, onSnapshot, query, where } from "firebase/firestore";
 
 export default function AdminDashboard() {
+  const [topCreators, setTopCreators] = useState([]);
+  const [loadingCreators, setLoadingCreators] = useState(true);
+  const [topRecipes, setTopRecipes] = useState([]);
+  const [loadingRecipes, setLoadingRecipes] = useState(true);
+  const [siteVisits, setSiteVisits] = useState(0);
+  const [newUsers, setNewUsers] = useState(0);
+  const [activeUsers, setActiveUsers] = useState(0);
+  const [recipesPosted, setRecipesPosted] = useState(0);
+
+  useEffect(() => {
+    const unsubscribeUsers = onSnapshot(
+      collection(db, "users"),
+      (usersSnapshot) => {
+        try {
+          setLoadingCreators(true);
+          const usersMap = new Map();
+
+          // Build user map with basic info
+          for (const userDoc of usersSnapshot.docs) {
+            const userData = userDoc.data();
+            usersMap.set(userDoc.id, {
+              uid: userDoc.id,
+              displayName: userData.displayName || "Unknown User",
+              profileImage: userData.profileImage || "https://placehold.co/65x62",
+              followerCount: 0,
+            });
+          }
+
+          // Listen to follows collection to count followers
+          const unsubscribeFollows = onSnapshot(
+            collection(db, "follows"),
+            (followsSnapshot) => {
+              // Reset counts
+              usersMap.forEach((user) => {
+                user.followerCount = 0;
+              });
+
+              // Count followers by followingId
+              followsSnapshot.docs.forEach((doc) => {
+                const data = doc.data();
+                const followingId = data.followingId;
+                if (usersMap.has(followingId)) {
+                  usersMap.get(followingId).followerCount++;
+                }
+              });
+
+              // Sort by follower count and take top 10
+              const topTen = Array.from(usersMap.values())
+                .sort((a, b) => b.followerCount - a.followerCount)
+                .slice(0, 10);
+
+              setTopCreators(topTen);
+              setLoadingCreators(false);
+            },
+            (error) => {
+              console.error("Error listening to follows:", error);
+              setLoadingCreators(false);
+            }
+          );
+
+          return () => unsubscribeFollows();
+        } catch (error) {
+          console.error("Error fetching top creators:", error);
+          setLoadingCreators(false);
+        }
+      },
+      (error) => {
+        console.error("Error listening to users:", error);
+      }
+    );
+
+    return () => unsubscribeUsers();
+  }, []);
+
+  useEffect(() => {
+    const unsubscribeRecipes = onSnapshot(
+      collection(db, "recipes"),
+      (recipesSnapshot) => {
+        try {
+          setLoadingRecipes(true);
+          const recipesArray = [];
+
+          for (const recipeDoc of recipesSnapshot.docs) {
+            const recipeData = recipeDoc.data();
+            recipesArray.push({
+              id: recipeDoc.id,
+              title: recipeData.title || "Untitled Recipe",
+              imageUrl: recipeData.imageUrls && recipeData.imageUrls.length > 0 
+                ? recipeData.imageUrls[0] 
+                : "https://placehold.co/400x300",
+              likes: recipeData.likes || 0,
+              comments: recipeData.comments || 0,
+              authorName: recipeData.authorName || "Unknown Author",
+              authorId: recipeData.authorId || "",
+            });
+          }
+
+          // Sort by likes in descending order and take top 10
+          const topTen = recipesArray
+            .sort((a, b) => b.likes - a.likes)
+            .slice(0, 10);
+
+          setTopRecipes(topTen);
+        } catch (error) {
+          console.error("Error processing recipes snapshot:", error);
+        } finally {
+          setLoadingRecipes(false);
+        }
+      },
+      (error) => {
+        console.error("Error listening to recipes:", error);
+      }
+    );
+
+    return () => unsubscribeRecipes();
+  }, []);
+
+  // Fetch Site Visits (unique sessions today)
+  useEffect(() => {
+    const unsubscribePageVisits = onSnapshot(
+      collection(db, "pageVisits"),
+      (snapshot) => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+
+        const uniqueSessions = new Set();
+        snapshot.docs.forEach((doc) => {
+          const data = doc.data();
+          const timestamp = data.timestamp?.toDate?.() || new Date(data.timestamp);
+          if (timestamp >= today && timestamp < tomorrow) {
+            uniqueSessions.add(data.sessionId);
+          }
+        });
+
+        setSiteVisits(uniqueSessions.size);
+      },
+      (error) => {
+        console.error("Error listening to page visits:", error);
+      }
+    );
+
+    return () => unsubscribePageVisits();
+  }, []);
+
+  // Fetch New Users (created in last 7 days)
+  useEffect(() => {
+    const unsubscribeNewUsers = onSnapshot(
+      collection(db, "users"),
+      (snapshot) => {
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+        let count = 0;
+        snapshot.docs.forEach((doc) => {
+          const data = doc.data();
+          const createdAt = data.createdAt?.toDate?.() || new Date(data.createdAt);
+          if (createdAt >= sevenDaysAgo) {
+            count++;
+          }
+        });
+
+        setNewUsers(count);
+      },
+      (error) => {
+        console.error("Error listening to new users:", error);
+      }
+    );
+
+    return () => unsubscribeNewUsers();
+  }, []);
+
+  // Fetch Active Users (users with at least 1 recipe)
+  useEffect(() => {
+    const fetchActiveUsers = async () => {
+      try {
+        const unsubscribeRecipes = onSnapshot(
+          collection(db, "recipes"),
+          (snapshot) => {
+            const uniqueAuthors = new Set();
+            snapshot.docs.forEach((doc) => {
+              const data = doc.data();
+              if (data.authorId) {
+                uniqueAuthors.add(data.authorId);
+              }
+            });
+            setActiveUsers(uniqueAuthors.size);
+          },
+          (error) => {
+            console.error("Error listening to active users:", error);
+          }
+        );
+
+        return () => unsubscribeRecipes();
+      } catch (error) {
+        console.error("Error fetching active users:", error);
+      }
+    };
+
+    fetchActiveUsers();
+  }, []);
+
+  // Fetch Total Recipes Posted
+  useEffect(() => {
+    const unsubscribeRecipesCount = onSnapshot(
+      collection(db, "recipes"),
+      (snapshot) => {
+        setRecipesPosted(snapshot.size);
+      },
+      (error) => {
+        console.error("Error listening to recipes count:", error);
+      }
+    );
+
+    return () => unsubscribeRecipesCount();
+  }, []);
+
   return (
     <div className="w-full h-screen flex bg-gray-50">
       {/* Admin Sidebar - Assumes it uses lg:w-60 */}
@@ -15,141 +235,141 @@ export default function AdminDashboard() {
           <div className="w-full inline-flex flex-col justify-start items-start gap-6 sm:gap-8 md:gap-10 py-2 sm:py-4">
             
             {/* ---------------------------------- ROW 1: SITE STATS ---------------------------------- */}
-<div className="self-stretch flex flex-col justify-start items-start gap-4 sm:gap-6" style={{marginLeft: '20px', marginTop: '20px', marginRight: '20px'}}>
-  
-  {/* Site Stats Box + Stat Cards Row - Now a single responsive flex container */}
-  <div className="w-full flex flex-col lg:flex-row justify-start items-stretch gap-4 sm:gap-6">
-    
-    {/* 1. Site Stats Title Box (Fixed Width/Height) - Main Green Block */}
-    {/* Height adjusted for better proportionality across screen sizes */}
-    <div className="w-full h-32 lg:w-48 lg:h-auto bg-[#6BC4A6]/100 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-lg">
-      <div className="flex flex-col items-center justify-center text-center text-zinc-100 text-3xl md:text-5xl font-bold font-['Poppins'] px-2">
-        <div>Site</div>
-        <div>Metrics</div>
-      </div>
-    </div>
+            <div className="self-stretch flex flex-col justify-start items-start gap-4 sm:gap-6" style={{marginLeft: '20px', marginTop: '20px', marginRight: '20px'}}>
+              
+              {/* Site Stats Box + Stat Cards Row - Now a single responsive flex container */}
+              <div className="w-full flex flex-col lg:flex-row justify-start items-stretch gap-4 sm:gap-6">
+                
+                {/* 1. Site Stats Title Box (Fixed Width/Height) - Main Green Block */}
+                {/* Height adjusted for better proportionality across screen sizes */}
+                <div className="w-full h-32 lg:w-48 lg:h-auto bg-[#6BC4A6]/100 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-lg">
+                  <div className="flex flex-col items-center justify-center text-center text-zinc-100 text-3xl md:text-5xl font-bold font-['Poppins'] px-2">
+                    <div>Site</div>
+                    <div>Metrics</div>
+                  </div>
+                </div>
 
-    {/* 2. Stat Cards Wrapper - Responsive Grid enforced here for equal spacing */}
-    {/* Padding and gap adjusted for cleaner look */}
-    <div className="flex-1 p-3 sm:p-4 bg-[#6BC4A6]/40 rounded-2xl shadow-inner min-h-[160px] md:min-h-[180px]">
-      
-      {/* Cards container: Uniform grid for optimal spacing and responsiveness */}
-      <div className="w-full h-full grid grid-cols-2 lg:grid-cols-4 gap-4">
-        
-        {/*
-          Stat Card Template Refactored:
-          - The grid cell itself is now a flex container (applied via parent div below).
-          - The inner white card now has a fixed height (h-32) and uses flex properties (justify-self-center, self-center) to center itself within the cell, preventing it from stretching.
-        */}
-        
-        {/* Stat Card 1: Site Visits */}
-        <div 
-          className="flex items-center justify-center" // Centering wrapper for the card
-        >
-          <div 
-            data-property-1="Visit Count" 
-            className="h-32 w-full max-w-xs bg-white rounded-4xl shadow-lg hover:shadow-xl transition-shadow duration-300 p-4 flex flex-col items-center justify-center text-center"
-          >
-          <img 
-            src="/icons/siteVisits.png" // Replace with the actual image path
-            alt="Site Visits Icon"
-            className="w-6 h-6 flex-shrink-0 mb-2 object-contain" style={{marginBottom: '15px'}} // Retaining size and margin
-          />
-            {/* Stat number in the middle */}
-            <div className="text-4xl font-bold text-black font-['Poppins']"style={{marginBottom: '10px'}} >
-              800+
-            </div>
-            
-            {/* Title/label at the bottom */}
-            <div className="text-sm font-bold text-[#6BC4A6] mt-1 font-['Plus_Jakarta_Sans']">
-              Site Visits
-            </div>
-          </div>
-        </div>
+                {/* 2. Stat Cards Wrapper - Responsive Grid enforced here for equal spacing */}
+                {/* Padding and gap adjusted for cleaner look */}
+                <div className="flex-1 p-3 sm:p-4 bg-[#6BC4A6]/40 rounded-2xl shadow-inner min-h-[160px] md:min-h-[180px]">
+                  
+                  {/* Cards container: Uniform grid for optimal spacing and responsiveness */}
+                  <div className="w-full h-full grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    
+                    {/*
+                      Stat Card Template Refactored:
+                      - The grid cell itself is now a flex container (applied via parent div below).
+                      - The inner white card now has a fixed height (h-32) and uses flex properties (justify-self-center, self-center) to center itself within the cell, preventing it from stretching.
+                    */}
+                    
+                    {/* Stat Card 1: Site Visits */}
+                    <div 
+                      className="flex items-center justify-center" // Centering wrapper for the card
+                    >
+                      <div 
+                        data-property-1="Visit Count" 
+                        className="h-32 w-full max-w-xs bg-white rounded-4xl shadow-lg hover:shadow-xl transition-shadow duration-300 p-4 flex flex-col items-center justify-center text-center"
+                      >
+                      <img 
+                        src="/icons/siteVisits.png" // Replace with the actual image path
+                        alt="Site Visits Icon"
+                        className="w-6 h-6 flex-shrink-0 mb-2 object-contain" style={{marginBottom: '15px'}} // Retaining size and margin
+                      />
+                        {/* Stat number in the middle */}
+                        <div className="text-4xl font-bold text-black font-['Poppins']"style={{marginBottom: '10px'}} >
+                          {siteVisits.toLocaleString()}
+                        </div>
+                        
+                        {/* Title/label at the bottom */}
+                        <div className="text-sm font-bold text-[#6BC4A6] mt-1 font-['Plus_Jakarta_Sans']">
+                          Site Visits
+                        </div>
+                      </div>
+                    </div>
 
-        {/* Stat Card 2: New Users */}
-        <div 
-          className="flex items-center justify-center" // Centering wrapper for the card
-        >
-          <div 
-            data-property-1="New Users Count" 
-            className="h-32 w-full max-w-xs bg-white rounded-4xl shadow-lg hover:shadow-xl transition-shadow duration-300 p-4 flex flex-col items-center justify-center text-center"
-          >
-            <img 
-            src="/icons/newUsers.png" // Replace with the actual image path
-            alt="New Users Icon"
-            className="w-7 h-7 flex-shrink-0 mb-2 object-contain"  style={{marginBottom: '15px'}}// Retaining size and margin
-          />
-            
-            {/* Stat number in the middle */}
-            <div className="text-4xl font-bold text-black font-['Poppins']"style={{marginBottom: '10px'}} >
-              50+
-            </div>
-            
-            {/* Title/label at the bottom */}
-            <div className="text-sm font-bold text-[#6BC4A6] mt-1 font-['Plus_Jakarta_Sans']">
-              New Users
-            </div>
-          </div>
-        </div>
+                    {/* Stat Card 2: New Users */}
+                    <div 
+                      className="flex items-center justify-center" // Centering wrapper for the card
+                    >
+                      <div 
+                        data-property-1="New Users Count" 
+                        className="h-32 w-full max-w-xs bg-white rounded-4xl shadow-lg hover:shadow-xl transition-shadow duration-300 p-4 flex flex-col items-center justify-center text-center"
+                      >
+                        <img 
+                        src="/icons/newUsers.png" // Replace with the actual image path
+                        alt="New Users Icon"
+                        className="w-7 h-7 flex-shrink-0 mb-2 object-contain"  style={{marginBottom: '15px'}}// Retaining size and margin
+                      />
+                        
+                        {/* Stat number in the middle */}
+                        <div className="text-4xl font-bold text-black font-['Poppins']"style={{marginBottom: '10px'}} >
+                          {newUsers.toLocaleString()}
+                        </div>
+                        
+                        {/* Title/label at the bottom */}
+                        <div className="text-sm font-bold text-[#6BC4A6] mt-1 font-['Plus_Jakarta_Sans']">
+                          New Users
+                        </div>
+                      </div>
+                    </div>
 
-        {/* Stat Card 3: Active Users */}
-        <div 
-          className="flex items-center justify-center" // Centering wrapper for the card
-        >
-          <div 
-            data-property-1="Active Users Count" 
-            className="h-32 w-full max-w-xs bg-white rounded-4xl shadow-lg hover:shadow-xl transition-shadow duration-300 p-4 flex flex-col items-center justify-center text-center"
-          >
-            <img 
-            src="/icons/activeUsers.png" // Replace with the actual image path
-            alt="Active Users Icon"
-            className="w-7 h-7 flex-shrink-0 mb-2 object-contain"  style={{marginBottom: '15px'}}// Retaining size and margin
-          />
-            
-            {/* Stat number in the middle */}
-            <div className="text-4xl font-bold text-black font-['Poppins']"style={{marginBottom: '10px'}} >
-              4K+
-            </div>
-            
-            {/* Title/label at the bottom */}
-            <div className="text-sm font-bold text-[#6BC4A6] mt-1 font-['Plus_Jakarta_Sans']">
-              Active Users
-            </div>
-          </div>
-        </div>
+                    {/* Stat Card 3: Active Users */}
+                    <div 
+                      className="flex items-center justify-center" // Centering wrapper for the card
+                    >
+                      <div 
+                        data-property-1="Active Users Count" 
+                        className="h-32 w-full max-w-xs bg-white rounded-4xl shadow-lg hover:shadow-xl transition-shadow duration-300 p-4 flex flex-col items-center justify-center text-center"
+                      >
+                        <img 
+                        src="/icons/activeUsers.png" // Replace with the actual image path
+                        alt="Active Users Icon"
+                        className="w-7 h-7 flex-shrink-0 mb-2 object-contain"  style={{marginBottom: '15px'}}// Retaining size and margin
+                      />
+                        
+                        {/* Stat number in the middle */}
+                        <div className="text-4xl font-bold text-black font-['Poppins']"style={{marginBottom: '10px'}} >
+                          {activeUsers.toLocaleString()}
+                        </div>
+                        
+                        {/* Title/label at the bottom */}
+                        <div className="text-sm font-bold text-[#6BC4A6] mt-1 font-['Plus_Jakarta_Sans']">
+                          Active Users
+                        </div>
+                      </div>
+                    </div>
 
-        {/* Stat Card 4: Recipes Posted */}
-        <div 
-          className="flex items-center justify-center" // Centering wrapper for the card
-        >
-          <div 
-            data-property-1="Recipe Count" 
-            className="h-32 w-full max-w-xs bg-white rounded-4xl shadow-lg hover:shadow-xl transition-shadow duration-300 p-4 flex flex-col items-center justify-center text-center"
-          >
-            {/* Icon/Logo at the top center */}
-            <img 
-            src="/icons/recipesPosted.png" // Replace with the actual image path
-            alt="Recipes Posted Icon"
-            className="w-7 h-7 flex-shrink-0 mb-2 object-contain"  style={{marginBottom: '15px'}}// Retaining size and margin
-          />            
-            {/* Stat number in the middle */}
-            <div className="text-4xl font-bold text-black font-['Poppins']"style={{marginBottom: '10px'}} >
-              1M+
-            </div>
-            
-            {/* Title/label at the bottom */}
-            <div className="text-sm font-bold text-[#6BC4A6] mt-1 font-['Plus_Jakarta_Sans']">
-              Recipes Posted
-            </div>
-          </div>
-        </div>
+                    {/* Stat Card 4: Recipes Posted */}
+                    <div 
+                      className="flex items-center justify-center" // Centering wrapper for the card
+                    >
+                      <div 
+                        data-property-1="Recipe Count" 
+                        className="h-32 w-full max-w-xs bg-white rounded-4xl shadow-lg hover:shadow-xl transition-shadow duration-300 p-4 flex flex-col items-center justify-center text-center"
+                      >
+                        {/* Icon/Logo at the top center */}
+                        <img 
+                        src="/icons/recipesPosted.png" // Replace with the actual image path
+                        alt="Recipes Posted Icon"
+                        className="w-7 h-7 flex-shrink-0 mb-2 object-contain"  style={{marginBottom: '15px'}}// Retaining size and margin
+                      />            
+                        {/* Stat number in the middle */}
+                        <div className="text-4xl font-bold text-black font-['Poppins']"style={{marginBottom: '10px'}} >
+                          {recipesPosted.toLocaleString()}
+                        </div>
+                        
+                        {/* Title/label at the bottom */}
+                        <div className="text-sm font-bold text-[#6BC4A6] mt-1 font-['Plus_Jakarta_Sans']">
+                          Recipes Posted
+                        </div>
+                      </div>
+                    </div>
 
-      </div>
-    </div>
+                  </div>
+                </div>
 
-  </div>
-</div>
+              </div>
+            </div>
             
                {/* ---------------------------------- ROW 2: RECIPES & USERS SPLIT ---------------------------------- */}
                <div className="self-stretch flex flex-col lg:flex-row justify-start items-start gap-6 sm:gap-8" style={{marginLeft: '20px'}}>
@@ -164,44 +384,38 @@ export default function AdminDashboard() {
                   className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-5"
                   style={{ marginLeft: '10px', marginBottom: '10px' }}
                 >
-                   {/* Recipe Cards */}
-                   {[
-                    { name: "BINANGKAL", likes: "512K", comments: "1.2K", user: "user_name_a", img: "Placeholder+1" },
-                    { name: "SINIGANG", likes: "231K", comments: "948", user: "user_name_b", img: "Placeholder+2" },
-                    { name: "KARE-KARE", likes: "100K", comments: "521", user: "user_name_c", img: "Placeholder+3" },
-                    { name: "ADOBO", likes: "465K", comments: "1K", user: "user_name_d", img: "Placeholder+4" },
-                    { name: "Placeholder 5", likes: "10K", comments: "100", user: "user_name_e", img: "Placeholder+5" },
-                    { name: "BINANGKAL", likes: "512K", comments: "1.2K", user: "user_name_a", img: "Placeholder+6" },
-                    { name: "SINIGANG", likes: "231K", comments: "948", user: "user_name_b", img: "Placeholder+7" },
-                    { name: "KARE-KARE", likes: "100K", comments: "521", user: "user_name_c", img: "Placeholder+8" },
-                    { name: "ADOBO", likes: "465K", comments: "1K", user: "user_name_d", img: "Placeholder+9" },
-                    { name: "Placeholder 10", likes: "10K", comments: "100", user: "user_name_e", img: "Placeholder+10" },
-                  ].map((recipe, index) => (
-                    <div
-                      key={index}
-                      className="h-[290px] w-[275px] flex flex-col gap-2 bg-white p-3 rounded-xl shadow-md hover:shadow-xl transition-all duration-200 hover:scale-[1.02]"
-                    >
-                      <div className="w-full aspect-square relative rounded-lg overflow-hidden bg-gray-100">
-                        <img
-                          className="w-full h-full object-cover"
-                          src={`https://placehold.co/400x300/FFFFFF/000000?text=${recipe.img}`}
-                          alt={recipe.name}
-                        />
-                      </div>
-                      <div className="text-center text-black text-sm sm:text-base font-bold font-['Plus_Jakarta_Sans'] truncate px-1">
-                        {recipe.name}
-                      </div>
-                      <div className="text-center text-zinc-500 text-xs font-medium font-['Poppins']">
-                        {recipe.likes} likes • {recipe.comments} comments
-                      </div>
-                      <div className="w-full flex justify-center items-center gap-1.5 mt-auto">
-                        <User className="w-4 h-4 text-stone-500 flex-shrink-0" />
-                        <div className="text-center text-stone-500 text-xs font-['Poppins'] truncate">
-                          {recipe.user}
+                   {loadingRecipes ? (
+                    <div className="col-span-full text-center text-black py-4">Loading recipes...</div>
+                  ) : topRecipes.length === 0 ? (
+                    <div className="col-span-full text-center text-black py-4">No recipes found</div>
+                  ) : (
+                    topRecipes.map((recipe) => (
+                      <div
+                        key={recipe.id}
+                        className="h-[290px] w-[275px] flex flex-col gap-2 bg-white p-3 rounded-xl shadow-md hover:shadow-xl transition-all duration-200 hover:scale-[1.02]"
+                      >
+                        <div className="w-full aspect-square relative rounded-lg overflow-hidden bg-gray-100">
+                          <img
+                            className="w-full h-full object-cover"
+                            src={recipe.imageUrl}
+                            alt={recipe.title}
+                          />
+                        </div>
+                        <div className="text-center text-black text-sm sm:text-base font-bold font-['Plus_Jakarta_Sans'] truncate px-1">
+                          {recipe.title}
+                        </div>
+                        <div className="text-center text-zinc-500 text-xs font-medium font-['Poppins']">
+                          {recipe.likes.toLocaleString()} likes • {recipe.comments.toLocaleString()} comments
+                        </div>
+                        <div className="w-full flex justify-center items-center gap-1.5 mt-auto">
+                          <User className="w-4 h-4 text-stone-500 flex-shrink-0" />
+                          <div className="text-center text-stone-500 text-xs font-['Poppins'] truncate">
+                            {recipe.authorName}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    ))
+                  )}
                  
                 </div>
               </div>
@@ -226,128 +440,32 @@ export default function AdminDashboard() {
         {/* Grid: MODIFIED TO grid-cols-1 on ALL screen sizes for one card per row */}
         <div className="grid grid-cols-1 gap-3 pb-2">
 
-      {/* --- Card Template: User 1 --- */}
-      <div 
-        // Card: Increased  padding (p-3) and adjusted alignment for a taller container feel
-        className="w-[260px] h-[50px] p-3 bg-white/70 rounded-lg shadow-md flex items-center justify-start gap-3 transition-shadow hover:shadow-lg cursor-pointer"style={{marginLeft: '15px'}}
-      >
-        <span className="text-xl font-extrabold text-[#006644] flex-shrink-0 w-6 text-center"style={{marginLeft: '1px'}}>1</span>
-        <img className="w-12 h-12 shadow-inner rounded-full object-cover flex-shrink-0" src="https://placehold.co/65x62" alt="Chef Master Avatar" />
-        <div className="flex-1 min-w-0 flex flex-col items-start justify-center">
-          <div className="text-base font-bold text-black font-['Poppins'] truncate">_chefMaster_</div>
-          <div className="text-sm text-gray-700">
-            <span className="font-semibold text-sm text-[#006644]">1.2M</span> followers
+      {loadingCreators ? (
+        <div className="text-center text-gray-500 py-4">Loading creators...</div>
+      ) : topCreators.length === 0 ? (
+        <div className="text-center text-gray-500 py-4">No creators found</div>
+      ) : (
+        topCreators.map((creator, index) => (
+          <div 
+            key={creator.uid}
+            className="w-[260px] h-[50px] p-3 bg-white/70 rounded-lg shadow-md flex items-center justify-start gap-3 transition-shadow hover:shadow-lg cursor-pointer"
+            style={{marginLeft: '15px'}}
+          >
+            <span className="text-xl font-extrabold text-[#006644] flex-shrink-0 w-6 text-center"style={{marginLeft: '1px'}}>{index + 1}</span>
+            <img 
+              className="w-12 h-12 shadow-inner rounded-full object-cover flex-shrink-0" 
+              src={creator.profileImage} 
+              alt={`${creator.displayName} Avatar`}
+            />
+            <div className="flex-1 min-w-0 flex flex-col items-start justify-center">
+              <div className="text-base font-bold text-black font-['Poppins'] truncate">{creator.displayName}</div>
+              <div className="text-sm text-gray-700">
+                <span className="font-semibold text-sm text-[#006644]">{creator.followerCount.toLocaleString()}</span> followers
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
-
-      {/* --- Card Template: User 2 --- */}
-      <div className="w-[260px] h-[50px] p-3 bg-white/70 rounded-lg shadow-md flex items-center justify-start gap-3 transition-shadow hover:shadow-lg cursor-pointer"style={{marginLeft: '15px'}}>
-        <span className="text-xl font-extrabold text-[#006644] flex-shrink-0 w-6 text-center"style={{marginLeft: '1px'}}>2</span>
-        <img className="w-12 h-12 shadow-inner rounded-full object-cover flex-shrink-0" src="https://placehold.co/65x62" alt="Gourmet Jane Avatar" />
-        <div className="flex-1 min-w-0 flex flex-col items-start justify-center">
-          <div className="text-base font-bold text-black font-['Poppins'] truncate">_gourmet_jane</div>
-          <div className="text-sm text-gray-700">
-            <span className="font-semibold text-sm text-[#006644]">980K</span> followers
-          </div>
-        </div>
-      </div>
-      
-      {/* --- Card Template: User 3 --- */}
-      <div className="w-[260px] h-[50px] p-3 bg-white/70 rounded-lg shadow-md flex items-center justify-start gap-3 transition-shadow hover:shadow-lg cursor-pointer"style={{marginLeft: '15px'}}>
-        <span className="text-xl font-extrabold text-[#006644] flex-shrink-0 w-6 text-center"style={{marginLeft: '1px'}}>3</span>
-        <img className="w-12 h-12 shadow-inner rounded-full object-cover flex-shrink-0" src="https://placehold.co/65x62" alt="Kitchen King Avatar" />
-        <div className="flex-1 min-w-0 flex flex-col items-start justify-center">
-          <div className="text-base font-bold text-black font-['Poppins'] truncate">_kitchen_king</div>
-          <div className="text-sm text-gray-700">
-            <span className="font-semibold text-sm text-[#006644]">750K</span> followers
-          </div>
-        </div>
-      </div>
-
-      {/* --- Card Template: User 4 --- */}
-      <div className="w-[260px] h-[50px] p-3 bg-white/70 rounded-lg shadow-md flex items-center justify-start gap-3 transition-shadow hover:shadow-lg cursor-pointer"style={{marginLeft: '15px'}}>
-        <span className="text-xl font-extrabold text-[#006644] flex-shrink-0 w-6 text-center"style={{marginLeft: '1px'}}>4</span>
-        <img className="w-12 h-12 shadow-inner rounded-full object-cover flex-shrink-0" src="https://placehold.co/65x62" alt="Tasty Treats Avatar" />
-        <div className="flex-1 min-w-0 flex flex-col items-start justify-center">
-          <div className="text-base font-bold text-black font-['Poppins'] truncate">_tasty_treats</div>
-          <div className="text-sm text-gray-700">
-            <span className="font-semibold text-sm text-[#006644]">600K</span> followers
-          </div>
-        </div>
-      </div>
-
-      {/* --- Card Template: User 5 --- */}
-      <div className="w-[260px] h-[50px] p-3 bg-white/70 rounded-lg shadow-md flex items-center justify-start gap-3 transition-shadow hover:shadow-lg cursor-pointer"style={{marginLeft: '15px'}}>
-        <span className="text-xl font-extrabold text-[#006644] flex-shrink-0 w-6 text-center"style={{marginLeft: '1px'}}>5</span>
-        <img className="w-12 h-12 shadow-inner rounded-full object-cover flex-shrink-0" src="https://placehold.co/65x62" alt="Home Cooker Avatar" />
-        <div className="flex-1 min-w-0 flex flex-col items-start justify-center">
-          <div className="text-base font-bold text-black font-['Poppins'] truncate">_home_cooker</div>
-          <div className="text-sm text-gray-700">
-            <span className="font-semibold text-sm text-[#006644]">450K</span> followers
-          </div>
-        </div>
-      </div>
-      
-      {/* --- Card Template: User 6 --- */}
-      <div className="w-[260px] h-[50px] p-3 bg-white/70 rounded-lg shadow-md flex items-center justify-start gap-3 transition-shadow hover:shadow-lg cursor-pointer"style={{marginLeft: '15px'}}>
-        <span className="text-xl font-extrabold text-[#006644] flex-shrink-0 w-6 text-center"style={{marginLeft: '1px'}}>6</span>
-        <img className="w-12 h-12 shadow-inner rounded-full object-cover flex-shrink-0" src="https://placehold.co/65x62" alt="Baking Boss Avatar" />
-        <div className="flex-1 min-w-0 flex flex-col items-start justify-center">
-          <div className="text-base font-bold text-black font-['Poppins'] truncate">_baking_boss</div>
-          <div className="text-sm text-gray-700">
-            <span className="font-semibold text-sm text-[#006644]">320K</span> followers
-          </div>
-        </div>
-      </div>
-
-      {/* --- Card Template: User 7 --- */}
-      <div className="w-[260px] h-[50px] p-3 bg-white/70 rounded-lg shadow-md flex items-center justify-start gap-3 transition-shadow hover:shadow-lg cursor-pointer"style={{marginLeft: '15px'}}>
-        <span className="text-xl font-extrabold text-[#006644] flex-shrink-0 w-6 text-center"style={{marginLeft: '1px'}}>7</span>
-        <img className="w-12 h-12 shadow-inner rounded-full object-cover flex-shrink-0" src="https://placehold.co/65x62" alt="Grill Master Avatar" />
-        <div className="flex-1 min-w-0 flex flex-col items-start justify-center">
-          <div className="text-base font-bold text-black font-['Poppins'] truncate">_grill_master</div>
-          <div className="text-sm text-gray-700">
-            <span className="font-semibold text-sm text-[#006644]">290K</span> followers
-          </div>
-        </div>
-      </div>
-      
-      {/* --- Card Template: User 8 --- */}
-      <div className="w-[260px] h-[50px] p-3 bg-white/70 rounded-lg shadow-md flex items-center justify-start gap-3 transition-shadow hover:shadow-lg cursor-pointer"style={{marginLeft: '15px'}}>
-        <span className="text-xl font-extrabold text-[#006644] flex-shrink-0 w-6 text-center"style={{marginLeft: '1px'}}>8</span>
-        <img className="w-12 h-12 shadow-inner rounded-full object-cover flex-shrink-0" src="https://placehold.co/65x62" alt="Dessert Queen Avatar" />
-        <div className="flex-1 min-w-0 flex flex-col items-start justify-center">
-          <div className="text-base font-bold text-black font-['Poppins'] truncate">_dessert_queen</div>
-          <div className="text-sm text-gray-700">
-            <span className="font-semibold text-sm text-[#006644]">180K</span> followers
-          </div>
-        </div>
-      </div>
-      
-      {/* --- Card Template: User 9 --- */}
-      <div className="w-[260px] h-[50px] p-3 bg-white/70 rounded-lg shadow-md flex items-center justify-start gap-3 transition-shadow hover:shadow-lg cursor-pointer"style={{marginLeft: '15px'}}>
-        <span className="text-xl font-extrabold text-[#006644] flex-shrink-0 w-6 text-center"style={{marginLeft: '1px'}}>9</span>
-        <img className="w-12 h-12 shadow-inner rounded-full object-cover flex-shrink-0" src="https://placehold.co/65x62" alt="Vegan Eats Avatar" />
-        <div className="flex-1 min-w-0 flex flex-col items-start justify-center">
-          <div className="text-base font-bold text-black font-['Poppins'] truncate">_vegan_eats</div>
-          <div className="text-sm text-gray-700">
-            <span className="font-semibold text-sm text-[#006644]">150K</span> followers
-          </div>
-        </div>
-      </div>
-      
-      {/* --- Card Template: User 10 --- */}
-      <div className="w-[260px] h-[50px] p-3 bg-white/70 rounded-lg shadow-md flex items-center justify-start gap-3 transition-shadow hover:shadow-lg cursor-pointer"style={{marginLeft: '15px'}}>
-        <span className="text-xl font-extrabold text-[#006644] flex-shrink-0 w-6 text-center"style={{marginLeft: '1px'}}>10</span>
-        <img className="w-12 h-12 shadow-inner rounded-full object-cover flex-shrink-0" src="https://placehold.co/65x62" alt="Soup Master Avatar" />
-        <div className="flex-1 min-w-0 flex flex-col items-start justify-center">
-          <div className="text-base font-bold text-black font-['Poppins'] truncate">_soup_master</div>
-          <div className="text-sm text-gray-700">
-            <span className="font-semibold text-sm text-[#006644]">120K</span> followers
-          </div>
-        </div>
-      </div>
+        ))
+      )}
 
     </div>
   </div>

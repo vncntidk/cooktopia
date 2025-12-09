@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
+import { logPageVisit } from "../services/pageTracking";
 import HeaderSidebarLayout from "../components/HeaderSidebarLayout";
 import { Bookmark } from "lucide-react";
 import styles from "../components/Component.module.css";
@@ -181,6 +182,12 @@ function RecipeCard({ recipe }) {
 export default function SearchResults() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [searchMode, setSearchMode] = useState("all"); // 'all' | 'recipes' | 'ingredients' | 'users'
+
+  // Track page visit
+  useEffect(() => {
+    logPageVisit('search');
+  }, []);
+
 
   const query = searchParams.get("q") || "";
   

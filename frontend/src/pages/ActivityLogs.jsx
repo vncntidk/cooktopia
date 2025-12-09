@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { logPageVisit } from "../services/pageTracking";
 import HeaderSidebarLayout from "../components/HeaderSidebarLayout";
 import { useAuth } from "../contexts/AuthContext";
 import { getUserActivityLogs, groupActivityLogsByDate } from "../services/activityLogs";
@@ -157,6 +158,12 @@ const ActivityLogs = () => {
   const { user, loading: authLoading } = useAuth();
   const [activityLogs, setActivityLogs] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // Track page visit
+  useEffect(() => {
+    logPageVisit('activity-logs');
+  }, []);
+
 
   // Determine which user's activity logs to show
   // If profileUserId is provided in URL, use it; otherwise use logged-in user's ID

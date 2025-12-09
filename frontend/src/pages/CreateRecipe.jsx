@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Upload, Video, Plus, X, Clock, ChefHat } from 'lucide-react';
+import { logPageVisit } from '../services/pageTracking';
 import { useAuth } from '../contexts/AuthContext';
 import { uploadMultipleImages } from '../services/cloudinary';
 import { createRecipe, updateRecipe, getRecipeById } from '../services/recipes';
@@ -276,6 +277,11 @@ const CreateRecipe = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState({});
+
+  // Track page visit
+  useEffect(() => {
+    logPageVisit('create-recipe');
+  }, []);
 
   // Load recipe data if in edit mode
   useEffect(() => {

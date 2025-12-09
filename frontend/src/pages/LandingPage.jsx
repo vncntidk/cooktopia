@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { logPageVisit } from '../services/pageTracking';
 import LoginModal from '../modals/LoginModal';
 import RegisterModal from '../modals/RegisterModal';
 import ForgotPassModal from '../modals/ForgotPassModal';
@@ -17,6 +18,10 @@ const LandingPage = () => {
   const [sending, setSending] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+
+  useEffect(() => {
+    logPageVisit('landing');
+  }, []);
 
   useEffect(() => {
     if (!loading && isAuthenticated && isVerified) {
@@ -184,7 +189,7 @@ const LandingPage = () => {
               { title: "SHARE", desc: "Share your creations with others.", icon: "💝", color: "#F8BBD0" },
             ].map((step) => (
               <div
-                key={step.number}
+                key={step.title}
                 className="relative bg-white rounded-3xl p-8 pb-12 flex flex-col items-center gap-6 shadow-xl hover:shadow-2xl transition-all duration-500 ease-in-out transform 
                 hover:-translate-y-2 group w-[400px] h-[240px]"style={{ marginBottom: '80px' }}
               >

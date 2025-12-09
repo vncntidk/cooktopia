@@ -6,6 +6,7 @@ import React, {
   useMemo,
 } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { logPageVisit } from '../services/pageTracking';
 import {
   updateProfile,
   updateEmail,
@@ -126,6 +127,11 @@ export default function ProfilePage() {
     // When profileUserId changes, reset to 'own-recipes' tab
     setActiveTab('own-recipes');
   }, [profileUserId]);
+
+  // Track page visit
+  useEffect(() => {
+    logPageVisit('profile');
+  }, []);
 
   // Listen for view original recipe event from ViewPostModal
   useEffect(() => {
