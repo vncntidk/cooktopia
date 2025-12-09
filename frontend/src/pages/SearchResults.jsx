@@ -132,7 +132,7 @@ function UserCard({ user }) {
     >
       <div className="flex flex-col p-6">
         {/* Header with Avatar and Username */}
-        <div className="flex items-center gap-3 mb-4">
+        <div className="flex items-center gap-3 mb-4 h-20"style={{marginLeft: 15}}>
           <Avatar
             userId={user.id}
             displayName={username}
@@ -427,8 +427,7 @@ export default function SearchResults() {
                   {displayResults.users.length > 0 && (
                     <div className="mb-16">
                       <h2 className="text-2xl font-semibold text-gray-800 mb-6">Users</h2>
-                      <div className="columns-2 md:columns-3 lg:columns-4 gap-2 space-y-6">
-                        {displayResults.users.map((user) => (
+                          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">                        {displayResults.users.map((user) => (
                           <UserCard key={user.id} user={user} />
                         ))}
                       </div>
@@ -457,8 +456,8 @@ export default function SearchResults() {
 
               {/* Users Mode */}
               {searchMode === "users" && displayResults.users.length > 0 && (
-                <div className="columns-2 md:columns-3 lg:columns-4 gap-2 space-y-6">
-                  {displayResults.users.map((user) => (
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                    {displayResults.users.map((user) => (
                     <UserCard key={user.id} user={user} />
                   ))}
                 </div>

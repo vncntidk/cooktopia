@@ -154,6 +154,7 @@ export default function ProfilePage() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [followersModalOpen, setFollowersModalOpen] = useState(false);
   const [followingModalOpen, setFollowingModalOpen] = useState(false);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false); // NEW STATE: Photo deletion confirmation
   const [sections, setSections] = useState(() => ({
     'own-recipes': { ...initialSectionState },
     'liked-recipes': { ...initialSectionState },
@@ -172,10 +173,10 @@ export default function ProfilePage() {
   const [submissionStatus, setSubmissionStatus] = useState('idle'); // idle | saving | success | error
   const [submissionMessage, setSubmissionMessage] = useState('');
 
-  const dropdownRef = useRef(null);
-  const menuButtonRef = useRef(null);
-  const sectionsRef = useRef(sections);
-  const [isPhotoLightboxOpen, setIsPhotoLightboxOpen] = useState(false);
+  const dropdownRef = useRef(null);
+  const menuButtonRef = useRef(null);
+  const sectionsRef = useRef(sections);
+  const [isPhotoLightboxOpen, setIsPhotoLightboxOpen] = useState(false);
 
   useEffect(() => {
     sectionsRef.current = sections;
@@ -344,24 +345,24 @@ export default function ProfilePage() {
       }
     };
 
-    document.addEventListener('keydown', handleEscape);
-    return () => document.removeEventListener('keydown', handleEscape);
-  }, [isEditModalOpen]);
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [isEditModalOpen]);
 
-  useEffect(() => {
-    if (!isPhotoLightboxOpen) {
-      return undefined;
-    }
+  useEffect(() => {
+    if (!isPhotoLightboxOpen) {
+      return undefined;
+    }
 
-    const handleEscape = (event) => {
-      if (event.key === 'Escape') {
-        setIsPhotoLightboxOpen(false);
-      }
-    };
+    const handleEscape = (event) => {
+      if (event.key === 'Escape') {
+        setIsPhotoLightboxOpen(false);
+      }
+    };
 
-    document.addEventListener('keydown', handleEscape);
-    return () => document.removeEventListener('keydown', handleEscape);
-  }, [isPhotoLightboxOpen]);
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [isPhotoLightboxOpen]);
 
   const handleProfileImageUpload = useCallback(async (file = null) => {
     if (!file) {
@@ -381,43 +382,46 @@ export default function ProfilePage() {
     setUploadStatus('uploading');
     setFormErrors((prev) => ({ ...prev, upload: '' }));
 
-    try {
-      const result = await uploadImage(file);
-      const imageUrl = result.secure_url || result.url;
-      setFormState((prev) => ({
-        ...prev,
-        profileImage: imageUrl,
-      }));
-      setUploadStatus('success');
-      setSubmissionMessage('Image uploaded! Remember to hit Save.');
-    } catch (error) {
-      console.error('Error uploading profile image:', error);
-      setUploadStatus('error');
-      setFormErrors((prev) => ({
-        ...prev,
-        upload: 'Failed to upload profile photo. Please try again.',
-      }));
-    }
-  }, []);
+    try {
+      const result = await uploadImage(file);
+      const imageUrl = result.secure_url || result.url;
+      setFormState((prev) => ({
+        ...prev,
+        profileImage: imageUrl,
+      }));
+      setUploadStatus('success');
+      setSubmissionMessage('Image uploaded! Remember to hit Save.');
+    } catch (error) {
+      console.error('Error uploading profile image:', error);
+      setUploadStatus('error');
+      setFormErrors((prev) => ({
+        ...prev,
+        upload: 'Failed to upload profile photo. Please try again.',
+      }));
+    }
+  }, []);
 
-  const handleDeletePhotoInModal = useCallback(() => {
-    if (!window.confirm('Are you sure you want to delete your profile photo?')) {
-      return;
-    }
+  // MODIFIED: Open custom confirmation modal
+  const handleDeletePhotoInModal = useCallback(() => {
+    setIsDeleteConfirmOpen(true);
+  }, []);
 
-    setFormState((prev) => ({
-      ...prev,
-      profileImage: null,
-    }));
-    setFormErrors((prev) => ({ ...prev, upload: '' }));
-    setSubmissionMessage('Profile photo removed. Click "Save changes" to confirm.');
-  }, []);
+  // NEW: Handler for confirming photo deletion from the custom modal
+  const handleConfirmDelete = useCallback(() => {
+    setFormState((prev) => ({
+      ...prev,
+      profileImage: null,
+    }));
+    setFormErrors((prev) => ({ ...prev, upload: '' }));
+    setSubmissionMessage('Profile photo removed. Click "Save changes" to confirm.');
+    setIsDeleteConfirmOpen(false);
+  }, []);
 
-  const handleProfilePhotoClick = useCallback(() => {
-    if (userData.profileImage) {
-      setIsPhotoLightboxOpen(true);
-    }
-  }, [userData.profileImage]);
+  const handleProfilePhotoClick = useCallback(() => {
+    if (userData.profileImage) {
+      setIsPhotoLightboxOpen(true);
+    }
+  }, [userData.profileImage]);
 
 
   const validateForm = useCallback(() => {
@@ -432,6 +436,8 @@ export default function ProfilePage() {
       isValid = false;
     }
 
+    // Email validation left in for consistency/potential future update, 
+    // even though the field is currently read-only in the modal
     if (!formState.email.trim()) {
       errors.email = 'Email is required.';
       isValid = false;
@@ -697,20 +703,20 @@ export default function ProfilePage() {
 
         const updates = {};
 
-        // Update Firebase Auth profile
-        if (auth.currentUser) {
-          if (formState.name.trim() !== userData.name) {
-            updates.displayName = formState.name.trim();
-          }
-          // Handle profile image update or deletion
-          if (formState.profileImage !== userData.profileImage) {
-            if (formState.profileImage) {
-              updates.photoURL = formState.profileImage;
-            } else {
-              // Photo was deleted - set to null
-              updates.photoURL = null;
-            }
-          }
+        // Update Firebase Auth profile
+        if (auth.currentUser) {
+          if (formState.name.trim() !== userData.name) {
+            updates.displayName = formState.name.trim();
+          }
+          // Handle profile image update or deletion
+          if (formState.profileImage !== userData.profileImage) {
+            if (formState.profileImage) {
+              updates.photoURL = formState.profileImage;
+            } else {
+              // Photo was deleted - set to null
+              updates.photoURL = null;
+            }
+          }
 
           if (formState.email.trim() !== userData.email) {
             await updateEmail(auth.currentUser, formState.email.trim());
@@ -730,30 +736,30 @@ export default function ProfilePage() {
           displayName: formState.name.trim(), // Save displayName to Firestore
         };
 
-        // Handle profile image - include null if deleted
-        if (formState.profileImage !== userData.profileImage) {
-          if (formState.profileImage) {
-            firestoreProfileData.profileImage = formState.profileImage;
-          } else {
-            // Photo was deleted - explicitly set to null
-            firestoreProfileData.profileImage = null;
-          }
-        } else if (formState.profileImage) {
-          // Keep existing image if unchanged
-          firestoreProfileData.profileImage = formState.profileImage;
-        }
+        // Handle profile image - include null if deleted
+        if (formState.profileImage !== userData.profileImage) {
+          if (formState.profileImage) {
+            firestoreProfileData.profileImage = formState.profileImage;
+          } else {
+            // Photo was deleted - explicitly set to null
+            firestoreProfileData.profileImage = null;
+          }
+        } else if (formState.profileImage) {
+          // Keep existing image if unchanged
+          firestoreProfileData.profileImage = formState.profileImage;
+        }
 
         await updateUserProfile(user.uid, firestoreProfileData);
 
-        // Update local state
-        setUserData((prev) => ({
-          ...prev,
-          name: formState.name.trim(),
-          email: formState.email.trim(),
-          bio: formState.bio.trim() || 'Add bio',
-          profileImage: formState.profileImage || null,
-          hasProfileImage: Boolean(formState.profileImage),
-        }));
+        // Update local state
+        setUserData((prev) => ({
+          ...prev,
+          name: formState.name.trim(),
+          email: formState.email.trim(),
+          bio: formState.bio.trim() || 'Add bio',
+          profileImage: formState.profileImage || null,
+          hasProfileImage: Boolean(formState.profileImage),
+        }));
 
         setSubmissionStatus('success');
         setSubmissionMessage('Profile updated successfully.');
@@ -933,107 +939,107 @@ export default function ProfilePage() {
     );
   };
 
-  return (
-    <HeaderSidebarLayout>
-      <div className="profile-page"style={{marginTop: 15}}>
-        <div className="profile-page__inner">
-          <section className="profile-hero">
-            <div className="profile-hero__avatar-group">
-              <div className="profile-hero__avatar-wrapper">
-                <div
-                  className={`profile-hero__avatar-container ${userData.profileImage ? 'profile-hero__avatar-container--clickable' : ''}`}
-                  onClick={handleProfilePhotoClick}
-                  role={userData.profileImage ? 'button' : undefined}
-                  tabIndex={userData.profileImage ? 0 : undefined}
-                  onKeyDown={(e) => {
-                    if (userData.profileImage && (e.key === 'Enter' || e.key === ' ')) {
-                      e.preventDefault();
-                      handleProfilePhotoClick();
-                    }
-                  }}
-                  aria-label={userData.profileImage ? 'View profile photo' : undefined}
-                >
-                  <Avatar
-                    userId={profileUserId}
-                    profileImage={userData.profileImage}
-                    displayName={userData.name}
-                    size="xl"
-                    className="profile-hero__avatar"
-                  />
-                </div>
-              </div>
-            </div>
+  return (
+    <HeaderSidebarLayout>
+      <div className="profile-page"style={{marginTop: 15}}>
+        <div className="profile-page__inner">
+          <section className="profile-hero">
+            <div className="profile-hero__avatar-group">
+              <div className="profile-hero__avatar-wrapper">
+                <div
+                  className={`profile-hero__avatar-container ${userData.profileImage ? 'profile-hero__avatar-container--clickable' : ''}`}
+                  onClick={handleProfilePhotoClick}
+                  role={userData.profileImage ? 'button' : undefined}
+                  tabIndex={userData.profileImage ? 0 : undefined}
+                  onKeyDown={(e) => {
+                    if (userData.profileImage && (e.key === 'Enter' || e.key === ' ')) {
+                      e.preventDefault();
+                      handleProfilePhotoClick();
+                    }
+                  }}
+                  aria-label={userData.profileImage ? 'View profile photo' : undefined}
+                >
+                  <Avatar
+                    userId={profileUserId}
+                    profileImage={userData.profileImage}
+                    displayName={userData.name}
+                    size="xl"
+                    className="profile-hero__avatar"
+                  />
+                </div>
+              </div>
+            </div>
 
             <div className="profile-hero__content">
            <div className="profile-hero__row">
-        
-        {/*
-          The outer .profile-hero__name-group (defined in CSS) is used here to contain the LEFT-ALIGNED content.
-          Since we removed the column stacking from this group, the main content of this group 
-          (the horizontal wrapper + the email) will now stack naturally.
-        */}
-        <div className="profile-hero__name-group">
+        
+        {/*
+          The outer .profile-hero__name-group (defined in CSS) is used here to contain the LEFT-ALIGNED content.
+          Since we removed the column stacking from this group, the main content of this group 
+          (the horizontal wrapper + the email) will now stack naturally.
+        */}
+        <div className="profile-hero__name-group">
 
-            {/*
-              --- START MODIFICATION 1: Name and Follow Button Side-by-Side ---
-              This inline style creates a horizontal flex container to align the <h1> and the button.
-            */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                <h1 className="profile-hero__name">{userData.name}</h1>
-                
-                {/* MODIFICATION 2: Follow button is placed here, next to the name, only for other users */}
-                {!isOwnProfile && (
-                    <FollowButton targetUserId={profileUserId} currentUserId={user?.uid} />
-                )}
-            </div>
-            {/* --- END MODIFICATION 1 --- */}
+            {/*
+              --- START MODIFICATION 1: Name and Follow Button Side-by-Side ---
+              This inline style creates a horizontal flex container to align the <h1> and the button.
+            */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                <h1 className="profile-hero__name">{userData.name}</h1>
+                
+                {/* MODIFICATION 2: Follow button is placed here, next to the name, only for other users */}
+                {!isOwnProfile && (
+                    <FollowButton targetUserId={profileUserId} currentUserId={user?.uid} />
+                )}
+            </div>
+            {/* --- END MODIFICATION 1 --- */}
 
-            {/* Email remains stacked beneath the name/button group */}
-            {userData.email && (
-                <p className="profile-hero__email">{userData.email}</p>
-            )}
+            {/* Email remains stacked beneath the name/button group */}
+            {userData.email && (
+                <p className="profile-hero__email">{userData.email}</p>
+            )}
 
-        </div> 
-        {/* End .profile-hero__name-group (Left side content) */}
+        </div> 
+        {/* End .profile-hero__name-group (Left side content) */}
 
 
-        {/*
-          --- START MODIFICATION 3: Edit/Menu actions only for owner (Right Aligned) ---
-          This block is pushed to the far right by the CSS setting of 'justify-content: space-between'
-          on the parent .profile-hero__row.
-        */}
-        {isOwnProfile && (
-            <div className="profile-hero__actions">
-                <button
-                    type="button"
-                    className="profile-hero__action-button"
-                    onClick={handleEditProfileOpen}
-                >
-                    Edit Profile
-                </button>
-                
-                {/* Menu Options (Hidden when !isOwnProfile) */}
-                {isOwnProfile && ( 
-                    <div className="profile-hero__menu-wrapper" ref={dropdownRef} style={{ marginRight: '3rem' }}>
-                        <button
-                            type="button"
-                            aria-label="More options"
-                            className="profile-hero__more-button"
-                            ref={menuButtonRef}
-                            onClick={() => setIsMenuOpen((prev) => !prev)}
-                        >
-                            ⋮
-                        </button>
-                        {isMenuOpen && (
-                            <div className="profile-hero__menu" role="menu">
-                                <button
-                                    type="button"
-                                    role="menuitem"
-                                    onClick={handleViewActivityLogs}
-                                    className="profile-hero__menu-item"
-                                >
-                                    View Activity Logs
-                                </button>
+        {/*
+          --- START MODIFICATION 3: Edit/Menu actions only for owner (Right Aligned) ---
+          This block is pushed to the far right by the CSS setting of 'justify-content: space-between'
+          on the parent .profile-hero__row.
+        */}
+        {isOwnProfile && (
+            <div className="profile-hero__actions">
+                <button
+                    type="button"
+                    className="profile-hero__action-button"
+                    onClick={handleEditProfileOpen}
+                >
+                    Edit Profile
+                </button>
+                
+                {/* Menu Options (Hidden when !isOwnProfile) */}
+                {isOwnProfile && ( 
+                    <div className="profile-hero__menu-wrapper" ref={dropdownRef} style={{ marginRight: '3rem' }}>
+                        <button
+                            type="button"
+                            aria-label="More options"
+                            className="profile-hero__more-button"
+                            ref={menuButtonRef}
+                            onClick={() => setIsMenuOpen((prev) => !prev)}
+                        >
+                            ⋮
+                        </button>
+                        {isMenuOpen && (
+                            <div className="profile-hero__menu" role="menu">
+                                <button
+                                    type="button"
+                                    role="menuitem"
+                                    onClick={handleViewActivityLogs}
+                                    className="profile-hero__menu-item"
+                                >
+                                    View Activity Logs
+                                </button>
                           </div>
                         )}
                       </div>
@@ -1175,25 +1181,35 @@ export default function ProfilePage() {
           </section>
         </div>
 
-        {isEditModalOpen && (
-          <EditProfileModal
-            formState={formState}
-            formErrors={formErrors}
-            uploadStatus={uploadStatus}
-            submissionStatus={submissionStatus}
-            submissionMessage={submissionMessage}
-            onClose={handleEditProfileClose}
-            onSubmit={handleSaveEditProfile}
-            onInputChange={setFormState}
-            onValidate={validateForm}
-            onUploadPhoto={handleProfileImageUpload}
-            onDeletePhoto={handleDeletePhotoInModal}
-            onResetFeedback={() => {
-              setSubmissionStatus('idle');
-              setSubmissionMessage('');
-            }}
-          />
-        )}
+        {isEditModalOpen && (
+          <EditProfileModal
+            formState={formState}
+            formErrors={formErrors}
+            uploadStatus={uploadStatus}
+            submissionStatus={submissionStatus}
+            submissionMessage={submissionMessage}
+            onClose={handleEditProfileClose}
+            onSubmit={handleSaveEditProfile}
+            onInputChange={setFormState}
+            onValidate={validateForm}
+            onUploadPhoto={handleProfileImageUpload}
+            onDeletePhoto={handleDeletePhotoInModal} // Passes new modal handler
+            onResetFeedback={() => {
+              setSubmissionStatus('idle');
+              setSubmissionMessage('');
+            }}
+          />
+        )}
+
+        {/* NEW: Delete Photo Confirmation Modal */}
+        {isDeleteConfirmOpen && (
+          <DeletePhotoConfirmModal
+            isOpen={isDeleteConfirmOpen}
+            onClose={() => setIsDeleteConfirmOpen(false)}
+            onConfirm={handleConfirmDelete}
+            displayName={formState.name}
+          />
+        )}
 
         {/* Recipe View Modal */}
         {isRecipeModalOpen && selectedRecipe && (
@@ -1233,61 +1249,163 @@ export default function ProfilePage() {
           />
         )}
 
-        {/* Following Modal */}
-        {followingModalOpen && (
-          <FollowersFollowingModal
-            isOpen={followingModalOpen}
-            onClose={() => setFollowingModalOpen(false)}
-            userId={profileUserId}
-            type="following"
-          />
-        )}
+        {/* Following Modal */}
+        {followingModalOpen && (
+          <FollowersFollowingModal
+            isOpen={followingModalOpen}
+            onClose={() => setFollowingModalOpen(false)}
+            userId={profileUserId}
+            type="following"
+          />
+        )}
 
-        {/* Profile Photo Lightbox */}
-        {isPhotoLightboxOpen && userData.profileImage && (
-          <div
-            className="profile-photo-lightbox"
-            onClick={() => setIsPhotoLightboxOpen(false)}
-            role="presentation"
-          >
-            <div
-              className="profile-photo-lightbox__content"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <button
-                type="button"
-                className="profile-photo-lightbox__close"
-                onClick={() => setIsPhotoLightboxOpen(false)}
-                aria-label="Close photo viewer"
-              >
-                ×
-              </button>
-              <img
-                src={userData.profileImage}
-                alt={`${userData.name} profile photo`}
-                className="profile-photo-lightbox__image"
-              />
-            </div>
-          </div>
-        )}
-      </div>
-    </HeaderSidebarLayout>
-  );
+        {/* Profile Photo Lightbox */}
+        {isPhotoLightboxOpen && userData.profileImage && (
+          <div
+            className="profile-photo-lightbox"
+            onClick={() => setIsPhotoLightboxOpen(false)}
+            role="presentation"
+          >
+            <div
+              className="profile-photo-lightbox__content"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button
+                type="button"
+                className="profile-photo-lightbox__close"
+                onClick={() => setIsPhotoLightboxOpen(false)}
+                aria-label="Close photo viewer"
+              >
+                ×
+              </button>
+              <img
+                src={userData.profileImage}
+                alt={`${userData.name} profile photo`}
+                className="profile-photo-lightbox__image"
+              />
+            </div>
+          </div>
+        )}
+      </div>
+    </HeaderSidebarLayout>
+  );
+}
+
+
+// ----------------------------------------------------------------------
+// CORRECTED COMPONENT: DeletePhotoConfirmModal 
+// (Reusing classes from EditProfileModal for visibility)
+// ----------------------------------------------------------------------
+
+function DeletePhotoConfirmModal({ isOpen, onClose, onConfirm, displayName }) {
+    if (!isOpen) return null;
+
+    const modalRef = useRef(null);
+
+    // Focus on the modal when it opens for accessibility
+    useEffect(() => {
+        modalRef.current?.focus();
+
+        const handleEscape = (event) => {
+            if (event.key === 'Escape') {
+                onClose();
+            }
+        };
+
+        document.addEventListener('keydown', handleEscape);
+        return () => document.removeEventListener('keydown', handleEscape);
+    }, [onClose]);
+
+    // Fallback initial for display in the modal message
+    const profileInitial = displayName.charAt(0).toUpperCase();
+
+    return (
+        <div
+            // CORRECTED CLASS: Use the ProfilePage modal overlay class
+            className="edit-profile-modal__overlay" 
+            onClick={onClose}
+            role="presentation"
+        >
+            <div
+                // CORRECTED CLASS: Use the ProfilePage modal content class
+                className="edit-profile-modal" 
+                role="alertdialog"
+                aria-modal="true"
+                aria-labelledby="delete-photo-title"
+                onClick={(event) => event.stopPropagation()}
+                ref={modalRef}
+                tabIndex={-1}
+                // Setting small size using maxWidth and removing fixed height
+                style={{ 
+                    minHeight: 200, 
+                    maxWidth: 400, 
+                    width: '90%', 
+                    padding: 0, // Reset padding for custom layout below
+                    borderRadius: '20px' 
+                }} 
+            >
+                {/* Header (Using original EditProfileModal styles for structure) */}
+                <header className="edit-profile-modal__header" style={{ padding: '15px 20px', borderBottom: '1px solid #eee' }}>
+                    <h2 id="delete-photo-title" style={{ margin: 0, fontSize: '1.25rem', fontWeight: '600' }}>
+                        Delete Profile Photo
+                    </h2>
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        className="edit-profile-modal__close" // Reusing close button style from EditProfileModal
+                        aria-label="Close dialog"
+                        style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#333' }}
+                    >
+                        &times;
+                    </button>
+                </header>
+
+                {/* Body (Using existing inline text styles) */}
+                <div className="text-center">
+                    <p className="text-gray-700 font-['Poppins']" style={{ marginTop: 20, marginBottom: 20, padding: '0 20px' }}>
+                        Are you sure you want to your profile photo?
+                    </p>
+                    
+                    <div className="flex justify-center gap-4" style={{ padding: '0 20px' }}>
+                        {/* Cancel Button - Secondary Style */}
+                        <button
+                            onClick={onClose}
+                            // Using button styles derived from your Delete Conversation/Message modals
+                            className="px-6 py-2 h-10 w-25 rounded-[20px] border border-gray-300 bg-white hover:bg-gray-100 text-gray-700 font-['Poppins'] transition-colors duration-200"
+                        >
+                            Cancel
+                        </button>
+                        
+                        {/* Confirm Button - Primary/Danger Style */}
+                        <button
+                            onClick={onConfirm}
+                            // Using button styles derived from your Delete Conversation/Message modals
+                            className="px-6 py-2 h-10 w-45 rounded-[20px] bg-[#FE982A] hover:bg-[#e68622] text-white font-['Poppins'] shadow-[4px_5px_4px_0px_rgba(0,0,0,0.29)] whitespace-nowrap transition-colors duration-200"
+                        >
+                            Delete Photo
+                        </button>
+                    </div>
+                </div>
+
+                {/* Footer removed since buttons are placed in the body */}
+            </div>
+        </div>
+    );
 }
 
 function EditProfileModal({
-  formState,
-  formErrors,
-  uploadStatus,
-  submissionStatus,
-  submissionMessage,
-  onClose,
-  onSubmit,
-  onInputChange,
-  onValidate,
-  onUploadPhoto,
-  onDeletePhoto,
-  onResetFeedback,
+  formState,
+  formErrors,
+  uploadStatus,
+  submissionStatus,
+  submissionMessage,
+  onClose,
+  onSubmit,
+  onInputChange,
+  onValidate,
+  onUploadPhoto,
+  onDeletePhoto,
+  onResetFeedback,
 }) {
   const modalRef = useRef(null);
 
@@ -1332,58 +1450,58 @@ function EditProfileModal({
           </button>
         </header>
 
-        <form
-          className="edit-profile-modal__form"
-          onSubmit={onSubmit}
-          noValidate
-        >
-          <fieldset className="edit-profile-modal__fieldset">
-            <legend className="edit-profile-modal__legend">Profile photo</legend>
-            <div className="edit-profile-modal__avatar-stack">
-              <div className="edit-profile-modal__avatar-wrapper">
-                {formState.profileImage ? (
-                  <>
-                    <img
-                      src={formState.profileImage}
-                      alt="Selected profile"
-                      className="edit-profile-modal__avatar"
-                    />
-                    <button
-                      type="button"
-                      className="edit-profile-modal__avatar-delete"
-                      onClick={onDeletePhoto}
-                      aria-label="Delete profile photo"
-                      title="Delete profile photo"
-                    >
-                      <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M3.75 4.5H14.25M7.5 4.5V3.75C7.5 3.35218 7.65804 2.97064 7.93934 2.68934C8.22064 2.40804 8.60218 2.25 9 2.25H9C9.39782 2.25 9.77936 2.40804 10.0607 2.68934C10.342 2.97064 10.5 3.35218 10.5 3.75V4.5M13.5 4.5V14.25C13.5 14.6478 13.342 15.0294 13.0607 15.3107C12.7794 15.592 12.3978 15.75 12 15.75H6C5.60218 15.75 5.22064 15.592 4.93934 15.3107C4.65804 15.0294 4.5 14.6478 4.5 14.25V4.5M6.75 8.25V12.75M11.25 8.25V12.75" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
-                    </button>
-                  </>
-                ) : (
-                  <div
-                    className="edit-profile-modal__avatar edit-profile-modal__avatar--placeholder"
-                    aria-hidden="true"
-                  >
-                    {profileInitial}
-                  </div>
-                )}
-              </div>
-              <button
-                type="button"
-                className="edit-profile-modal__upload"
-                onClick={() => onUploadPhoto()}
-                disabled={uploadStatus === 'uploading'}
-              >
-                {uploadStatus === 'uploading' ? 'Uploading…' : 'Change photo'}
-              </button>
-            </div>
-            {formErrors.upload ? (
-              <p className="edit-profile-modal__error" role="alert">
-                {formErrors.upload}
-              </p>
-            ) : null}
-          </fieldset>
+        <form
+          className="edit-profile-modal__form"
+          onSubmit={onSubmit}
+          noValidate
+        >
+          <fieldset className="edit-profile-modal__fieldset">
+            <legend className="edit-profile-modal__legend">Profile photo</legend>
+            <div className="edit-profile-modal__avatar-stack">
+              <div className="edit-profile-modal__avatar-wrapper">
+                {formState.profileImage ? (
+                  <>
+                    <img
+                      src={formState.profileImage}
+                      alt="Selected profile"
+                      className="edit-profile-modal__avatar"
+                    />
+                    <button
+                      type="button"
+                      className="edit-profile-modal__avatar-delete"
+                      onClick={onDeletePhoto} // Calls handler to open custom confirmation modal
+                      aria-label="Delete profile photo"
+                      title="Delete profile photo"
+                    >
+                      <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M3.75 4.5H14.25M7.5 4.5V3.75C7.5 3.35218 7.65804 2.97064 7.93934 2.68934C8.22064 2.40804 8.60218 2.25 9 2.25H9C9.39782 2.25 9.77936 2.40804 10.0607 2.68934C10.342 2.97064 10.5 3.35218 10.5 3.75V4.5M13.5 4.5V14.25C13.5 14.6478 13.342 15.0294 13.0607 15.3107C12.7794 15.592 12.3978 15.75 12 15.75H6C5.60218 15.75 5.22064 15.592 4.93934 15.3107C4.65804 15.0294 4.5 14.6478 4.5 14.25V4.5M6.75 8.25V12.75M11.25 8.25V12.75" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    </button>
+                  </>
+                ) : (
+                  <div
+                    className="edit-profile-modal__avatar edit-profile-modal__avatar--placeholder"
+                    aria-hidden="true"
+                  >
+                    {profileInitial}
+                  </div>
+                )}
+              </div>
+              <button
+                type="button"
+                className="edit-profile-modal__upload"
+                onClick={() => onUploadPhoto()}
+                disabled={uploadStatus === 'uploading'}
+              >
+                {uploadStatus === 'uploading' ? 'Uploading…' : 'Change photo'}
+              </button>
+            </div>
+            {formErrors.upload ? (
+              <p className="edit-profile-modal__error" role="alert">
+                {formErrors.upload}
+              </p>
+            ) : null}
+          </fieldset>
 
           <div className="edit-profile-modal__grid">
             <label className="edit-profile-modal__field">
