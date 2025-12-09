@@ -193,9 +193,19 @@
 }
 
 .profile-hero__name-group {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    /* Add a small wrapper to contain name, email, and the follow button/spacing */
+    /* This ensures it sits on the left side of the content area */
+}
+
+/* New style to align follow button/edit button on the left when they are the only action */
+.profile-hero__name-and-actions-wrapper {
+    /* If we wrap the follow button in a dedicated div for styling */
+    display: flex;
+    flex-direction: column;
+    gap: 10px; /* Small space between email and follow button */
 }
 
 .profile-hero__name {
@@ -419,7 +429,7 @@
 
 .profile-recipes__grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  grid-template-columns: repeat(4, 1fr);
   gap: 1.5rem;
 }
 

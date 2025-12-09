@@ -1,8 +1,4 @@
-/**
- * Real-time Messaging Component
- * Fully functional chat system with Firestore backend
- */
-
+// ...existing code...
 import React, { useState, useEffect, useRef } from 'react';
 import { Search, Paperclip, Send, X, Image as ImageIcon, Loader, CheckCheck, Check, Trash2, Edit2, MoreVertical } from 'lucide-react';
 import HeaderSidebarLayout from '../components/HeaderSidebarLayout';
@@ -62,6 +58,12 @@ export default function Messages() {
   const [deletingMessageId, setDeletingMessageId] = useState(null);
   const [hoveredConversationId, setHoveredConversationId] = useState(null);
   const [hoveredMessageId, setHoveredMessageId] = useState(null);
+
+  // Friendly UI delete confirmation state
+  const [showDeleteConversationModal, setShowDeleteConversationModal] = useState(false);
+  const [conversationToDelete, setConversationToDelete] = useState(null);
+  const [showDeleteMessageModal, setShowDeleteMessageModal] = useState(false);
+  const [messageToDelete, setMessageToDelete] = useState(null);
 
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -243,20 +245,21 @@ export default function Messages() {
     }
   };
 
-  const handleDeleteConversation = async (conversationId, e) => {
-    e.stopPropagation(); // Prevent selecting the conversation
-    
-    if (!window.confirm('Delete this conversation? This cannot be undone.')) {
-      return;
-    }
+  // --- Friendly UI Delete Handlers (replace window.confirm flows) ---
+  const openDeleteConversationModal = (conversationId, e) => {
+    if (e && e.stopPropagation) e.stopPropagation();
+    setConversationToDelete(conversationId);
+    setShowDeleteConversationModal(true);
+  };
 
-    setDeletingConversationId(conversationId);
+  const performDeleteConversation = async () => {
+    if (!conversationToDelete) return;
+    setDeletingConversationId(conversationToDelete);
+    setShowDeleteConversationModal(false);
     try {
-      await deleteConversation(conversationId);
+      await deleteConversation(conversationToDelete);
       toast.success('Conversation deleted');
-      
-      // Clear active conversation if it was deleted
-      if (activeConversationId === conversationId) {
+      if (activeConversationId === conversationToDelete) {
         setActiveConversationId(null);
       }
     } catch (error) {
@@ -264,7 +267,39 @@ export default function Messages() {
       toast.error('Failed to delete conversation');
     } finally {
       setDeletingConversationId(null);
+      setConversationToDelete(null);
     }
+  };
+
+  const openDeleteMessageModal = (messageId) => {
+    setMessageToDelete(messageId);
+    setShowDeleteMessageModal(true);
+  };
+
+  const performDeleteMessage = async () => {
+    if (!messageToDelete || !activeConversationId) return;
+    setDeletingMessageId(messageToDelete);
+    setShowDeleteMessageModal(false);
+    try {
+      await deleteMessageService(messageToDelete, activeConversationId);
+      toast.success('Message deleted');
+    } catch (error) {
+      console.error('Error deleting message:', error);
+      toast.error('Failed to delete message');
+    } finally {
+      setDeletingMessageId(null);
+      setMessageToDelete(null);
+    }
+  };
+
+  // Keep old handlers that opened confirm but now delegate to modal (for any code paths)
+  const handleDeleteConversation = (conversationId, e) => {
+    e?.stopPropagation();
+    openDeleteConversationModal(conversationId, e);
+  };
+
+  const handleDeleteMessage = (messageId) => {
+    openDeleteMessageModal(messageId);
   };
 
   const handleEditMessage = (message) => {
@@ -294,23 +329,6 @@ export default function Messages() {
     setEditMessageText('');
   };
 
-  const handleDeleteMessage = async (messageId) => {
-    if (!window.confirm('Delete this message?')) {
-      return;
-    }
-
-    setDeletingMessageId(messageId);
-    try {
-      await deleteMessageService(messageId, activeConversationId);
-      toast.success('Message deleted');
-    } catch (error) {
-      console.error('Error deleting message:', error);
-      toast.error('Failed to delete message');
-    } finally {
-      setDeletingMessageId(null);
-    }
-  };
-
   const handleStartNewChat = async (userId) => {
     if (!user?.uid) {
       toast.error('You must be logged in');
@@ -337,9 +355,6 @@ export default function Messages() {
     try {
       await acceptMessageRequest(conversationId, user.uid);
       toast.success('Message request accepted');
-      
-      // If this was the active conversation, it will now appear in normal list
-      // The real-time listener will update the UI automatically
     } catch (error) {
       console.error('Error accepting request:', error);
       toast.error('Failed to accept message request');
@@ -355,9 +370,6 @@ export default function Messages() {
     try {
       await ignoreMessageRequest(conversationId, user.uid);
       toast.success('Message request ignored');
-      
-      // The conversation will remain in requests but marked as ignored
-      // The real-time listener will update the UI automatically
     } catch (error) {
       console.error('Error ignoring request:', error);
       toast.error('Failed to ignore message request');
@@ -496,11 +508,11 @@ export default function Messages() {
                           userId={convOtherUser?.uid}
                           profileImage={convOtherUser?.profileImage}
                           displayName={convOtherUser?.displayName}
-                          size="sm"
+                          size="50px"
                         />
                       </div>
 
-                      <div className="messages-conversation-content">
+                      <div className="messages-conversation-content h-20">
                         <div className="messages-conversation-header">
                           <h3 className="messages-conversation-name">
                             {convOtherUser?.displayName || convOtherUser?.name || 'Unknown User'}
@@ -512,10 +524,10 @@ export default function Messages() {
                               </span>
                             )}
                             <button
-                              onClick={(e) => handleDeleteConversation(conversation.id, e)}
+                              onClick={(e) => openDeleteConversationModal(conversation.id, e)}
                               disabled={deletingConversationId === conversation.id}
                               className={`message-action-button message-delete-button ${
-                                hoveredConversationId === conversation.id ? 'visible' : 'hidden'
+                                hoveredConversationId === conversation.id ? 'visible' : 'visible'
                               }`}
                               title="Delete conversation"
                             >
@@ -685,7 +697,7 @@ export default function Messages() {
                                               <Edit2 />
                                             </button>
                                             <button
-                                              onClick={() => handleDeleteMessage(message.id)}
+                                              onClick={(e) => { e.stopPropagation(); openDeleteMessageModal(message.id); }}
                                               disabled={deletingMessageId === message.id}
                                               className="messages-message-action-button"
                                               title="Delete message"
@@ -851,6 +863,102 @@ export default function Messages() {
                     </div>
                   ))
                 )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Delete Conversation Modal */}
+        {showDeleteConversationModal && (
+          <div
+            className="messages-modal-backdrop"
+            role="dialog"
+            aria-modal="true"
+            onClick={() => { setShowDeleteConversationModal(false); setConversationToDelete(null); }}
+          >
+            <div
+              className="messages-modal-content"
+              onClick={(e) => e.stopPropagation()}
+              style={{ maxWidth: 520 }}
+            >
+              <div className="messages-modal-header">
+                <h2 className="messages-modal-title">Delete Conversation</h2>
+                <button
+                  onClick={() => { setShowDeleteConversationModal(false); setConversationToDelete(null); }}
+                  className="messages-modal-close"
+                  style={{marginBottom: 10}}
+                >
+                  <X />
+                </button>
+              </div>
+
+              <div className="py-6 text-center">
+                <p className="text-gray-700 font-['Poppins']"style={{marginBottom: 15}}>
+                  This will permanently delete the conversation and all messages for you. 
+                </p>
+                <div className="flex justify-center gap-4 mt-6">
+                  <button
+                    onClick={() => { setShowDeleteConversationModal(false); setConversationToDelete(null); }}
+                    className="px-6 py-2 h-10 w-25 rounded-[20px] border border-gray-300 bg-white hover:bg-gray-100 text-gray-700 font-['Poppins']"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={performDeleteConversation}
+                    className="px-6 py-2 h-10 w-45 rounded-[20px] bg-[#FE982A] hover:bg-[#e68622] text-white font-['Poppins'] shadow-[4px_5px_4px_0px_rgba(0,0,0,0.29)] whitespace-nowrap transition-colors duration-200"
+                    disabled={!!deletingConversationId}
+                  >
+                    {deletingConversationId ? <Loader className="animate-spin" /> : 'Delete Conversation'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Delete Message Modal */}
+        {showDeleteMessageModal && (
+          <div
+            className="messages-modal-backdrop"
+            role="dialog"
+            aria-modal="true"
+            onClick={() => { setShowDeleteMessageModal(false); setMessageToDelete(null); }}
+          >
+            <div
+              className="messages-modal-content"
+              onClick={(e) => e.stopPropagation()}
+              style={{ maxWidth: 480 }}
+            >
+              <div className="messages-modal-header">
+                <h2 className="messages-modal-title">Delete Message</h2>
+                <button
+                  onClick={() => { setShowDeleteMessageModal(false); setMessageToDelete(null); }}
+                  className="messages-modal-close"
+                  style={{marginBottom: 10}}
+                >
+                  <X />
+                </button>
+              </div>
+
+              <div className="py-6 text-center">
+                <p className="text-gray-700 font-['Poppins']"style={{marginBottom: 20}}>
+                  Are you sure you want to delete this message? This action cannot be undone for your account.
+                </p>
+                <div className="flex justify-center gap-4 mt-6">
+                  <button
+                    onClick={() => { setShowDeleteMessageModal(false); setMessageToDelete(null); }}
+                    className="px-6 py-2 h-10 w-25 rounded-[20px] border border-gray-300 bg-white hover:bg-gray-100 text-gray-700 font-['Poppins']"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={performDeleteMessage}
+                    className="px-6 py-2 h-10 w-45 rounded-[20px] bg-[#FE982A] hover:bg-[#e68622] text-white font-['Poppins'] shadow-[4px_5px_4px_0px_rgba(0,0,0,0.29)] whitespace-nowrap transition-colors duration-200"
+                    disabled={!!deletingMessageId}
+                  >
+                    {deletingMessageId ? <Loader className="animate-spin" /> : 'Delete Message'}
+                  </button>
+                </div>
               </div>
             </div>
           </div>

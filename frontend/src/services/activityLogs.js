@@ -406,7 +406,7 @@ const mapActivityTypeToUI = (type) => {
     'like_post': 'like',
     'like_comment': 'like',
     'comment': 'comment',
-    'follow': 'comment', // Use comment icon for follow (or we could add a follow icon)
+    'follow': 'follow', // Use comment icon for follow (or we could add a follow icon)
     'rating': 'rating',
     'save': 'save',
   };

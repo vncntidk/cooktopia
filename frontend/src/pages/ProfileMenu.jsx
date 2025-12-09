@@ -75,30 +75,41 @@ const ProfileMenu = ({ isOpen, onClose, profileRef }) => {
   if (!isOpen) return null;
 
   return (
-    <div
-      ref={dropdownRef}
-      className="absolute top-16 right-0 w-56 bg-white rounded-xl shadow-lg overflow-hidden z-50"
-      style={{
-        boxShadow: '5px 5px 4px 0px rgba(0,0,0,0.25)',
-        animation: 'fadeInSlideDown 0.2s ease-out forwards'
-      }}
-    >
-      {menuItems.map((item, index) => (
-        <button
-          key={item.id}
-          onClick={item.action}
-          className={`w-full h-14 p-2.5 flex items-center justify-center gap-2.5 transition-colors duration-150 ${
-            item.id === 'view-profile' && isOnProfilePage
-              ? 'bg-orange-300 hover:bg-orange-400' 
-              : 'bg-white hover:bg-gray-100'
-          } ${item.isLast ? 'border-t border-gray-200' : ''}`}
+    <>
+      {/* Dropdown Menu */}
+      {isOpen && (
+        <div
+          ref={dropdownRef}
+          className="absolute top-16 right-0 w-56 bg-white rounded-xl shadow-lg overflow-hidden z-50"
+          style={{
+            boxShadow: '5px 5px 4px 0px rgba(0,0,0,0.25)',
+            animation: 'fadeInSlideDown 0.2s ease-out forwards'
+          }}
         >
-          <div className="text-black text-xl font-medium font-[system-ui] leading-5">
-            {item.label}
-          </div>
-        </button>
-      ))}
-    </div>
+          {menuItems.map((item, index) => (
+            <button
+              key={item.id}
+              onClick={item.action}
+              className={`w-full h-14 p-2.5 flex items-center justify-center gap-2.5 transition-colors duration-150 ${
+                item.id === 'view-profile' && isOnProfilePage
+                  ? 'bg-orange-300 hover:bg-orange-400' 
+                  : 'bg-white hover:bg-gray-100'
+              } ${item.isLast ? 'border-t border-gray-200' : ''}`}
+            >
+              <div className="text-black text-xl font-medium font-['Inter'] leading-5">
+                {item.label}
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Support Center Modal */}
+      <SupportCenter
+        isOpen={isSupportCenterOpen}
+        onClose={() => setIsSupportCenterOpen(false)}
+      />
+    </>
   );
 };
 

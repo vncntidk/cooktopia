@@ -11,8 +11,7 @@ import {
   limit,
   serverTimestamp
 } from 'firebase/firestore';
-import { db } from '../config/firebase-config';
-import { auth } from '../config/firebase-config';
+import { db, auth } from '../config/firebase-config';
 
 const USERS_COLLECTION = 'users';
 

@@ -9,6 +9,7 @@ import AdminFeedbackReview from './pages/AdminFeedbackReview';
 import AdminReportReview from './pages/AdminReportReview';
 import AdminUser from './pages/AdminUser';
 import AdminActivity from './pages/AdminActivity';
+import AdminLogin from './pages/AdminLogin';
 import { Toaster } from 'react-hot-toast';
 
 import './App.css';
@@ -52,12 +53,13 @@ function AppContent() {
         <Route path="/activity-logs" element={<Protected><ActivityLogs /></Protected>} />
         <Route path="/search" element={<Protected><SearchResults /></Protected>} />
         <Route path="/reactions-demo" element={<ReactionsDemo />} />
-        <Route path="/admin" element={<AdminDashboard />} />
-        <Route path="/admin/reviews" element={<AdminFeedbackReview />} />
-        <Route path="/admin/reviews/feedback" element={<AdminFeedbackReview />} />
-        <Route path="/admin/reviews/report" element={<AdminReportReview />} />
-        <Route path="/admin/users" element={<AdminUser />} />
-        <Route path="/admin/activity" element={<AdminActivity />} />
+        <Route path="/admin" element={<ProtectedAdminRoute><AdminDashboard /></ProtectedAdminRoute>} />
+        <Route path="/admin/login" element={<AdminLogin />} />
+        <Route path="/admin/reviews" element={<ProtectedAdminRoute><AdminFeedbackReview /></ProtectedAdminRoute>} />
+        <Route path="/admin/reviews/feedback" element={<ProtectedAdminRoute><AdminFeedbackReview /></ProtectedAdminRoute>} />
+        <Route path="/admin/reviews/report" element={<ProtectedAdminRoute><AdminReportReview /></ProtectedAdminRoute>} />
+        <Route path="/admin/users" element={<ProtectedAdminRoute><AdminUser /></ProtectedAdminRoute>} />
+        <Route path="/admin/activity" element={<ProtectedAdminRoute><AdminActivity /></ProtectedAdminRoute>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       
@@ -112,6 +114,27 @@ function Protected({ children }) {
 
   if (!isVerified) {
     return <Navigate to="/" replace state={{ needsVerification: true }} />;
+  }
+
+  return children;
+}
+
+function ProtectedAdminRoute({ children }) {
+  const { loading, isAdmin } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAdmin) {
+    return <Navigate to="/admin/login" replace />;
   }
 
   return children;
