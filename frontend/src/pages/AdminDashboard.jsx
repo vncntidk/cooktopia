@@ -435,7 +435,7 @@ export default function AdminDashboard() {
         className="w-full flex-1 overflow-y-auto mt-4"style={{marginTop: '10px'}}
       >
         {/* Grid: MODIFIED TO grid-cols-1 on ALL screen sizes for one card per row */}
-        <div className="grid xl:grid-cols-1 lg:grid-cols-1 md:grid-cols-2 sm:grid-cols-2 xs:grid-cols-2 gap-3 pb-2 justify-items-center" style={{paddingBottom:'10px'}}>
+        <div className="grid xl:grid-cols-1 lg:grid-cols-1 md:grid-cols-3 sm:grid-cols-2 xs:grid-cols-2 gap-3 pb-2 justify-items-center" style={{padding:'10px'}}>
 
       {loadingCreators ? (
         <div className="text-center text-gray-500 py-4">Loading creators...</div>
