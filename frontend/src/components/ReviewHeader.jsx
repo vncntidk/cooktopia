@@ -1,17 +1,16 @@
 import React, { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Search, Filter, ChevronLeft, ChevronRight, X } from "lucide-react";
+import { Search, Filter } from "lucide-react";
 
 export default function ReviewHeader({ onSearchChange, onFilterChange, availableFilters }) {
   const navigate = useNavigate();
   const location = useLocation();
 
   // --- 1. LOCAL STATE FOR SEARCH AND FILTER ---
+  // Ensure default state is set to match the first item in availableFilters (usually 'All Time')
   const [searchQuery, setSearchQuery] = useState('');
-  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
-  const [selectedDate, setSelectedDate] = useState(null);
-  const [currentMonth, setCurrentMonth] = useState(new Date());
-  const [displayText, setDisplayText] = useState('All Time');
+  const [dateFilter, setDateFilter] = useState(availableFilters && availableFilters.length > 0 ? availableFilters[0] : 'All Time');
+  const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false);
   
   const isFeedbackActive = location.pathname.includes("/admin/reviews/feedback") || location.pathname === "/admin/reviews";
   const isReportActive = location.pathname.includes("/admin/reviews/report");
@@ -32,45 +31,15 @@ export default function ReviewHeader({ onSearchChange, onFilterChange, available
     }
   };
 
-  // Month/Year picker helper
-  const monthNames = ["January", "February", "March", "April", "May", "June", 
-                      "July", "August", "September", "October", "November", "December"];
-  
-  const handlePrevMonth = () => {
-    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1));
-  };
-
-  const handleNextMonth = () => {
-    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1));
-  };
-
-  const handlePrevYear = () => {
-    setCurrentMonth(new Date(currentMonth.getFullYear() - 1, currentMonth.getMonth(), 1));
-  };
-
-  const handleNextYear = () => {
-    setCurrentMonth(new Date(currentMonth.getFullYear() + 1, currentMonth.getMonth(), 1));
-  };
-
-  const handleApplyFilter = () => {
-    const monthYear = `${monthNames[currentMonth.getMonth()]} ${currentMonth.getFullYear()}`;
-    setSelectedDate(currentMonth);
-    setDisplayText(monthYear);
-    setIsCalendarOpen(false);
+  const handleDateFilterSelect = (filter) => {
+    setDateFilter(filter);
+    setIsFilterMenuOpen(false);
     if (onFilterChange) {
-      onFilterChange(monthYear);
+      onFilterChange(filter);
     }
   };
 
-  const handleClearFilter = () => {
-    setSelectedDate(null);
-    setDisplayText('All Time');
-    setCurrentMonth(new Date());
-    setIsCalendarOpen(false);
-    if (onFilterChange) {
-      onFilterChange('All Time');
-    }
-  };
+  // filterOptions is now the availableFilters prop
 
   return (
     <div 
@@ -84,11 +53,11 @@ export default function ReviewHeader({ onSearchChange, onFilterChange, available
         {/* Feedbacks Tab */}
         <div 
           onClick={handleFeedbackClick}
-          className={`w-40 h-9 flex items-center justify-center cursor-pointer ${
+          className={`w-40 h-9 relative overflow-hidden cursor-pointer ${
             isFeedbackActive ? "border-b-2 border-[#005236]" : "" 
           }`}
         >
-          <div className={`text-center text-base font-['Poppins'] ${
+          <div className={`left-4 top-1 absolute text-center justify-start text-base font-['Poppins'] ${
             isFeedbackActive ? "text-black font-bold" : "text-black font-normal"
           }`}>Feedbacks</div>
         </div>
@@ -96,11 +65,11 @@ export default function ReviewHeader({ onSearchChange, onFilterChange, available
         {/* Reports Tab */}
         <div 
           onClick={handleReportClick}
-          className={`w-40 h-9 flex items-center justify-center cursor-pointer ${
+          className={`w-40 h-9 relative cursor-pointer ${
             isReportActive ? "border-b-2 border-[#005236]" : "" 
           }`}
         >
-          <div className={`text-center text-base font-['Poppins'] ${
+          <div className={`left-4 top-1 absolute text-center justify-start text-base font-['Poppins'] ${
             isReportActive ? "text-black font-bold" : "text-black font-normal"
           }`}>Reports</div>
         </div>
@@ -127,12 +96,13 @@ export default function ReviewHeader({ onSearchChange, onFilterChange, available
             />
           </div>
         
-          {/* Month/Year Filter Button */}
+          {/* Filter Button and Dropdown - PRESERVING STRUCTURE */}
           <div className="relative">
             <button 
               className="p-2 h-10 sm:h-12 transition-colors group hover:bg-gray"
-              onClick={() => setIsCalendarOpen(prev => !prev)}
-              aria-expanded={isCalendarOpen}
+              onClick={() => setIsFilterMenuOpen(prev => !prev)}
+              aria-expanded={isFilterMenuOpen}
+              aria-controls="filter-dropdown"
             >
               <Filter 
                 className="w-5 h-5 text-gray-500 transition-colors group-hover:text-green-700" 
@@ -140,72 +110,27 @@ export default function ReviewHeader({ onSearchChange, onFilterChange, available
               />
             </button>
 
-            {isCalendarOpen && (
+            {isFilterMenuOpen && (
               <div 
-                className="absolute right-0 top-14 bg-white rounded-2xl shadow-2xl border border-gray-100 z-30 p-5"
-                style={{ width: 240, boxShadow: '0 10px 40px rgba(0,0,0,0.15)', paddingTop: 5, paddingBottom: 5 }}
+                id="filter-dropdown"
+                className="absolute right-0 top-14 w-40 bg-white rounded-lg shadow-xl border border-gray-200 z-30 overflow-hidden"
+                role="menu"
               >
-                {/* Header */}
-                <div className="text-center" style={{ paddingTop: 5, paddingBottom: 5 }}>
-                  <div className="text-sm font-semibold text-gray-500 font-['Poppins']">Filter by Date</div>
-                </div>
-
-                {/* Month Selector */}
-                <div className="flex items-center justify-between bg-gray-50 rounded-xl p-2 mb-3" style={{ paddingTop: 5, paddingBottom: 5 }}>
-                  <button 
-                    onClick={handlePrevMonth}
-                    className="p-2 hover:bg-[#6BC4A6] hover:text-white rounded-lg transition-colors"
-                  >
-                    <ChevronLeft className="w-4 h-4" />
-                  </button>
-                  <div className="text-base font-bold text-[#005236] font-['Poppins']">
-                    {monthNames[currentMonth.getMonth()]}
-                  </div>
-                  <button 
-                    onClick={handleNextMonth}
-                    className="p-2 hover:bg-[#6BC4A6] hover:text-white rounded-lg transition-colors"
-                  >
-                    <ChevronRight className="w-4 h-4" />
-                  </button>
-                </div>
-
-                {/* Year Selector */}
-                <div className="flex items-center justify-between bg-gray-50 rounded-xl p-2 mb-4" style={{ paddingTop: 5, paddingBottom: 5 }}>
-                  <button 
-                    onClick={handlePrevYear}
-                    className="p-2 hover:bg-[#6BC4A6] hover:text-white rounded-lg transition-colors"
-                  >
-                    <ChevronLeft className="w-4 h-4" />
-                  </button>
-                  <div className="text-base font-bold text-[#005236] font-['Poppins']">
-                    {currentMonth.getFullYear()}
-                  </div>
-                  <button 
-                    onClick={handleNextYear}
-                    className="p-2 hover:bg-[#6BC4A6] hover:text-white rounded-lg transition-colors"
-                  >
-                    <ChevronRight className="w-4 h-4" />
-                  </button>
-                </div>
-
-                {/* Action Buttons */}
-                <div className="flex flex-col gap-2" style={{ paddingTop: 5, paddingBottom: 5 }}>
+                {/* Use availableFilters prop for options */}
+                {availableFilters.map(filter => (
                   <button
-                    onClick={handleApplyFilter}
-                    className="w-full py-2.5 bg-[#005236] text-white text-sm font-bold rounded-xl hover:bg-[#003d28] transition-colors font-['Poppins']"
-                    style={{ paddingTop: 5, paddingBottom: 5 }}
+                    key={filter}
+                    onClick={() => handleDateFilterSelect(filter)}
+                    className={`w-full text-left px-4 py-2 text-sm transition-colors ${
+                      dateFilter === filter 
+                        ? 'bg-[#005236] font-bold text-white' 
+                        : 'text-gray-700 hover:bg-gray-100'
+                    }`}
+                    role="menuitem"
                   >
-                    Apply Filter
+                    {filter}
                   </button>
-                  <button
-                    onClick={handleClearFilter}
-                    className="w-full py-2 text-gray-500 hover:text-[#005236] text-sm font-medium transition-colors flex items-center justify-center gap-1 font-['Poppins']"
-                    style={{ paddingTop: 5, paddingBottom: 5 }}
-                  >
-                    <X className="w-4 h-4" />
-                    Clear Filter
-                  </button>
-                </div>
+                ))}
               </div>
             )}
           </div>

@@ -4,65 +4,17 @@ import {
   getDoc, 
   setDoc, 
   updateDoc,
-  deleteDoc,
   collection,
   getDocs,
   query,
   where,
   limit,
-  orderBy,
   serverTimestamp
 } from 'firebase/firestore';
 import { db } from '../config/firebase-config';
 import { auth } from '../config/firebase-config';
 
 const USERS_COLLECTION = 'users';
-
-/**
- * Initialize or update user profile in Firestore with email
- * This should be called after user registration to ensure email is saved
- * @param {string} userId - The user's UID
- * @param {string} email - The user's email
- * @param {string} displayName - The user's display name (optional)
- * @returns {Promise<void>}
- */
-export const initializeUserProfile = async (userId, email, displayName = '') => {
-  try {
-    if (!userId) {
-      throw new Error('User ID is required');
-    }
-    if (!email) {
-      throw new Error('Email is required');
-    }
-
-    const userDocRef = doc(db, USERS_COLLECTION, userId);
-    const userDocSnap = await getDoc(userDocRef);
-
-    const profileData = {
-      email: email,
-      displayName: displayName || email.split('@')[0],
-      updatedAt: serverTimestamp(),
-    };
-
-    if (userDocSnap.exists()) {
-      // Update existing profile with email if it's missing
-      const existingData = userDocSnap.data();
-      if (!existingData.email) {
-        await updateDoc(userDocRef, profileData);
-      }
-    } else {
-      // Create new profile with email
-      await setDoc(userDocRef, {
-        ...profileData,
-        bio: 'Add bio',
-        createdAt: serverTimestamp(),
-      });
-    }
-  } catch (error) {
-    console.error('Error initializing user profile:', error);
-    throw new Error(`Failed to initialize user profile: ${error.message}`);
-  }
-};
 
 /**
  * Get user profile data from Firestore
@@ -79,19 +31,9 @@ export const getUserProfile = async (userId) => {
     const userDocSnap = await getDoc(userDocRef);
 
     if (userDocSnap.exists()) {
-      const userData = userDocSnap.data();
-      // If email doesn't exist in Firestore, try to get it from Auth (only for current user)
-      if (!userData.email && auth.currentUser && auth.currentUser.uid === userId) {
-        const email = auth.currentUser.email;
-        if (email) {
-          // Update Firestore with email
-          await updateDoc(userDocRef, { email });
-          userData.email = email;
-        }
-      }
       return {
         id: userDocSnap.id,
-        ...userData
+        ...userDocSnap.data()
       };
     } else {
       // Create default profile if it doesn't exist
@@ -361,74 +303,6 @@ export const getUserFollowingList = async (userId) => {
   } catch (error) {
     console.error('Error fetching following list:', error);
     return [];
-  }
-};
-
-/**
- * Get all users from Firestore
- * @param {Object} options - Query options
- * @param {number} options.limit - Maximum number of users to fetch (default: 500)
- * @param {string} options.orderBy - Field to order by (default: 'createdAt')
- * @param {string} options.orderDirection - Order direction ('asc' or 'desc', default: 'desc')
- * @returns {Promise<Array>} - Array of user documents with id
- */
-export const getAllUsers = async (options = {}) => {
-  try {
-    const {
-      limit: limitCount = 500,
-      orderBy: orderByField = 'createdAt',
-      orderDirection = 'desc'
-    } = options;
-
-    const usersRef = collection(db, USERS_COLLECTION);
-    const q = query(
-      usersRef,
-      orderBy(orderByField, orderDirection),
-      limit(limitCount)
-    );
-    
-    const querySnapshot = await getDocs(q);
-    const users = [];
-
-    querySnapshot.forEach((doc) => {
-      const data = doc.data();
-      const email = data.email || '';
-      const username = data.displayName || data.name || email.split('@')[0] || `user_${doc.id.slice(0, 8)}`;
-      
-      users.push({
-        id: doc.id,
-        ...data,
-        // Add username field for compatibility
-        username: username,
-      });
-    });
-
-    return users;
-  } catch (error) {
-    console.error('Error fetching all users:', error);
-    throw new Error(`Failed to fetch users: ${error.message}`);
-  }
-};
-
-/**
- * Delete a user from Firestore
- * Note: This only deletes the Firestore document, not the Firebase Auth user
- * To fully delete a user, you would need Firebase Admin SDK on the backend
- * @param {string} userId - The user's UID
- * @returns {Promise<void>}
- */
-export const deleteUser = async (userId) => {
-  try {
-    if (!userId) {
-      throw new Error('User ID is required');
-    }
-
-    const userDocRef = doc(db, USERS_COLLECTION, userId);
-    await deleteDoc(userDocRef);
-    console.log('User document deleted successfully');
-  } catch (error) {
-    console.error('Error deleting user:', error);
-    throw new Error(`Failed to delete user: ${error.message}`);
   }
 };
 

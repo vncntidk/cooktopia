@@ -1,8 +1,8 @@
 import React, { useState, useMemo } from "react";
 import SidebarLogoAdmin from "../components/SidebarLogoAdmin";
 import ReviewHeader from "../components/ReviewHeader";
-import { Pen } from "lucide-react";
-import FDreplymodal from "../modals/FDreplymodal";
+import { Pen, X } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 // Utility to generate filters based on date format
 const getUniqueMonthYearFilters = (data) => {
@@ -26,148 +26,88 @@ const getUniqueMonthYearFilters = (data) => {
 
 export default function AdminReview() {
   const [selectedFeedback, setSelectedFeedback] = useState(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [replyText, setReplyText] = useState("");
   
   // State for search and sort
   const [searchQuery, setSearchQuery] = useState('');
-  const [sortFilter, setSortFilter] = useState('All Time');
-  const [activeFilter, setActiveFilter] = useState('all'); // 'all', 'replied', 'awaiting' 
+  const [sortFilter, setSortFilter] = useState('All Time'); 
 
-  const [feedbacks, setFeedbacks] = useState([
+  const feedbacks = [
     {
       id: 1,
-      username: "@ChefMaria",
+      username: "@KpopDemonRumi",
       avatar: "https://placehold.co/50x50",
-      title: "THE BEST COOKING WEBSITE!",
-      content: "I love this website! I enjoy cooking and I'm glad that I can see other's recipes as well!! The community here is so supportive and helpful.",
-      date: "November 15, 2025",
+      title: "THE BEST WEBSITE!",
+      content: "I love this website! I enjoy cooking and I'm glad that I can see other's recipe as well!!",
+      date: "October 28, 2025",
       status: ["New", "Pending"],
     },
     {
       id: 2,
-      username: "@HomeCookJuan",
+      username: "@DerekRamsay",
       avatar: "https://placehold.co/50x50",
-      title: "Super Easy to Use!",
-      content: "The interface is so intuitive! I was able to post my first recipe in just 5 minutes. Great job on the UX design!",
-      date: "November 10, 2025",
-      status: ["New", "Pending"],
-    },
-    {
-      id: 3,
-      username: "@BakingQueen",
-      avatar: "https://placehold.co/50x50",
-      title: "Feature Suggestion",
-      content: "It would be amazing if we could add video tutorials to our recipes! Just a suggestion. Otherwise, the site is perfect!",
-      date: "October 28, 2025",
+      title: "AMAZING!",
+      content: "This site is amazing because I can share my own recipes to the world!",
+      date: "July 01, 2025",
       status: ["Pending"],
     },
     {
-      id: 4,
-      username: "@VeganVibes",
+      id: 3,
+      username: "@ImDoneShiningNowImHiding",
       avatar: "https://placehold.co/50x50",
-      title: "Love the Search Feature!",
-      content: "Grabe! I searched just \"tofu\" and it displayed all recipes that has tofu in it?! The ingredient-based search is SO GREAT!",
-      date: "October 20, 2025",
+      title: "I like it",
+      content: "This is the best!",
+      date: "October 25, 2025",
+      status: ["New", "Pending"],
+    },
+    {
+      id: 4,
+      username: "@ImVegan",
+      avatar: "https://placehold.co/50x50",
+      title: "So convenient",
+      content: "Grabe! I searched just \"lettuce\" and it displayed all recipes that has lettuce in it?! THIS IS SO GREAT!",
+      date: "October 02, 2025",
       status: ["Pending"],
     },
     {
       id: 5,
-      username: "@FoodieExplorer",
+      username: "@FoodEnthusiast",
       avatar: "https://placehold.co/50x50",
-      title: "Saved My Dinner!",
-      content: "I only had eggs, cheese, and some veggies in my fridge. Used the search to find recipes with these ingredients and made an amazing omelette! Thank you Cooktopia!",
-      date: "September 15, 2025",
+      title: "Instant chef",
+      content: "OMG! I didn't have lots of food in my ref rn so I opened this site to search for recipes that has the same ingredients as I have right now. AND BRUH! I'm so busog!",
+      date: "July 03, 2025",
       status: ["Replied"],
       hasReply: true,
-      adminReplies: [
-        {
-          adminName: "Admin Sarah",
-          adminReply: "We're so happy to hear that Cooktopia helped you create a delicious meal! That's exactly what we aim for - helping everyone make the most of what they have. Keep cooking and exploring!",
-          replyDate: "September 16, 2025",
-        }
-      ],
     },
     {
       id: 6,
-      username: "@KitchenNewbie",
+      username: "@FoodLover",
       avatar: "https://placehold.co/50x50",
-      title: "Great for Beginners!",
-      content: "As someone who just started cooking, this website has been a lifesaver! The step-by-step instructions are so easy to follow.",
-      date: "September 05, 2025",
+      title: "Love it!",
+      content: "Papara papa! LOVE KO TO!",
+      date: "August 30, 2025",
       status: ["Replied"],
       hasReply: true,
-      adminReplies: [
-        {
-          adminName: "Admin Mike",
-          adminReply: "Thank you so much for your kind words! We designed Cooktopia with beginners in mind. If you ever need any help or have suggestions, feel free to reach out. Happy cooking!",
-          replyDate: "September 06, 2025",
-        }
-      ],
     },
-    {
-      id: 7,
-      username: "@SpicyFoodFan",
-      avatar: "https://placehold.co/50x50",
-      title: "Amazing Community!",
-      content: "Everyone here is so friendly and helpful! I asked for tips on making my sinigang more sour and got so many great suggestions!",
-      date: "August 22, 2025",
-      status: ["Replied"],
-      hasReply: true,
-      adminReplies: [
-        {
-          adminName: "Admin Sarah",
-          adminReply: "Our community is truly the heart of Cooktopia! We're glad you found helpful tips for your sinigang. Pro tip: try adding more tamarind or some calamansi for extra sourness!",
-          replyDate: "August 23, 2025",
-        }
-      ],
-    },
-    {
-      id: 8,
-      username: "@MealPrepPro",
-      avatar: "https://placehold.co/50x50",
-      title: "Perfect for Meal Planning",
-      content: "I use Cooktopia every week to plan my meals. The save feature helps me organize all my favorite recipes. 10/10!",
-      date: "August 10, 2025",
-      status: ["Pending"],
-    },
-  ]);
-
-  const handleReplySubmit = (replyData) => {
-    const newReply = {
-      adminReply: replyData.adminReply,
-      adminName: replyData.adminName,
-      replyDate: replyData.replyDate,
-    };
-
-    setFeedbacks(prevFeedbacks => 
-      prevFeedbacks.map(feedback => 
-        feedback.id === replyData.id 
-          ? { 
-              ...feedback, 
-              hasReply: true,
-              adminReplies: [...(feedback.adminReplies || []), newReply],
-              status: ["Replied"]
-            }
-          : feedback
-      )
-    );
-    // Update selectedFeedback to show the reply immediately
-    setSelectedFeedback(prev => prev ? {
-      ...prev,
-      hasReply: true,
-      adminReplies: [...(prev.adminReplies || []), newReply],
-      status: ["Replied"]
-    } : null);
-  };
+  ];
 
   const handleCardClick = (feedback) => {
     setSelectedFeedback(feedback);
-    setIsModalOpen(true);
+    setReplyText("");
   };
 
   const handleCloseModal = () => {
-    setIsModalOpen(false);
     setSelectedFeedback(null);
+    setReplyText("");
+  };
+
+  const handleReplySubmit = (e) => {
+    e.preventDefault();
+    if (replyText.trim()) {
+      console.log("Reply submitted:", replyText);
+      alert("Reply submitted successfully!");
+      handleCloseModal();
+    }
   };
 
   // --- Dynamic Filters and Filtered Array ---
@@ -195,19 +135,12 @@ export default function AdminReview() {
                    reportDate.getFullYear().toString() === year;
         });
     }
-
-    // 3. Filtering by reply status
-    if (activeFilter === 'replied') {
-      tempFeedbacks = tempFeedbacks.filter(feedback => feedback.hasReply);
-    } else if (activeFilter === 'awaiting') {
-      tempFeedbacks = tempFeedbacks.filter(feedback => !feedback.hasReply);
-    }
     
-    // 4. Sorting (Default to Recent date, as other options were removed)
+    // 3. Sorting (Default to Recent date, as other options were removed)
     tempFeedbacks.sort((a, b) => new Date(b.date) - new Date(a.date));
 
     return tempFeedbacks;
-  }, [feedbacks, searchQuery, sortFilter, activeFilter]);
+  }, [feedbacks, searchQuery, sortFilter]);
 
 
   return (
@@ -239,40 +172,15 @@ export default function AdminReview() {
                 </div>
               </div>
 
-              {/* Filter Buttons */}
+              {/* Static 'All' Count Display */}
               <div className="self-stretch inline-flex justify-start items-center gap-3 flex-wrap">
-                <button
-                  onClick={() => setActiveFilter('all')}
-                  className={`min-w-[80px] h-9 px-4 py-1.5 rounded-full inline-flex justify-center items-center gap-1 font-bold text-white shadow-lg transition-colors duration-200 cursor-pointer ${
-                    activeFilter === 'all' ? 'bg-[#005236]' : 'bg-[#6BC4A6] hover:bg-[#005236]'
-                  }`}
+                <div
+                  className={`min-w-[80px] h-9 px-4 py-1.5 rounded-full inline-flex justify-center items-center gap-1 bg-[#005236] font-bold text-white shadow-lg`}
                 >
                   <div className={`text-center text-xs sm:text-sm font-['Poppins']`}>
                     All ({feedbacks.length}) 
                   </div>
-                </button>
-                <button
-                  onClick={() => setActiveFilter('replied')}
-                  className={`min-w-[80px] h-9 px-4 py-1.5 rounded-full inline-flex justify-center items-center gap-1 font-bold text-white shadow-lg transition-colors duration-200 cursor-pointer ${
-                    activeFilter === 'replied' ? 'bg-[#005236]' : 'bg-[#6BC4A6] hover:bg-[#005236]'
-                  }`}
-                  style={{padding: 10}}
-                >
-                  <div className={`text-center text-xs sm:text-sm font-['Poppins']`}>
-                    Replied ({feedbacks.filter(f => f.hasReply).length}) 
-                  </div>
-                </button>
-                <button
-                  onClick={() => setActiveFilter('awaiting')}
-                  className={`min-w-[80px] h-9 px-4 py-1.5 rounded-full inline-flex justify-center items-center gap-1 font-bold text-white shadow-lg transition-colors duration-200 cursor-pointer ${
-                    activeFilter === 'awaiting' ? 'bg-[#005236]' : 'bg-[#6BC4A6] hover:bg-[#005236]'
-                  }`}
-                  style={{padding: 10}}
-                >
-                  <div className={`text-center text-xs sm:text-sm font-['Poppins']`}>
-                    Awaiting ({feedbacks.filter(f => !f.hasReply).length}) 
-                  </div>
-                </button>
+                </div>
               </div>
             </div>
             
@@ -281,17 +189,17 @@ export default function AdminReview() {
               className="
                 grid
                 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4
-                gap-5
+                gap-6
                 place-items-center
               "
-              style={{marginLeft: 80, paddingRight: 40, paddingBottom: 40}}
+              style={{marginLeft: 120}}
             >
               {/* Iterating over filteredAndSortedFeedbacks */}
               {filteredAndSortedFeedbacks.map((feedback) => (
                 <div
                   key={feedback.id}
-                  className="h-44 bg-white rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300 border border-gray-300 flex flex-col justify-between"
-                  style={{paddingLeft: 15, paddingRight: 15, minWidth: 270, width: '100%'}}
+                  onClick={() => handleCardClick(feedback)}
+                  className="w-100 h-52 bg-white rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300 border border-gray-300 flex flex-col justify-between cursor-pointer"
                 >
                   {/* Top: User Info and Avatar - PRESERVING INLINE STYLE */}
                   <div className="p-4 flex items-center gap-3">
@@ -307,32 +215,32 @@ export default function AdminReview() {
                   </div>
 
                   {/* Middle: Title and Content Snippet - PRESERVING INLINE STYLE */}
-                  <div className="px-4 flex flex-col justify-start items-start gap-1 overflow-hidden flex-1" style={{marginTop: 5, marginLeft: 15}}>
-                    <div className="text-black text-base font-extrabold font-['Afacad'] leading-snug w-full">
+                  <div className="px-4 flex flex-col justify-start items-start gap-1.5 overflow-hidden flex-1" style={{marginTop: 15, marginLeft: 20}}>
+                    <div className="text-black text-xl font-extrabold font-['Afacad'] leading-snug truncate w-full">
                       {feedback.title}
                     </div>
-                    <div className="text-black text-xs font-normal font-['Afacad'] line-clamp-2">
+                    <div className="text-black text-sm font-normal font-['Afacad'] line-clamp-3">
                       {feedback.content}
                     </div>
                   </div>
 
                   {/* Bottom: Date, Status, and Action Button - PRESERVING INLINE STYLE */}
-                  <div className="p-3 pt-1 flex justify-between items-center" style={{marginLeft: 10}}>
+                  <div className="p-4 pt-2 flex justify-between items-center" style={{marginLeft: 15}}>
                     <div className="text-neutral-500 text-xs font-normal font-['Afacad']">
                       {feedback.date}
                     </div>
 
                       {/* Reply Button (Action) */}
                       <button
-                        className="w-6 h-6 p-1 bg-[#6BC4A6] rounded-full flex justify-center items-center cursor-pointer hover:bg-[#005236] transition-colors flex-shrink-0"
-                        style={{marginRight: 10, marginBottom: 5}} 
+                        className="w-8 h-8 p-1 bg-[#6BC4A6] rounded-full flex justify-center items-center cursor-pointer hover:bg-[#005236] transition-colors flex-shrink-0"
+                        style={{marginRight: 10, marginBottom:10}} 
                         title="Reply"
                         onClick={(e) => {
                           e.stopPropagation();
                           handleCardClick(feedback);
                         }}
                       >
-                        <Pen className="w-3 h-3 text-black"/>
+                        <Pen className="w-4 h-4 text-black"/>
                       </button>
                     </div>
                   </div>
@@ -342,13 +250,98 @@ export default function AdminReview() {
         </main>
       </div>
 
-      {/* Feedback Reply Modal */}
-      <FDreplymodal 
-        isOpen={isModalOpen} 
-        onClose={handleCloseModal} 
-        feedback={selectedFeedback}
-        onReplySubmit={handleReplySubmit}
-      />
+      {/* Feedback Modal */}
+      <AnimatePresence>
+        {selectedFeedback && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={handleCloseModal}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm"
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              transition={{ type: "spring", stiffness: 200, damping: 20 }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-2xl mx-4 bg-white rounded-[20px] shadow-2xl p-6 sm:p-8 max-h-[95vh] overflow-y-auto relative" 
+            >
+              {/* Close Button */}
+              <button
+                onClick={handleCloseModal}
+                className="absolute top-4 right-4 w-9 h-9 flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-full transition-colors shadow-md z-10" 
+              >
+                <X className="w-5 h-5 text-gray-700" />
+              </button>
+
+              {/* Feedback Content */}
+              <div className="flex flex-col gap-6 sm:gap-8 items-center pt-2">
+                
+                {/* User Info */}
+                <div className="flex flex-col items-center gap-3">
+                  <img
+                    className="w-16 h-16 rounded-full shadow-lg object-cover"
+                    src={selectedFeedback.avatar}
+                    alt={selectedFeedback.username}
+                  />
+                  <div className="text-center">
+                    <div className="text-black text-xl font-bold font-['Poppins'] mb-0.5">
+                      {selectedFeedback.username}
+                    </div>
+                    <div className="text-neutral-500 text-sm font-normal font-['Afacad']">
+                      {selectedFeedback.date}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Title and Content */}
+                <div className="flex flex-col gap-3 items-center text-center w-full max-w-3xl px-4">
+                  <div className="text-black text-3xl font-extrabold font-['Poppins']"> 
+                    {selectedFeedback.title}
+                  </div>
+                  <div className="text-black text-base font-normal font-['Afacad'] leading-relaxed px-2 border-t border-b border-gray-100 py-4"> 
+                    {selectedFeedback.content}
+                  </div>
+                </div>
+
+                {/* Reply Form */}
+                <form
+                  onSubmit={handleReplySubmit}
+                  className="flex flex-col gap-4 pt-6 border-t border-gray-200 w-full"
+                >
+                  <label className="text-black text-xl font-bold font-['Poppins'] text-center">
+                    Reply to Feedback
+                  </label>
+                  <textarea
+                    value={replyText}
+                    onChange={(e) => setReplyText(e.target.value)}
+                    placeholder="Type your reply here..."
+                    className="w-full min-h-[140px] px-4 py-3 bg-zinc-100/80 rounded-xl border-2 border-transparent outline-none text-black text-base font-normal font-['Afacad'] resize-none focus:border-[#6BC4A6] focus:ring-4 focus:ring-[#6BC4A6]/20 placeholder:text-center placeholder:text-gray-500 placeholder:opacity-80"
+                  />
+                  <div className="flex justify-center gap-4 pt-2">
+                    <button
+                      type="button"
+                      onClick={handleCloseModal}
+                      className="min-w-[100px] h-11 px-6 bg-gray-200 rounded-full text-black text-base font-medium font-['Poppins'] hover:bg-gray-300 transition-colors shadow-md"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={!replyText.trim()}
+                      className="min-w-[120px] h-11 px-6 bg-[#6BC4A6] rounded-full text-black text-base font-bold font-['Poppins'] hover:bg-[#005236] transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+                    >
+                      Send Reply
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

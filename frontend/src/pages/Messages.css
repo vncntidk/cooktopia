@@ -680,23 +680,3 @@
     color: #f3f4f6;
   }
 }
-
-/*
- * NEW STYLES: Custom font for the main "Messages" title
- */
- .messages-title {
-  /* Example: Use a modern sans-serif font stack */
-  font-family: 'Poppins';
-  
-  /* You can also adjust size or weight here if needed */
-  font-size: 1.8rem; /* Example size */
-  font-weight: 600; /* Example weight (Bold) */
-  color: #1f2937; /* Example color (Dark Gray) */
-}
-
-.messages-modal-title {
-  font-family: 'Poppins';
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: #1f2937;
-}
