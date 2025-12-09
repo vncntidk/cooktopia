@@ -103,7 +103,7 @@ const ProfileMenu = ({ isOpen, onClose, profileRef }) => {
           ))}
         </div>
       )}
-
+  
     </>
   );
 };
