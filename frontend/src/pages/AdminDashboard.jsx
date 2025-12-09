@@ -224,7 +224,7 @@ export default function AdminDashboard() {
   }, []);
 
   return (
-    <div className="w-full h-screen flex bg-gray-50">
+    <div className="w-full min-h-screen flex bg-gray-50">
       {/* Admin Sidebar - Assumes it uses lg:w-60 */}
       <SidebarLogoAdmin />
 
@@ -254,7 +254,7 @@ export default function AdminDashboard() {
                 <div className="flex-1 p-3 sm:p-4 bg-[#6BC4A6]/40 rounded-2xl shadow-inner min-h-[160px] md:min-h-[180px]">
                   
                   {/* Cards container: Uniform grid for optimal spacing and responsiveness */}
-                  <div className="w-full h-full grid grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="w-full h-full grid grid-cols-2 lg:grid-cols-4 gap-4" style={{padding: '10px'}}>
                     
                     {/*
                       Stat Card Template Refactored:
@@ -376,13 +376,13 @@ export default function AdminDashboard() {
               
               {/* LEFT: Top Recipes (Main Content Area) - Flex-1 ensures it takes all available space */}
               {/* Restored original recipe container gradient */}
-              <div className="w-full lg:w-72 h-175 lg:flex-1 p-4 bg-gradient-to-l from-[#FFE8CD] to-[#6BC4A6] rounded-2xl shadow-xl flex flex-col gap-6">
+              <div className="w-full lg:w-72 h-full lg:flex-1 p-4 bg-gradient-to-l from-[#FFE8CD] to-[#6BC4A6] rounded-2xl shadow-xl flex flex-col gap-6">
                 <h2 className="text-center text-4xl font-bold text-black font-['Poppins'] pb-2"style={{marginTop: '20px'}}>Top Performing Recipes</h2>
                 
                 {/* Recipes Grid - Exactly 5 columns per row on large screens */}
                 <div
-                  className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-5"
-                  style={{ marginLeft: '10px', marginBottom: '10px' }}
+                  className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-4"
+                  style={{ marginLeft: '10px', marginRight: '10px', marginBottom: '10px' }}
                 >
                    {loadingRecipes ? (
                     <div className="col-span-full text-center text-black py-4">Loading recipes...</div>
@@ -392,16 +392,13 @@ export default function AdminDashboard() {
                     topRecipes.map((recipe) => (
                       <div
                         key={recipe.id}
-                        className="h-[290px] w-[275px] flex flex-col gap-2 bg-white p-3 rounded-xl shadow-md hover:shadow-xl transition-all duration-200 hover:scale-[1.02]"
+                        className="flex flex-col bg-white p-3 rounded-xl shadow-md hover:shadow-xl transition-all duration-200 hover:scale-[1.02] min-h-[260px]"
                       >
-                        <div className="w-full aspect-square relative rounded-lg overflow-hidden bg-gray-100">
-                          <img
-                            className="w-full h-full object-cover"
-                            src={recipe.imageUrl}
-                            alt={recipe.title}
-                          />
+                       <div className="w-full aspect-square rounded-lg overflow-hidden bg-gray-100">
+                          <img className="w-full h-full object-cover" src={recipe.imageUrl} />
+                          
                         </div>
-                        <div className="text-center text-black text-sm sm:text-base font-bold font-['Plus_Jakarta_Sans'] truncate px-1">
+                        <div className="text-center text-black text-[15px] s:text-base font-bold font-['Plus_Jakarta_Sans'] truncate px-4" style={{ paddingLeft: '8px', paddingRight: '8px'}}>
                           {recipe.title}
                         </div>
                         <div className="text-center text-zinc-500 text-xs font-medium font-['Poppins']">
@@ -423,7 +420,7 @@ export default function AdminDashboard() {
       {/* RIGHT: Top Users List (Fixed Width Sidebar) */}
     <div 
       // Container: Maintains original size (h-175) and gradient.
-      className="w-full lg:w-72 h-175 flex-shrink-0 bg-gradient-to-l from-[#6BC4A6] to-[#FFE8CD] rounded-2xl shadow-xl flex flex-col justify-start items-start p-4"style={{marginRight: '20px'}}
+      className="w-full lg:w-72 h-full flex-shrink-0 bg-gradient-to-l from-[#6BC4A6] to-[#FFE8CD] rounded-2xl shadow-xl flex flex-col justify-start items-start p-4"style={{marginRight: '20px'}}
     >
       
       {/* Title Section (Fixed Height/Space) */}
@@ -438,7 +435,7 @@ export default function AdminDashboard() {
         className="w-full flex-1 overflow-y-auto mt-4"style={{marginTop: '10px'}}
       >
         {/* Grid: MODIFIED TO grid-cols-1 on ALL screen sizes for one card per row */}
-        <div className="grid grid-cols-1 gap-3 pb-2">
+        <div className="grid xl:grid-cols-1 lg:grid-cols-1 md:grid-cols-2 sm:grid-cols-2 xs:grid-cols-2 gap-3 pb-2 justify-items-center" style={{paddingBottom:'10px'}}>
 
       {loadingCreators ? (
         <div className="text-center text-gray-500 py-4">Loading creators...</div>
@@ -448,8 +445,7 @@ export default function AdminDashboard() {
         topCreators.map((creator, index) => (
           <div 
             key={creator.uid}
-            className="w-[260px] h-[50px] p-3 bg-white/70 rounded-lg shadow-md flex items-center justify-start gap-3 transition-shadow hover:shadow-lg cursor-pointer"
-            style={{marginLeft: '15px'}}
+            className="w-full max-w-[260px] h-[50px] p-3 bg-white/70 rounded-lg shadow-md flex items-center justify-start gap-3 transition-shadow hover:shadow-lg cursor-pointer"
           >
             <span className="text-xl font-extrabold text-[#006644] flex-shrink-0 w-6 text-center"style={{marginLeft: '1px'}}>{index + 1}</span>
             <img 
@@ -457,8 +453,8 @@ export default function AdminDashboard() {
               src={creator.profileImage} 
               alt={`${creator.displayName} Avatar`}
             />
-            <div className="flex-1 min-w-0 flex flex-col items-start justify-center">
-              <div className="text-base font-bold text-black font-['Poppins'] truncate">{creator.displayName}</div>
+            <div className="flex-1 min-w-0 flex flex-col items-start justify-center truncate">
+              <div className="flex-1 text-[14px] text-base font-bold text-black font-['Poppins'] truncate" style={{paddingRight: '4px'}}>{creator.displayName}</div>
               <div className="text-sm text-gray-700">
                 <span className="font-semibold text-sm text-[#006644]">{creator.followerCount.toLocaleString()}</span> followers
               </div>
