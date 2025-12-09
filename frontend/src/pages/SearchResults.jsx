@@ -132,7 +132,7 @@ function UserCard({ user }) {
     >
       <div className="flex flex-col p-6">
         {/* Header with Avatar and Username */}
-        <div className="flex items-center gap-3 mb-4">
+        <div className="flex items-center gap-3 mb-4 h-15"style={{marginLeft: 10}}>
           <Avatar
             userId={user.id}
             displayName={username}
