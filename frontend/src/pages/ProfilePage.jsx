@@ -175,6 +175,7 @@ export default function ProfilePage() {
   const dropdownRef = useRef(null);
   const menuButtonRef = useRef(null);
   const sectionsRef = useRef(sections);
+  const [isPhotoLightboxOpen, setIsPhotoLightboxOpen] = useState(false);
 
   useEffect(() => {
     sectionsRef.current = sections;
@@ -347,6 +348,21 @@ export default function ProfilePage() {
     return () => document.removeEventListener('keydown', handleEscape);
   }, [isEditModalOpen]);
 
+  useEffect(() => {
+    if (!isPhotoLightboxOpen) {
+      return undefined;
+    }
+
+    const handleEscape = (event) => {
+      if (event.key === 'Escape') {
+        setIsPhotoLightboxOpen(false);
+      }
+    };
+
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [isPhotoLightboxOpen]);
+
   const handleProfileImageUpload = useCallback(async (file = null) => {
     if (!file) {
       const input = document.createElement('input');
@@ -383,6 +399,26 @@ export default function ProfilePage() {
       }));
     }
   }, []);
+
+  const handleDeletePhotoInModal = useCallback(() => {
+    if (!window.confirm('Are you sure you want to delete your profile photo?')) {
+      return;
+    }
+
+    setFormState((prev) => ({
+      ...prev,
+      profileImage: null,
+    }));
+    setFormErrors((prev) => ({ ...prev, upload: '' }));
+    setSubmissionMessage('Profile photo removed. Click "Save changes" to confirm.');
+  }, []);
+
+  const handleProfilePhotoClick = useCallback(() => {
+    if (userData.profileImage) {
+      setIsPhotoLightboxOpen(true);
+    }
+  }, [userData.profileImage]);
+
 
   const validateForm = useCallback(() => {
     const errors = { ...initialFormErrors };
@@ -666,11 +702,14 @@ export default function ProfilePage() {
           if (formState.name.trim() !== userData.name) {
             updates.displayName = formState.name.trim();
           }
-          if (
-            formState.profileImage &&
-            formState.profileImage !== userData.profileImage
-          ) {
-            updates.photoURL = formState.profileImage;
+          // Handle profile image update or deletion
+          if (formState.profileImage !== userData.profileImage) {
+            if (formState.profileImage) {
+              updates.photoURL = formState.profileImage;
+            } else {
+              // Photo was deleted - set to null
+              updates.photoURL = null;
+            }
           }
 
           if (formState.email.trim() !== userData.email) {
@@ -691,7 +730,16 @@ export default function ProfilePage() {
           displayName: formState.name.trim(), // Save displayName to Firestore
         };
 
-        if (formState.profileImage) {
+        // Handle profile image - include null if deleted
+        if (formState.profileImage !== userData.profileImage) {
+          if (formState.profileImage) {
+            firestoreProfileData.profileImage = formState.profileImage;
+          } else {
+            // Photo was deleted - explicitly set to null
+            firestoreProfileData.profileImage = null;
+          }
+        } else if (formState.profileImage) {
+          // Keep existing image if unchanged
           firestoreProfileData.profileImage = formState.profileImage;
         }
 
@@ -703,7 +751,7 @@ export default function ProfilePage() {
           name: formState.name.trim(),
           email: formState.email.trim(),
           bio: formState.bio.trim() || 'Add bio',
-          profileImage: formState.profileImage,
+          profileImage: formState.profileImage || null,
           hasProfileImage: Boolean(formState.profileImage),
         }));
 
@@ -892,13 +940,27 @@ export default function ProfilePage() {
           <section className="profile-hero">
             <div className="profile-hero__avatar-group">
               <div className="profile-hero__avatar-wrapper">
-                <Avatar
-                  userId={profileUserId}
-                  profileImage={userData.profileImage}
-                  displayName={userData.name}
-                  size="xl"
-                  className="profile-hero__avatar"
-                />
+                <div
+                  className={`profile-hero__avatar-container ${userData.profileImage ? 'profile-hero__avatar-container--clickable' : ''}`}
+                  onClick={handleProfilePhotoClick}
+                  role={userData.profileImage ? 'button' : undefined}
+                  tabIndex={userData.profileImage ? 0 : undefined}
+                  onKeyDown={(e) => {
+                    if (userData.profileImage && (e.key === 'Enter' || e.key === ' ')) {
+                      e.preventDefault();
+                      handleProfilePhotoClick();
+                    }
+                  }}
+                  aria-label={userData.profileImage ? 'View profile photo' : undefined}
+                >
+                  <Avatar
+                    userId={profileUserId}
+                    profileImage={userData.profileImage}
+                    displayName={userData.name}
+                    size="xl"
+                    className="profile-hero__avatar"
+                  />
+                </div>
               </div>
             </div>
 
@@ -1093,6 +1155,7 @@ export default function ProfilePage() {
             onInputChange={setFormState}
             onValidate={validateForm}
             onUploadPhoto={handleProfileImageUpload}
+            onDeletePhoto={handleDeletePhotoInModal}
             onResetFeedback={() => {
               setSubmissionStatus('idle');
               setSubmissionMessage('');
@@ -1147,6 +1210,34 @@ export default function ProfilePage() {
             type="following"
           />
         )}
+
+        {/* Profile Photo Lightbox */}
+        {isPhotoLightboxOpen && userData.profileImage && (
+          <div
+            className="profile-photo-lightbox"
+            onClick={() => setIsPhotoLightboxOpen(false)}
+            role="presentation"
+          >
+            <div
+              className="profile-photo-lightbox__content"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button
+                type="button"
+                className="profile-photo-lightbox__close"
+                onClick={() => setIsPhotoLightboxOpen(false)}
+                aria-label="Close photo viewer"
+              >
+                ×
+              </button>
+              <img
+                src={userData.profileImage}
+                alt={`${userData.name} profile photo`}
+                className="profile-photo-lightbox__image"
+              />
+            </div>
+          </div>
+        )}
       </div>
     </HeaderSidebarLayout>
   );
@@ -1163,6 +1254,7 @@ function EditProfileModal({
   onInputChange,
   onValidate,
   onUploadPhoto,
+  onDeletePhoto,
   onResetFeedback,
 }) {
   const modalRef = useRef(null);
@@ -1216,20 +1308,35 @@ function EditProfileModal({
           <fieldset className="edit-profile-modal__fieldset">
             <legend className="edit-profile-modal__legend">Profile photo</legend>
             <div className="edit-profile-modal__avatar-stack">
-              {formState.profileImage ? (
-                <img
-                  src={formState.profileImage}
-                  alt="Selected profile"
-                  className="edit-profile-modal__avatar"
-                />
-              ) : (
-                <div
-                  className="edit-profile-modal__avatar edit-profile-modal__avatar--placeholder"
-                  aria-hidden="true"
-                >
-                  {profileInitial}
-                </div>
-              )}
+              <div className="edit-profile-modal__avatar-wrapper">
+                {formState.profileImage ? (
+                  <>
+                    <img
+                      src={formState.profileImage}
+                      alt="Selected profile"
+                      className="edit-profile-modal__avatar"
+                    />
+                    <button
+                      type="button"
+                      className="edit-profile-modal__avatar-delete"
+                      onClick={onDeletePhoto}
+                      aria-label="Delete profile photo"
+                      title="Delete profile photo"
+                    >
+                      <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M3.75 4.5H14.25M7.5 4.5V3.75C7.5 3.35218 7.65804 2.97064 7.93934 2.68934C8.22064 2.40804 8.60218 2.25 9 2.25H9C9.39782 2.25 9.77936 2.40804 10.0607 2.68934C10.342 2.97064 10.5 3.35218 10.5 3.75V4.5M13.5 4.5V14.25C13.5 14.6478 13.342 15.0294 13.0607 15.3107C12.7794 15.592 12.3978 15.75 12 15.75H6C5.60218 15.75 5.22064 15.592 4.93934 15.3107C4.65804 15.0294 4.5 14.6478 4.5 14.25V4.5M6.75 8.25V12.75M11.25 8.25V12.75" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    </button>
+                  </>
+                ) : (
+                  <div
+                    className="edit-profile-modal__avatar edit-profile-modal__avatar--placeholder"
+                    aria-hidden="true"
+                  >
+                    {profileInitial}
+                  </div>
+                )}
+              </div>
               <button
                 type="button"
                 className="edit-profile-modal__upload"

@@ -142,11 +142,20 @@ export const getUserActivityLogs = async (userId, options = {}) => {
 
         // Format activity description based on type
         try {
-          activityLog.description = await formatActivityDescription(
+          const formatted = await formatActivityDescription(
             activityLog,
             options.currentUserId,
             options.profileOwnerName
           );
+          // If formatActivityDescription returns an object with description and recipeTitle, use it
+          if (typeof formatted === 'object' && formatted.description) {
+            activityLog.description = formatted.description;
+            if (formatted.recipeTitle) {
+              activityLog.recipeTitle = formatted.recipeTitle;
+            }
+          } else {
+            activityLog.description = formatted;
+          }
         } catch (error) {
           console.error('[ActivityLog] Error formatting activity description:', error);
           activityLog.description = 'Activity';
@@ -184,11 +193,20 @@ export const getUserActivityLogs = async (userId, options = {}) => {
 
         // Format activity description based on type
         try {
-          activityLog.description = await formatActivityDescription(
+          const formatted = await formatActivityDescription(
             activityLog,
             options.currentUserId,
             options.profileOwnerName
           );
+          // If formatActivityDescription returns an object with description and recipeTitle, use it
+          if (typeof formatted === 'object' && formatted.description) {
+            activityLog.description = formatted.description;
+            if (formatted.recipeTitle) {
+              activityLog.recipeTitle = formatted.recipeTitle;
+            }
+          } else {
+            activityLog.description = formatted;
+          }
         } catch (error) {
           console.error('[ActivityLog] Error formatting activity description:', error);
           activityLog.description = 'Activity';
@@ -304,12 +322,18 @@ const formatActivityDescription = async (activityLog, currentUserId = null, prof
         try {
           const recipe = await getRecipeById(targetPostId);
           if (recipe) {
-            const authorName = recipe.authorName || 'a user';
-            const rating = meta?.rating || '';
-            return `${actorName} rated ${authorName}'s recipe${rating ? ` ${rating} stars` : ''}`;
+            const recipeTitle = recipe.title || 'a recipe';
+            // Don't show rating value, just show the recipe title
+            // Return object with description and recipeTitle for clickable link
+            return {
+              description: `${actorName} rated "${recipeTitle}"`,
+              recipeTitle: recipeTitle
+            };
           }
         } catch (error) {
           console.error('Error fetching recipe for activity log:', error);
+          // If recipe doesn't exist or is inaccessible, show generic message
+          return `${actorName} rated a recipe (no longer available)`;
         }
       }
       return `${actorName} rated a recipe`;
@@ -408,9 +432,12 @@ export const groupActivityLogsByDate = (activityLogs) => {
     grouped[date].push({
       id: log.id,
       type: mapActivityTypeToUI(log.type), // Map to UI type
+      originalType: log.type, // Preserve original type for logic checks
       description: log.description,
+      recipeTitle: log.recipeTitle || null, // Preserve recipe title for clickable links
       time,
-      recipeId: log.targetPostId,
+      recipeId: log.targetPostId, // Map targetPostId to recipeId for consistency
+      targetPostId: log.targetPostId, // Also preserve original field name
       commentId: log.targetCommentId,
       userId: log.targetUserId,
       createdAt: log.createdAt,

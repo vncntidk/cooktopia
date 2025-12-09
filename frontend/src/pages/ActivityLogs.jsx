@@ -52,9 +52,43 @@ const ActivityIcon = ({ type }) => {
 };
 
 // Activity log item component
-const ActivityLogItem = ({ date, time, activity, showDate = true, onView }) => {
+const ActivityLogItem = ({ date, time, activity, showDate = true, onView, onItemClick }) => {
+  // Determine if this activity is related to a post
+  // Check for both targetPostId (original) and recipeId (mapped in grouped data)
+  const postId = activity.targetPostId || activity.recipeId;
+  
+  // Check activity type - handle both original types and UI-mapped types
+  const activityType = activity.type || activity.originalType;
+  const isPostRelated = postId && (
+    activityType === 'comment' ||
+    activityType === 'like_post' ||
+    activityType === 'like_comment' ||
+    activityType === 'like' || // UI-mapped type
+    activityType === 'rating' ||
+    activityType === 'save'
+  );
+
+  const handleItemClick = (e) => {
+    // Don't trigger if clicking on the View button or its container
+    if (e.target.closest('button')) {
+      return;
+    }
+    if (onItemClick && isPostRelated) {
+      onItemClick(activity);
+    }
+  };
+
+  const handleViewClick = (e) => {
+    e.stopPropagation();
+    onView(activity);
+  };
+
   return (
-    <div className="w-full bg-white rounded-[20px] border border-black/30 shadow-md" style={{ paddingTop: '16px', paddingBottom: '16px', paddingLeft: '20px', paddingRight: '20px' }}>
+    <div 
+      className={`w-full bg-white rounded-[20px] border border-black/30 shadow-md ${isPostRelated ? 'cursor-pointer hover:bg-gray-50 transition-colors' : ''}`}
+      style={{ paddingTop: '16px', paddingBottom: '16px', paddingLeft: '20px', paddingRight: '20px' }}
+      onClick={handleItemClick}
+    >
       <div className="flex justify-between items-end flex-wrap gap-3">
         {/* Left section - Activity details */}
         <div className="flex-1 flex flex-col gap-2">
@@ -75,7 +109,27 @@ const ActivityLogItem = ({ date, time, activity, showDate = true, onView }) => {
             
             {/* Activity description */}
             <div className="flex-1 text-black text-base font-normal font-['Poppins']">
-              {activity.description}
+              {activity.recipeTitle && activity.originalType === 'rating' ? (
+                // For rating activities, make the recipe title clickable
+                // Description format: "You rated "Recipe Title""
+                <span>
+                  {activity.description.substring(0, activity.description.indexOf('"'))}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const postId = activity.targetPostId || activity.recipeId;
+                      if (postId && onItemClick) {
+                        onItemClick(activity);
+                      }
+                    }}
+                    className="text-[#FE982A] hover:text-orange-600 underline font-medium"
+                  >
+                    "{activity.recipeTitle}"
+                  </button>
+                </span>
+              ) : (
+                activity.description
+              )}
             </div>
           </div>
         </div>
@@ -86,7 +140,7 @@ const ActivityLogItem = ({ date, time, activity, showDate = true, onView }) => {
             {time}
           </div>
           <button
-            onClick={() => onView(activity)}
+            onClick={handleViewClick}
             className="w-24 h-10 px-3 py-1.5 bg-[#FE982A] rounded-[10px] shadow-[4px_5px_4px_0px_rgba(0,0,0,0.29)] flex items-center justify-center hover:bg-[#e88620] transition-colors"
           >
             <span className="text-white text-xs font-normal font-['Poppins']">
@@ -100,53 +154,109 @@ const ActivityLogItem = ({ date, time, activity, showDate = true, onView }) => {
 };
 
 // Activity log group component (for multiple activities on the same day)
-const ActivityLogGroup = ({ date, activities, onView }) => {
+const ActivityLogGroup = ({ date, activities, onView, onItemClick }) => {
   return (
     <div className="w-full bg-white rounded-[20px] border border-black/30 shadow-md flex flex-col gap-3" style={{ paddingTop: '16px', paddingBottom: '16px', paddingLeft: '20px', paddingRight: '20px' }}>
-      {activities.map((activity, index) => (
-        <div key={index}>
-          <div className="flex justify-between items-end flex-wrap gap-3">
-            {/* Left section - Activity details */}
-            <div className="flex-1 flex flex-col gap-2">
-              {index === 0 && (
-                <div className="text-black text-xs font-normal font-['Poppins']">
-                  {date}
-                </div>
-              )}
-              <div className="flex items-center gap-3">
-                {/* User avatar */}
-                <Avatar
-                  userId={activity.userId}
-                  size="md"
-                />
-                
-                {/* Activity icon */}
-                <ActivityIcon type={activity.type} />
-                
-                {/* Activity description */}
-                <div className="flex-1 text-black text-base font-normal font-['Poppins']">
-                  {activity.description}
+      {activities.map((activity, index) => {
+        // Determine if this activity is related to a post
+        // Check for both targetPostId (original) and recipeId (mapped in grouped data)
+        const postId = activity.targetPostId || activity.recipeId;
+        
+        // Check activity type - handle both original types and UI-mapped types
+        const activityType = activity.type || activity.originalType;
+        const isPostRelated = postId && (
+          activityType === 'comment' ||
+          activityType === 'like_post' ||
+          activityType === 'like_comment' ||
+          activityType === 'like' || // UI-mapped type
+          activityType === 'rating' ||
+          activityType === 'save'
+        );
+
+        const handleItemClick = (e) => {
+          // Don't trigger if clicking on the View button or its container
+          if (e.target.closest('button')) {
+            return;
+          }
+          if (onItemClick && isPostRelated) {
+            onItemClick(activity);
+          }
+        };
+
+        const handleViewClick = (e) => {
+          e.stopPropagation();
+          onView(activity);
+        };
+
+        return (
+          <div 
+            key={index}
+            className={isPostRelated ? 'cursor-pointer hover:bg-gray-50 transition-colors rounded-lg p-2 -m-2' : ''}
+            onClick={handleItemClick}
+          >
+            <div className="flex justify-between items-end flex-wrap gap-3">
+              {/* Left section - Activity details */}
+              <div className="flex-1 flex flex-col gap-2">
+                {index === 0 && (
+                  <div className="text-black text-xs font-normal font-['Poppins']">
+                    {date}
+                  </div>
+                )}
+                <div className="flex items-center gap-3">
+                  {/* User avatar */}
+                  <Avatar
+                    userId={activity.userId}
+                    size="md"
+                  />
+                  
+                  {/* Activity icon */}
+                  <ActivityIcon type={activity.type} />
+                  
+                  {/* Activity description */}
+                  <div className="flex-1 text-black text-base font-normal font-['Poppins']">
+                    {activity.recipeTitle && activity.originalType === 'rating' ? (
+                      // For rating activities, make the recipe title clickable
+                      // Description format: "You rated "Recipe Title""
+                      <span>
+                        {activity.description.substring(0, activity.description.indexOf('"'))}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const postId = activity.targetPostId || activity.recipeId;
+                            if (postId && onItemClick) {
+                              onItemClick(activity);
+                            }
+                          }}
+                          className="text-[#FE982A] hover:text-orange-600 underline font-medium"
+                        >
+                          "{activity.recipeTitle}"
+                        </button>
+                      </span>
+                    ) : (
+                      activity.description
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-            
-            {/* Right section - Time and View button */}
-            <div className="flex items-end gap-2">
-              <div className="text-black text-sm font-light font-['Poppins'] text-center">
-                {activity.time}
+              
+              {/* Right section - Time and View button */}
+              <div className="flex items-end gap-2">
+                <div className="text-black text-sm font-light font-['Poppins'] text-center">
+                  {activity.time}
+                </div>
+                <button
+                  onClick={handleViewClick}
+                  className="w-24 h-10 px-3 py-1.5 bg-[#FE982A] rounded-[10px] shadow-[4px_5px_4px_0px_rgba(0,0,0,0.29)] flex items-center justify-center hover:bg-[#e88620] transition-colors"
+                >
+                  <span className="text-white text-xs font-normal font-['Poppins']">
+                    View
+                  </span>
+                </button>
               </div>
-              <button
-                onClick={() => onView(activity)}
-                className="w-24 h-10 px-3 py-1.5 bg-[#FE982A] rounded-[10px] shadow-[4px_5px_4px_0px_rgba(0,0,0,0.29)] flex items-center justify-center hover:bg-[#e88620] transition-colors"
-              >
-                <span className="text-white text-xs font-normal font-['Poppins']">
-                  View
-                </span>
-              </button>
             </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 };
@@ -228,15 +338,52 @@ const ActivityLogs = () => {
 
   const handleViewActivity = (activity) => {
     // Handle view action - navigate to recipe or open modal
-    if (activity.recipeId) {
-      // Navigate to recipe view (you may need to adjust the route based on your routing setup)
-      navigate(`/recipe/${activity.recipeId}`);
-    } else if (activity.userId) {
+    // Check for both targetPostId (original) and recipeId (mapped in grouped data)
+    const postId = activity.targetPostId || activity.recipeId;
+    const activityType = activity.type || activity.originalType;
+    
+    if (postId) {
+      // Navigate to home with recipe ID in state (same as notifications)
+      // This handles all post-related activities including ratings
+      try {
+        navigate('/home', { 
+          state: { openRecipeId: postId } 
+        });
+      } catch (error) {
+        console.error('Error navigating to post:', error);
+        // Gracefully handle error - redirect to home without breaking
+        navigate('/home');
+      }
+    } else if (activityType === 'follow' && activity.targetUserId) {
       // Navigate to user profile for follow activities
+      navigate(`/profile/${activity.targetUserId}`);
+    } else if (activity.userId && activityType === 'follow') {
+      // Fallback for follow activities with userId
       navigate(`/profile/${activity.userId}`);
     } else {
       if (DEBUG_ACTIVITY_LOGS) {
         console.log("View activity:", activity);
+      }
+    }
+  };
+
+  const handleActivityItemClick = async (activity) => {
+    // Handle click on activity item itself (for post-related activities)
+    // This matches the notification behavior
+    // Check for both targetPostId (original) and recipeId (mapped in grouped data)
+    const postId = activity.targetPostId || activity.recipeId;
+    
+    if (postId) {
+      try {
+        // Navigate to home with recipe ID in state (same as notifications)
+        // This works for all post-related activities including ratings
+        navigate('/home', { 
+          state: { openRecipeId: postId } 
+        });
+      } catch (error) {
+        console.error('Error navigating to post:', error);
+        // Gracefully handle error - redirect to home without breaking
+        navigate('/home');
       }
     }
   };
@@ -296,12 +443,14 @@ const ActivityLogs = () => {
                       time={log.activities[0].time}
                       activity={log.activities[0]}
                       onView={handleViewActivity}
+                      onItemClick={handleActivityItemClick}
                     />
                   ) : (
                     <ActivityLogGroup
                       date={log.date}
                       activities={log.activities}
                       onView={handleViewActivity}
+                      onItemClick={handleActivityItemClick}
                     />
                   )}
                 </div>

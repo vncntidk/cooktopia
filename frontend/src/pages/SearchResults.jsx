@@ -9,13 +9,53 @@ import { useAuth } from "../contexts/AuthContext";
 import { useSearch } from "../hooks/useSearch";
 import { getUserFollowersCount, getUserFollowingCount } from "../services/users";
 import { getRecipeInteractionCounts } from "../services/interactions";
+import { followUser, unfollowUser, isFollowing, listenToFollowStatus } from "../services/followService";
 
 // User Card Component - styled like homepage cards
 function UserCard({ user }) {
-  const [isFollowing, setIsFollowing] = useState(false);
+  const { user: currentUser } = useAuth();
+  const [following, setFollowing] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [followersCount, setFollowersCount] = useState(user.followers || 0);
   const [followingCount, setFollowingCount] = useState(user.following || 0);
   const navigate = useNavigate();
+
+  const currentUserId = currentUser?.uid;
+  const targetUserId = user.id;
+  const isOwnProfile = currentUserId === targetUserId;
+
+  // Load initial follow status
+  useEffect(() => {
+    if (!currentUserId || isOwnProfile) {
+      return;
+    }
+
+    const checkFollowStatus = async () => {
+      try {
+        const followingStatus = await isFollowing(currentUserId, targetUserId);
+        setFollowing(followingStatus);
+      } catch (error) {
+        console.error('Error checking follow status:', error);
+      }
+    };
+
+    checkFollowStatus();
+  }, [currentUserId, targetUserId, isOwnProfile]);
+
+  // Set up real-time listener for follow status
+  useEffect(() => {
+    if (!currentUserId || isOwnProfile) {
+      return;
+    }
+
+    const unsubscribe = listenToFollowStatus(currentUserId, targetUserId, (isFollowing) => {
+      setFollowing(isFollowing);
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [currentUserId, targetUserId, isOwnProfile]);
 
   // Load follower/following counts
   useEffect(() => {
@@ -34,10 +74,46 @@ function UserCard({ user }) {
     loadCounts();
   }, [user.id]);
 
-  const handleFollowToggle = (e) => {
+  const handleFollowToggle = async (e) => {
     e.stopPropagation();
-    setIsFollowing(!isFollowing);
-    // TODO: Implement actual follow/unfollow logic
+    
+    if (!currentUserId || isOwnProfile || loading) {
+      return;
+    }
+
+    setLoading(true);
+    const previousFollowersCount = followersCount;
+
+    // Optimistic update for follower count (following state will be updated by listener)
+    if (!following) {
+      setFollowersCount((prev) => prev + 1);
+    } else {
+      setFollowersCount((prev) => Math.max(0, prev - 1));
+    }
+
+    try {
+      if (following) {
+        await unfollowUser(currentUserId, targetUserId);
+      } else {
+        await followUser(currentUserId, targetUserId);
+      }
+      
+      // Refresh follower count to ensure accuracy
+      try {
+        const newFollowersCount = await getUserFollowersCount(targetUserId);
+        setFollowersCount(newFollowersCount);
+      } catch (error) {
+        console.error('Error refreshing follower count:', error);
+        // Keep optimistic update if refresh fails
+      }
+      // Note: The listener will automatically update the following state
+    } catch (error) {
+      console.error('Error toggling follow:', error);
+      // Revert optimistic follower count update on error
+      setFollowersCount(previousFollowersCount);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleCardClick = () => {
@@ -45,6 +121,9 @@ function UserCard({ user }) {
   };
 
   const username = user.username || user.displayName || user.name || `user_${user.id.slice(0, 8)}`;
+
+  // Don't show follow button for own profile or if not logged in
+  const showFollowButton = currentUserId && !isOwnProfile;
 
   return (
     <article
@@ -69,17 +148,22 @@ function UserCard({ user }) {
           </div>
         </div>
         
-        {/* Follow Button */}
-        <button
-          onClick={handleFollowToggle}
-          className={`w-full py-2.5 px-4 rounded-lg font-medium text-sm transition-all duration-300 ${
-            isFollowing
-              ? "bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300"
-              : "bg-[#FE982A] text-white hover:bg-orange-600 shadow-sm hover:shadow-md"
-          }`}
-        >
-          {isFollowing ? "Following" : "Follow"}
-        </button>
+        {/* Follow Button - only show if logged in and not own profile */}
+        {showFollowButton && (
+          <button
+            onClick={handleFollowToggle}
+            disabled={loading}
+            className={`w-full py-2.5 px-4 rounded-lg font-medium text-sm transition-all duration-300 ${
+              loading
+                ? "bg-gray-200 text-gray-500 cursor-not-allowed"
+                : following
+                ? "bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300"
+                : "bg-[#FE982A] text-white hover:bg-orange-600 shadow-sm hover:shadow-md"
+            }`}
+          >
+            {loading ? "..." : following ? "Following" : "Follow"}
+          </button>
+        )}
       </div>
     </article>
   );
