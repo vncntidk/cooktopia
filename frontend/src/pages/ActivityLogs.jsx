@@ -206,11 +206,6 @@ const ActivityLogGroup = ({ date, activities, onView, onItemClick }) => {
                   </div>
                 )}
                 <div className="flex items-center gap-3">
-                  {/* User avatar */}
-                  <Avatar
-                    userId={activity.userId}
-                    size="md"
-                  />
                   
                   {/* Activity icon */}
                   <ActivityIcon type={activity.type} />
