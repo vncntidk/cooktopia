@@ -244,7 +244,7 @@ const NotificationModal = ({ isOpen, onClose, message = '' }) => {
       const passesPrimaryFilter =
         activeTab === 'all' || (activeTab === 'unread' && !note.isRead);
       if (!passesPrimaryFilter) return false;
-  const filteredNotifications = transformedNotifications
+  const filteredNotifications = transformedNotifications})
     .slice()
     .sort((a, b) => b.originalTimestamp - a.originalTimestamp)
     .filter((note) => {

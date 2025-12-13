@@ -105,7 +105,10 @@ const ProfileMenu = ({ isOpen, onClose, profileRef }) => {
       )}
 
       {/* Support Center Modal */}
-     
+      <SupportCenter
+        isOpen={isSupportCenterOpen}
+        onClose={() => setIsSupportCenterOpen(false)}
+      />
     </>
   );
 };

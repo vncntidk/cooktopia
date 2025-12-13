@@ -1,8 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, MessageSquare, AlertTriangle, Send, ChevronDown } from 'lucide-react';
+import { X, MessageSquare, AlertTriangle, Send, ChevronDown, Loader2 } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
+import { createFeedbackTicket, createIssueTicket } from '../services/supportTickets';
+import toast from 'react-hot-toast';
 
 const SupportCenter = ({ isOpen, onClose }) => {
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('feedback');
   const [feedbackType, setFeedbackType] = useState('');
   const [feedbackMessage, setFeedbackMessage] = useState('');
@@ -11,6 +15,9 @@ const SupportCenter = ({ isOpen, onClose }) => {
   const [issueSteps, setIssueSteps] = useState('');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isIssueDropdownOpen, setIsIssueDropdownOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
+  const [submitSuccess, setSubmitSuccess] = useState(false);
   
   const modalRef = useRef(null);
   const dropdownRef = useRef(null);
@@ -61,35 +68,114 @@ const SupportCenter = ({ isOpen, onClose }) => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const resetForm = () => {
+  const resetFeedbackForm = () => {
     setFeedbackType('');
     setFeedbackMessage('');
+    setSubmitError('');
+    setSubmitSuccess(false);
+  };
+
+  const resetIssueForm = () => {
     setIssueType('');
     setIssueDescription('');
     setIssueSteps('');
+    setSubmitError('');
+    setSubmitSuccess(false);
+  };
+
+  const resetForm = () => {
+    resetFeedbackForm();
+    resetIssueForm();
   };
 
   const handleClose = () => {
     resetForm();
+    setIsSubmitting(false);
     onClose();
   };
 
-  const handleFeedbackSubmit = (e) => {
+  const handleFeedbackSubmit = async (e) => {
     e.preventDefault();
-    // UI only - no backend submission yet
-    console.log('Feedback submitted:', { feedbackType, feedbackMessage });
-    // Show success state (UI only)
-    alert('Thank you for your feedback! (UI Demo - No backend yet)');
-    resetForm();
+    
+    if (!user?.uid) {
+      toast.error('You must be logged in to submit feedback');
+      return;
+    }
+
+    // Client-side validation
+    const trimmedMessage = feedbackMessage.trim();
+    if (!feedbackType || !trimmedMessage) {
+      setSubmitError('Please fill in all required fields');
+      return;
+    }
+
+    if (trimmedMessage.length > 500) {
+      setSubmitError('Feedback message must be 500 characters or less');
+      return;
+    }
+
+    setIsSubmitting(true);
+    setSubmitError('');
+    setSubmitSuccess(false);
+
+    try {
+      await createFeedbackTicket(user.uid, feedbackType, trimmedMessage);
+      setSubmitSuccess(true);
+      toast.success('Thank you for your feedback! We appreciate your input.');
+      
+      // Reset form after a short delay to show success state
+      setTimeout(() => {
+        resetFeedbackForm();
+      }, 1500);
+    } catch (error) {
+      console.error('Error submitting feedback:', error);
+      setSubmitError(error.message || 'Failed to submit feedback. Please try again.');
+      toast.error(error.message || 'Failed to submit feedback. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handleIssueSubmit = (e) => {
+  const handleIssueSubmit = async (e) => {
     e.preventDefault();
-    // UI only - no backend submission yet
-    console.log('Issue reported:', { issueType, issueDescription, issueSteps });
-    // Show success state (UI only)
-    alert('Thank you for reporting this issue! (UI Demo - No backend yet)');
-    resetForm();
+    
+    if (!user?.uid) {
+      toast.error('You must be logged in to report an issue');
+      return;
+    }
+
+    // Client-side validation
+    const trimmedDescription = issueDescription.trim();
+    if (!issueType || !trimmedDescription) {
+      setSubmitError('Please fill in all required fields');
+      return;
+    }
+
+    if (trimmedDescription.length > 500) {
+      setSubmitError('Issue description must be 500 characters or less');
+      return;
+    }
+
+    setIsSubmitting(true);
+    setSubmitError('');
+    setSubmitSuccess(false);
+
+    try {
+      await createIssueTicket(user.uid, issueType, trimmedDescription, issueSteps);
+      setSubmitSuccess(true);
+      toast.success('Thank you for reporting this issue! We\'ll look into it.');
+      
+      // Reset form after a short delay to show success state
+      setTimeout(() => {
+        resetIssueForm();
+      }, 1500);
+    } catch (error) {
+      console.error('Error submitting issue:', error);
+      setSubmitError(error.message || 'Failed to report issue. Please try again.');
+      toast.error(error.message || 'Failed to report issue. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const getFeedbackTypeLabel = () => {
@@ -201,11 +287,12 @@ const SupportCenter = ({ isOpen, onClose }) => {
                         <button
                           type="button"
                           onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                          disabled={isSubmitting}
                           className={`w-full px-4 py-3.5 rounded-2xl border text-left flex items-center justify-between transition-all duration-200 font-['Poppins'] ${
                             isDropdownOpen
                               ? 'border-orange-400 ring-2 ring-orange-100 bg-white'
                               : 'border-gray-200 bg-gray-50 hover:border-gray-300'
-                          } ${feedbackType ? 'text-gray-800' : 'text-gray-400'}`}
+                          } ${feedbackType ? 'text-gray-800' : 'text-gray-400'} ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
                           style={{ paddingLeft: '10px' }}
                         >
                           <span className="text-sm">{getFeedbackTypeLabel()}</span>
@@ -250,10 +337,15 @@ const SupportCenter = ({ isOpen, onClose }) => {
                       </label>
                       <textarea
                         value={feedbackMessage}
-                        onChange={(e) => setFeedbackMessage(e.target.value)}
+                        onChange={(e) => {
+                          setFeedbackMessage(e.target.value);
+                          setSubmitError('');
+                        }}
                         placeholder="Share your thoughts with us..."
                         rows={4}
-                        className="w-full px-4 py-3.5 rounded-2xl border border-gray-200 bg-gray-50 text-sm font-['Poppins'] text-gray-800 placeholder:text-gray-400 resize-none transition-all duration-200 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 focus:bg-white outline-none"
+                        maxLength={500}
+                        disabled={isSubmitting}
+                        className="w-full px-4 py-3.5 rounded-2xl border border-gray-200 bg-gray-50 text-sm font-['Poppins'] text-gray-800 placeholder:text-gray-400 resize-none transition-all duration-200 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 focus:bg-white outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                         style={{ paddingLeft: '10px' }}
                       />
                       <p className="text-xs text-gray-400 font-['Poppins'] text-right">
@@ -261,15 +353,40 @@ const SupportCenter = ({ isOpen, onClose }) => {
                       </p>
                     </div>
 
+                    {/* Error Message */}
+                    {submitError && (
+                      <div className="bg-red-50 border border-red-200 rounded-xl p-3">
+                        <p className="text-sm text-red-600 font-['Poppins']">{submitError}</p>
+                      </div>
+                    )}
+
+                    {/* Success Message */}
+                    {submitSuccess && (
+                      <div className="bg-green-50 border border-green-200 rounded-xl p-3">
+                        <p className="text-sm text-green-600 font-['Poppins']">
+                          Feedback submitted successfully! Thank you for your input.
+                        </p>
+                      </div>
+                    )}
+
                     {/* Submit Button */}
                     <button
                       type="submit"
-                      disabled={!feedbackType || !feedbackMessage.trim()}
+                      disabled={!feedbackType || !feedbackMessage.trim() || isSubmitting}
                       className="w-full py-5 rounded-2xl text-white text-base font-semibold font-['Poppins'] transition-all duration-300 flex items-center justify-center gap-2.5 disabled:opacity-50 disabled:cursor-not-allowed bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 shadow-lg shadow-orange-200 hover:shadow-xl hover:shadow-orange-300 hover:-translate-y-0.5 active:translate-y-0"
                       style={{ marginTop: '20px' }}
                     >
-                      <Send className="w-5 h-5" />
-                      Submit Feedback
+                      {isSubmitting ? (
+                        <>
+                          <Loader2 className="w-5 h-5 animate-spin" />
+                          Submitting...
+                        </>
+                      ) : (
+                        <>
+                          <Send className="w-5 h-5" />
+                          Submit Feedback
+                        </>
+                      )}
                     </button>
                   </motion.form>
                 ) : (
@@ -296,11 +413,12 @@ const SupportCenter = ({ isOpen, onClose }) => {
                         <button
                           type="button"
                           onClick={() => setIsIssueDropdownOpen(!isIssueDropdownOpen)}
+                          disabled={isSubmitting}
                           className={`w-full px-4 py-3.5 rounded-2xl border text-left flex items-center justify-between transition-all duration-200 font-['Poppins'] ${
                             isIssueDropdownOpen
                               ? 'border-orange-400 ring-2 ring-orange-100 bg-white'
                               : 'border-gray-200 bg-gray-50 hover:border-gray-300'
-                          } ${issueType ? 'text-gray-800' : 'text-gray-400'}`}
+                          } ${issueType ? 'text-gray-800' : 'text-gray-400'} ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
                           style={{ paddingLeft: '10px' }}
                         >
                           <span className="text-sm">{getIssueTypeLabel()}</span>
@@ -345,12 +463,20 @@ const SupportCenter = ({ isOpen, onClose }) => {
                       </label>
                       <textarea
                         value={issueDescription}
-                        onChange={(e) => setIssueDescription(e.target.value)}
+                        onChange={(e) => {
+                          setIssueDescription(e.target.value);
+                          setSubmitError('');
+                        }}
                         placeholder="Describe the issue you're experiencing..."
                         rows={3}
-                        className="w-full px-4 py-3.5 rounded-2xl border border-gray-200 bg-gray-50 text-sm font-['Poppins'] text-gray-800 placeholder:text-gray-400 resize-none transition-all duration-200 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 focus:bg-white outline-none"
+                        maxLength={500}
+                        disabled={isSubmitting}
+                        className="w-full px-4 py-3.5 rounded-2xl border border-gray-200 bg-gray-50 text-sm font-['Poppins'] text-gray-800 placeholder:text-gray-400 resize-none transition-all duration-200 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 focus:bg-white outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                         style={{ paddingLeft: '10px' }}
                       />
+                      <p className="text-xs text-gray-400 font-['Poppins'] text-right">
+                        {issueDescription.length}/500 characters
+                      </p>
                     </div>
 
                     {/* Steps to Reproduce */}
@@ -363,20 +489,46 @@ const SupportCenter = ({ isOpen, onClose }) => {
                         onChange={(e) => setIssueSteps(e.target.value)}
                         placeholder="1. Go to...&#10;2. Click on...&#10;3. See error..."
                         rows={3}
-                        className="w-full px-4 py-3.5 rounded-2xl border border-gray-200 bg-gray-50 text-sm font-['Poppins'] text-gray-800 placeholder:text-gray-400 resize-none transition-all duration-200 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 focus:bg-white outline-none"
+                        disabled={isSubmitting}
+                        className="w-full px-4 py-3.5 rounded-2xl border border-gray-200 bg-gray-50 text-sm font-['Poppins'] text-gray-800 placeholder:text-gray-400 resize-none transition-all duration-200 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 focus:bg-white outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                         style={{ paddingLeft: '10px' }}
                       />
                     </div>
 
+                    {/* Error Message */}
+                    {submitError && (
+                      <div className="bg-red-50 border border-red-200 rounded-xl p-3">
+                        <p className="text-sm text-red-600 font-['Poppins']">{submitError}</p>
+                      </div>
+                    )}
+
+                    {/* Success Message */}
+                    {submitSuccess && (
+                      <div className="bg-green-50 border border-green-200 rounded-xl p-3">
+                        <p className="text-sm text-green-600 font-['Poppins']">
+                          Issue reported successfully! We'll look into it.
+                        </p>
+                      </div>
+                    )}
+
                     {/* Submit Button */}
                     <button
                       type="submit"
-                      disabled={!issueType || !issueDescription.trim()}
+                      disabled={!issueType || !issueDescription.trim() || isSubmitting}
                       className="w-full py-5 rounded-2xl text-white text-base font-semibold font-['Poppins'] transition-all duration-300 flex items-center justify-center gap-2.5 disabled:opacity-50 disabled:cursor-not-allowed bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 shadow-lg shadow-orange-200 hover:shadow-xl hover:shadow-orange-300 hover:-translate-y-0.5 active:translate-y-0"
                       style={{ marginTop: '20px' }}
                     >
-                      <AlertTriangle className="w-5 h-5" />
-                      Report Issue
+                      {isSubmitting ? (
+                        <>
+                          <Loader2 className="w-5 h-5 animate-spin" />
+                          Submitting...
+                        </>
+                      ) : (
+                        <>
+                          <AlertTriangle className="w-5 h-5" />
+                          Report Issue
+                        </>
+                      )}
                     </button>
                   </motion.form>
                 )}
