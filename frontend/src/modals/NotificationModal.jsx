@@ -3,9 +3,11 @@ import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  deleteNotification, 
-  listenToUserNotifications,
-  markNotificationAsRead
+  deleteNotification, 
+  listenToUserNotifications,
+  markNotificationAsRead,
+  // 💡 ADDED: Assuming this function exists in your services
+  markAllNotificationsAsRead 
 } from '../services/notifications';
 // 💡 ADDED: Import the custom Avatar component
 import Avatar from '../components/Avatar'; 
@@ -23,7 +25,7 @@ const NotificationModal = ({ isOpen, onClose, message = '' }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false); 
 
 
-  const name = user?.displayName || user?.email || 'Guest';
+  const name = user?.displayName || user?.email || 'Guest';
 
   useEffect(() => {
     const handleEsc = (event) => {
@@ -70,7 +72,30 @@ const NotificationModal = ({ isOpen, onClose, message = '' }) => {
       const diffMins = Math.floor(diffMs / 60000);
       const diffHours = Math.floor(diffMs / 3600000);
       const diffDays = Math.floor(diffMs / 86400000);
+  // Format timestamp to relative time
+  const formatTimestamp = (timestamp) => {
+    if (!timestamp) return 'Just now';
+    
+    try {
+      const now = new Date();
+      const time = timestamp?.toDate ? timestamp.toDate() : new Date(timestamp);
+      if (isNaN(time.getTime())) return 'Just now';
+      
+      const diffMs = now - time;
+      const diffMins = Math.floor(diffMs / 60000);
+      const diffHours = Math.floor(diffMs / 3600000);
+      const diffDays = Math.floor(diffMs / 86400000);
 
+      if (diffMins < 1) return 'Just now';
+      if (diffMins < 60) return `${diffMins} min${diffMins > 1 ? 's' : ''} ago`;
+      if (diffHours < 24) return `${diffHours} hr${diffHours > 1 ? 's' : ''} ago`;
+      if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+      return `${Math.floor(diffDays / 7)} week${Math.floor(diffDays / 7) > 1 ? 's' : ''} ago`;
+    } catch (error) {
+      console.error('Error formatting timestamp:', error);
+      return 'Just now';
+    }
+  };
       if (diffMins < 1) return 'Just now';
       if (diffMins < 60) return `${diffMins} min${diffMins > 1 ? 's' : ''} ago`;
       if (diffHours < 24) return `${diffHours} hr${diffHours > 1 ? 's' : ''} ago`;
@@ -138,20 +163,20 @@ const NotificationModal = ({ isOpen, onClose, message = '' }) => {
   };
 
 
-  // Handle notification click - redirect based on type
-  const handleNotificationClick = async (notification) => {
-    if (!notification || !notification.id) {
-      return;
-    }
+  // Handle notification click - redirect based on type
+  const handleNotificationClick = async (notification) => {
+    if (!notification || !notification.id) {
+      return;
+    }
 
-    // Mark notification as read when clicked (if not already read)
-    if (!notification.read) {
-      try {
-        await markNotificationAsRead(notification.id);
-      } catch (error) {
-        // Silent fail - continue with navigation even if mark fails
-      }
-    }
+    // Mark notification as read when clicked (if not already read)
+    if (!notification.read) {
+      try {
+        await markNotificationAsRead(notification.id);
+      } catch (error) {
+        // Silent fail - continue with navigation even if mark fails
+      }
+    }
 
     switch (notification.type) {
       case 'like':
@@ -219,12 +244,19 @@ const NotificationModal = ({ isOpen, onClose, message = '' }) => {
       const passesPrimaryFilter =
         activeTab === 'all' || (activeTab === 'unread' && !note.isRead);
       if (!passesPrimaryFilter) return false;
+  const filteredNotifications = transformedNotifications
+    .slice()
+    .sort((a, b) => b.originalTimestamp - a.originalTimestamp)
+    .filter((note) => {
+      const passesPrimaryFilter =
+        activeTab === 'all' || (activeTab === 'unread' && !note.isRead);
+      if (!passesPrimaryFilter) return false;
 
-      const subFilter = activeSubFilter.toLowerCase().replace(' ', '');
-      if (subFilter === 'seeall') return true;
-      if (subFilter === 'new') return note.isNew;
-      return true;
-    });
+      const subFilter = activeSubFilter.toLowerCase().replace(' ', '');
+      if (subFilter === 'seeall') return true;
+      if (subFilter === 'new') return note.isNew;
+      return true;
+    });
 
   const notificationsToRender = filteredNotifications;
   
@@ -232,25 +264,25 @@ const NotificationModal = ({ isOpen, onClose, message = '' }) => {
   const hasUnreadNotifications = notifications.some(n => !n.read);
 
 
-  return (
-    <AnimatePresence>
-      {isOpen && (
-        <>
-          {/* Background Overlay */}
-          <motion.div
-            className="fixed bg-white/30 backdrop-blur-sm z-[9998]"
-            style={{
-              top: 0,
-              left: 0,
-              right: '64px',
-              bottom: 0,
-            }}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={onClose}
-            aria-hidden="true"
-          />
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <>
+          {/* Background Overlay */}
+          <motion.div
+            className="fixed bg-white/30 backdrop-blur-sm z-[9998]"
+            style={{
+              top: 0,
+              left: 0,
+              right: '64px',
+              bottom: 0,
+            }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+            aria-hidden="true"
+          />
 
           {/* Sliding Side Panel */}
           <motion.div

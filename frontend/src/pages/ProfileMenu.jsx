@@ -2,12 +2,14 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { logOut } from '../services/auth';
+import SupportCenter from '../modals/SupportCenter';
 
 const ProfileMenu = ({ isOpen, onClose, profileRef }) => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const dropdownRef = useRef(null);
+  const [isSupportCenterOpen, setIsSupportCenterOpen] = useState(false);
   
   // Check if currently on profile page
   const isOnProfilePage = location.pathname === '/profile' || location.pathname.startsWith('/profile/');
@@ -62,8 +64,8 @@ const ProfileMenu = ({ isOpen, onClose, profileRef }) => {
   };
 
   const handleSupportCenter = () => {
-    // Support Center handles both feedback and issue reporting
-    console.log('Support Center clicked - handles both feedback and issue reporting');
+    setIsSupportCenterOpen(true);
+    onClose(); // Close the dropdown menu
   };
 
   const menuItems = [
@@ -71,8 +73,6 @@ const ProfileMenu = ({ isOpen, onClose, profileRef }) => {
     { id: 'support-center', label: 'Support Center', action: handleSupportCenter },
     { id: 'logout', label: 'Log Out', action: handleLogOut, isLast: true }
   ];
-
-  if (!isOpen) return null;
 
   return (
     <>

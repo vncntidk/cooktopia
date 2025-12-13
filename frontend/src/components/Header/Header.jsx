@@ -50,6 +50,7 @@ const Header = () => {
           src="/logo.png"
           alt="Cooktopia Logo"
           className="max-h-14 object-contain"
+          onClick={() => navigate('/home')}
         />
       </div>
 
