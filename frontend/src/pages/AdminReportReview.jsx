@@ -85,7 +85,8 @@ export default function AdminReportReview() {
                 username: `@${userData.displayName}`,
                 avatar: userData.profileImage,
                 title: ticketData.issueType || "Issue Report",
-                content: ticketData.message || "",
+                content: ticketData.description || "",
+                stepsToReproduce: ticketData.stepsToReproduce || "",
                 date: formattedDate,
                 dateObj: createdAt,
                 status: ticketData.status === "closed" ? ["Replied"] : ["New", "Pending"],
@@ -104,6 +105,7 @@ export default function AdminReportReview() {
                 // Compare if content changed
                 const hasChanged = 
                   updatedSelectedReport.content !== selectedReport.content ||
+                  updatedSelectedReport.stepsToReproduce !== selectedReport.stepsToReproduce ||
                   updatedSelectedReport.rawStatus !== selectedReport.rawStatus ||
                   updatedSelectedReport.title !== selectedReport.title;
                 
@@ -412,6 +414,14 @@ export default function AdminReportReview() {
                   <div className="text-black text-base font-normal font-['Afacad'] leading-relaxed px-2 border-t border-b border-gray-100 py-4"> 
                     {selectedReport.content}
                   </div>
+                  {selectedReport.stepsToReproduce && (
+                    <div className="w-full text-center mt-4">
+                      <h4 className="text-black font-bold font-['Poppins'] mb-2">Steps to Reproduce:</h4>
+                      <p className="text-black text-sm font-normal font-['Afacad'] leading-relaxed whitespace-pre-wrap">
+                        {selectedReport.stepsToReproduce}
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 {/* Reply Form */}
