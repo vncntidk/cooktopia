@@ -1,8 +1,8 @@
 import React, { useState, useMemo, useEffect } from "react";
 import SidebarLogoAdmin from "../components/SidebarLogoAdmin";
 import ReviewHeader from "../components/ReviewHeader";
-import { Pen, X } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { Pen } from "lucide-react";
+import FDreplymodal from "../modals/FDreplymodal";
 import { db } from "../config/firebase-config";
 import { collection, onSnapshot, doc, getDoc, query, where } from "firebase/firestore";
 
@@ -28,15 +28,14 @@ const getUniqueMonthYearFilters = (data) => {
 
 export default function AdminReview() {
   const [selectedFeedback, setSelectedFeedback] = useState(null);
-  const [replyText, setReplyText] = useState("");
+  const [isModalOpen, setIsModalOpen] = useState(false);
   
   // State for search and sort
   const [searchQuery, setSearchQuery] = useState('');
   const [sortFilter, setSortFilter] = useState('All Time');
+  const [activeFilter, setActiveFilter] = useState('all'); // 'all', 'replied', 'awaiting'
   const [feedbacks, setFeedbacks] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [showUpdateAlert, setShowUpdateAlert] = useState(false);
-  const [updatedFeedback, setUpdatedFeedback] = useState(null);
 
   // Fetch feedbacks from Firestore
   useEffect(() => {
@@ -97,27 +96,6 @@ export default function AdminReview() {
             // Sort by date (most recent first)
             feedbacksData.sort((a, b) => b.dateObj - a.dateObj);
             
-            // Check if currently selected feedback has changed
-            if (selectedFeedback) {
-              const updatedSelectedFeedback = feedbacksData.find(f => f.id === selectedFeedback.id);
-              if (updatedSelectedFeedback) {
-                // Compare if content changed
-                const hasChanged = 
-                  updatedSelectedFeedback.content !== selectedFeedback.content ||
-                  updatedSelectedFeedback.rawStatus !== selectedFeedback.rawStatus ||
-                  updatedSelectedFeedback.title !== selectedFeedback.title;
-                
-                if (hasChanged) {
-                  setUpdatedFeedback(updatedSelectedFeedback);
-                  setShowUpdateAlert(true);
-                  // Don't update selectedFeedback yet - wait for user confirmation
-                  setFeedbacks(feedbacksData);
-                  setLoading(false);
-                  return;
-                }
-              }
-            }
-            
             setFeedbacks(feedbacksData);
             setLoading(false);
           },
@@ -135,42 +113,44 @@ export default function AdminReview() {
     };
 
     fetchFeedbacks();
-  }, [selectedFeedback]);
+  }, []);
+
+  const handleReplySubmit = (replyData) => {
+    const newReply = {
+      adminReply: replyData.adminReply,
+      adminName: replyData.adminName,
+      replyDate: replyData.replyDate,
+    };
+
+    setFeedbacks(prevFeedbacks => 
+      prevFeedbacks.map(feedback => 
+        feedback.id === replyData.id 
+          ? { 
+              ...feedback, 
+              hasReply: true,
+              adminReplies: [...(feedback.adminReplies || []), newReply],
+              status: ["Replied"]
+            }
+          : feedback
+      )
+    );
+    // Update selectedFeedback to show the reply immediately
+    setSelectedFeedback(prev => prev ? {
+      ...prev,
+      hasReply: true,
+      adminReplies: [...(prev.adminReplies || []), newReply],
+      status: ["Replied"]
+    } : null);
+  };
 
   const handleCardClick = (feedback) => {
     setSelectedFeedback(feedback);
-    setReplyText("");
-    setShowUpdateAlert(false);
-    setUpdatedFeedback(null);
+    setIsModalOpen(true);
   };
 
   const handleCloseModal = () => {
+    setIsModalOpen(false);
     setSelectedFeedback(null);
-    setReplyText("");
-    setShowUpdateAlert(false);
-    setUpdatedFeedback(null);
-  };
-
-  const handleRefreshFeedback = () => {
-    if (updatedFeedback) {
-      setSelectedFeedback(updatedFeedback);
-      setShowUpdateAlert(false);
-      setUpdatedFeedback(null);
-    }
-  };
-
-  const handleDismissAlert = () => {
-    setShowUpdateAlert(false);
-    setUpdatedFeedback(null);
-  };
-
-  const handleReplySubmit = (e) => {
-    e.preventDefault();
-    if (replyText.trim()) {
-      console.log("Reply submitted:", replyText);
-      alert("Reply submitted successfully!");
-      handleCloseModal();
-    }
   };
 
   // --- Dynamic Filters and Filtered Array ---
@@ -198,12 +178,19 @@ export default function AdminReview() {
                    reportDate.getFullYear().toString() === year;
         });
     }
+
+    // 3. Filtering by reply status
+    if (activeFilter === 'replied') {
+      tempFeedbacks = tempFeedbacks.filter(feedback => feedback.hasReply);
+    } else if (activeFilter === 'awaiting') {
+      tempFeedbacks = tempFeedbacks.filter(feedback => !feedback.hasReply);
+    }
     
-    // 3. Sorting (Default to Recent date, as other options were removed)
+    // 4. Sorting (Default to Recent date, as other options were removed)
     tempFeedbacks.sort((a, b) => new Date(b.date) - new Date(a.date));
 
     return tempFeedbacks;
-  }, [feedbacks, searchQuery, sortFilter]);
+  }, [feedbacks, searchQuery, sortFilter, activeFilter]);
 
 
   return (
@@ -235,15 +222,40 @@ export default function AdminReview() {
                 </div>
               </div>
 
-              {/* Static 'All' Count Display */}
+              {/* Filter Buttons */}
               <div className="self-stretch inline-flex justify-start items-center gap-3 flex-wrap">
-                <div
-                  className={`min-w-[80px] h-9 px-4 py-1.5 rounded-full inline-flex justify-center items-center gap-1 bg-[#005236] font-bold text-white shadow-lg`}
+                <button
+                  onClick={() => setActiveFilter('all')}
+                  className={`min-w-[80px] h-9 px-4 py-1.5 rounded-full inline-flex justify-center items-center gap-1 font-bold text-white shadow-lg transition-colors duration-200 cursor-pointer ${
+                    activeFilter === 'all' ? 'bg-[#005236]' : 'bg-[#6BC4A6] hover:bg-[#005236]'
+                  }`}
                 >
                   <div className={`text-center text-xs sm:text-sm font-['Poppins']`}>
                     All ({feedbacks.length}) 
                   </div>
-                </div>
+                </button>
+                <button
+                  onClick={() => setActiveFilter('replied')}
+                  className={`min-w-[80px] h-9 px-4 py-1.5 rounded-full inline-flex justify-center items-center gap-1 font-bold text-white shadow-lg transition-colors duration-200 cursor-pointer ${
+                    activeFilter === 'replied' ? 'bg-[#005236]' : 'bg-[#6BC4A6] hover:bg-[#005236]'
+                  }`}
+                  style={{padding: 10}}
+                >
+                  <div className={`text-center text-xs sm:text-sm font-['Poppins']`}>
+                    Replied ({feedbacks.filter(f => f.hasReply).length}) 
+                  </div>
+                </button>
+                <button
+                  onClick={() => setActiveFilter('awaiting')}
+                  className={`min-w-[80px] h-9 px-4 py-1.5 rounded-full inline-flex justify-center items-center gap-1 font-bold text-white shadow-lg transition-colors duration-200 cursor-pointer ${
+                    activeFilter === 'awaiting' ? 'bg-[#005236]' : 'bg-[#6BC4A6] hover:bg-[#005236]'
+                  }`}
+                  style={{padding: 10}}
+                >
+                  <div className={`text-center text-xs sm:text-sm font-['Poppins']`}>
+                    Awaiting ({feedbacks.filter(f => !f.hasReply).length}) 
+                  </div>
+                </button>
               </div>
             </div>
             
@@ -252,10 +264,10 @@ export default function AdminReview() {
               className="
                 grid
                 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4
-                gap-6
+                gap-5
                 place-items-center
               "
-              style={{marginLeft: 120}}
+              style={{marginLeft: 80, paddingRight: 40, paddingBottom: 40}}
             >
               {/* Loading State */}
               {loading && (
@@ -276,8 +288,8 @@ export default function AdminReview() {
               {!loading && filteredAndSortedFeedbacks.map((feedback) => (
                 <div
                   key={feedback.id}
-                  onClick={() => handleCardClick(feedback)}
-                  className="w-100 h-52 bg-white rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300 border border-gray-300 flex flex-col justify-between cursor-pointer"
+                  className="h-44 bg-white rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300 border border-gray-300 flex flex-col justify-between"
+                  style={{paddingLeft: 15, paddingRight: 15, minWidth: 270, width: '100%'}}
                 >
                   {/* Top: User Info and Avatar - PRESERVING INLINE STYLE */}
                   <div className="p-4 flex items-center gap-3">
@@ -293,32 +305,32 @@ export default function AdminReview() {
                   </div>
 
                   {/* Middle: Title and Content Snippet - PRESERVING INLINE STYLE */}
-                  <div className="px-4 flex flex-col justify-start items-start gap-1.5 overflow-hidden flex-1" style={{marginTop: 15, marginLeft: 20}}>
-                    <div className="text-black text-xl font-extrabold font-['Afacad'] leading-snug truncate w-full">
+                  <div className="px-4 flex flex-col justify-start items-start gap-1 overflow-hidden flex-1" style={{marginTop: 5, marginLeft: 15}}>
+                    <div className="text-black text-base font-extrabold font-['Afacad'] leading-snug w-full">
                       {feedback.title}
                     </div>
-                    <div className="text-black text-sm font-normal font-['Afacad'] line-clamp-3">
+                    <div className="text-black text-xs font-normal font-['Afacad'] line-clamp-2">
                       {feedback.content}
                     </div>
                   </div>
 
                   {/* Bottom: Date, Status, and Action Button - PRESERVING INLINE STYLE */}
-                  <div className="p-4 pt-2 flex justify-between items-center" style={{marginLeft: 15}}>
+                  <div className="p-3 pt-1 flex justify-between items-center" style={{marginLeft: 10}}>
                     <div className="text-neutral-500 text-xs font-normal font-['Afacad']">
                       {feedback.date}
                     </div>
 
                       {/* Reply Button (Action) */}
                       <button
-                        className="w-8 h-8 p-1 bg-[#6BC4A6] rounded-full flex justify-center items-center cursor-pointer hover:bg-[#005236] transition-colors flex-shrink-0"
-                        style={{marginRight: 10, marginBottom:10}} 
+                        className="w-6 h-6 p-1 bg-[#6BC4A6] rounded-full flex justify-center items-center cursor-pointer hover:bg-[#005236] transition-colors flex-shrink-0"
+                        style={{marginRight: 10, marginBottom: 5}} 
                         title="Reply"
                         onClick={(e) => {
                           e.stopPropagation();
                           handleCardClick(feedback);
                         }}
                       >
-                        <Pen className="w-4 h-4 text-black"/>
+                        <Pen className="w-3 h-3 text-black"/>
                       </button>
                     </div>
                   </div>
@@ -328,128 +340,13 @@ export default function AdminReview() {
         </main>
       </div>
 
-      {/* Feedback Modal */}
-      <AnimatePresence>
-        {selectedFeedback && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={handleCloseModal}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm"
-          >
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              transition={{ type: "spring", stiffness: 200, damping: 20 }}
-              onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-2xl mx-4 bg-white rounded-[20px] shadow-2xl p-6 sm:p-8 max-h-[95vh] overflow-y-auto relative" 
-            >
-              {/* Close Button */}
-              <button
-                onClick={handleCloseModal}
-                className="absolute top-4 right-4 w-9 h-9 flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-full transition-colors shadow-md z-10" 
-              >
-                <X className="w-5 h-5 text-gray-700" />
-              </button>
-
-              {/* Update Alert Banner */}
-              {showUpdateAlert && (
-                <div className="mb-4 p-4 bg-yellow-50 border-2 border-yellow-400 rounded-lg">
-                  <div className="flex items-start gap-3">
-                    <div className="flex-1">
-                      <p className="text-yellow-800 font-semibold font-['Poppins'] mb-2">
-                        ⚠️ This feedback has been updated
-                      </p>
-                      <p className="text-yellow-700 text-sm font-['Afacad']">
-                        The content or status of this feedback has changed. Would you like to refresh to see the latest version?
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex gap-3 mt-3">
-                    <button
-                      onClick={handleRefreshFeedback}
-                      className="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg font-['Poppins'] text-sm font-semibold transition-colors"
-                    >
-                      Refresh Now
-                    </button>
-                    <button
-                      onClick={handleDismissAlert}
-                      className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-['Poppins'] text-sm transition-colors"
-                    >
-                      Dismiss
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Feedback Content */}
-              <div className="flex flex-col gap-6 sm:gap-8 items-center pt-2">
-                
-                {/* User Info */}
-                <div className="flex flex-col items-center gap-3">
-                  <img
-                    className="w-16 h-16 rounded-full shadow-lg object-cover"
-                    src={selectedFeedback.avatar}
-                    alt={selectedFeedback.username}
-                  />
-                  <div className="text-center">
-                    <div className="text-black text-xl font-bold font-['Poppins'] mb-0.5">
-                      {selectedFeedback.username}
-                    </div>
-                    <div className="text-neutral-500 text-sm font-normal font-['Afacad']">
-                      {selectedFeedback.date}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Title and Content */}
-                <div className="flex flex-col gap-3 items-center text-center w-full max-w-3xl px-4">
-                  <div className="text-black text-3xl font-extrabold font-['Poppins']"> 
-                    {selectedFeedback.title}
-                  </div>
-                  <div className="text-black text-base font-normal font-['Afacad'] leading-relaxed px-2 border-t border-b border-gray-100 py-4"> 
-                    {selectedFeedback.content}
-                  </div>
-                </div>
-
-                {/* Reply Form */}
-                <form
-                  onSubmit={handleReplySubmit}
-                  className="flex flex-col gap-4 pt-6 border-t border-gray-200 w-full"
-                >
-                  <label className="text-black text-xl font-bold font-['Poppins'] text-center">
-                    Reply to Feedback
-                  </label>
-                  <textarea
-                    value={replyText}
-                    onChange={(e) => setReplyText(e.target.value)}
-                    placeholder="Type your reply here..."
-                    className="w-full min-h-[140px] px-4 py-3 bg-zinc-100/80 rounded-xl border-2 border-transparent outline-none text-black text-base font-normal font-['Afacad'] resize-none focus:border-[#6BC4A6] focus:ring-4 focus:ring-[#6BC4A6]/20 placeholder:text-center placeholder:text-gray-500 placeholder:opacity-80"
-                  />
-                  <div className="flex justify-center gap-4 pt-2">
-                    <button
-                      type="button"
-                      onClick={handleCloseModal}
-                      className="min-w-[100px] h-11 px-6 bg-gray-200 rounded-full text-black text-base font-medium font-['Poppins'] hover:bg-gray-300 transition-colors shadow-md"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={!replyText.trim()}
-                      className="min-w-[120px] h-11 px-6 bg-[#6BC4A6] rounded-full text-black text-base font-bold font-['Poppins'] hover:bg-[#005236] transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
-                    >
-                      Send Reply
-                    </button>
-                  </div>
-                </form>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Feedback Reply Modal */}
+      <FDreplymodal 
+        isOpen={isModalOpen} 
+        onClose={handleCloseModal} 
+        feedback={selectedFeedback}
+        onReplySubmit={handleReplySubmit}
+      />
     </div>
   );
 }
