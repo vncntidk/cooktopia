@@ -1,8 +1,10 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import SidebarLogoAdmin from "../components/SidebarLogoAdmin";
 import ReviewHeader from "../components/ReviewHeader";
 import { Pen, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { db } from "../config/firebase-config";
+import { collection, onSnapshot, doc, getDoc, query, where } from "firebase/firestore";
 
 // Utility to generate filters based on date format
 const getUniqueMonthYearFilters = (data) => {
@@ -31,75 +33,135 @@ export default function AdminReportReview() {
   // State for search and sort
   const [searchQuery, setSearchQuery] = useState('');
   const [sortFilter, setSortFilter] = useState('All Time');
+  const [reports, setReports] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showUpdateAlert, setShowUpdateAlert] = useState(false);
+  const [updatedReport, setUpdatedReport] = useState(null);
 
-  // Data array
-  const reports = [
-    {
-      id: 1,
-      username: "@KpopDemonRumi",
-      avatar: "https://placehold.co/50x50",
-      title: "THE BEST WEBSITE!",
-      content: "I love this website! I enjoy cooking and I'm glad that I can see other's recipe as well!!",
-      date: "October 28, 2025",
-      status: ["New", "Pending"],
-    },
-    {
-      id: 2,
-      username: "@DerekRamsay",
-      avatar: "https://placehold.co/50x50",
-      title: "AMAZING!",
-      content: "This site is amazing because I can share my own recipes to the world!",
-      date: "July 01, 2025",
-      status: ["Pending"],
-    },
-    {
-      id: 3,
-      username: "@ImDoneShiningNowImHiding",
-      avatar: "https://placehold.co/50x50",
-      title: "I like it",
-      content: "This is the best!",
-      date: "October 25, 2025",
-      status: ["New", "Pending"],
-    },
-    {
-      id: 4,
-      username: "@ImVegan",
-      avatar: "https://placehold.co/50x50",
-      title: "So convenient",
-      content: "Grabe! I searched just \"lettuce\" and it displayed all recipes that has lettuce in it?! THIS IS SO GREAT!",
-      date: "October 02, 2025",
-      status: ["Pending"],
-    },
-    {
-      id: 5,
-      username: "@FoodEnthusiast",
-      avatar: "https://placehold.co/50x50",
-      title: "Instant chef",
-      content: "OMG! I didn't have lots of food in my ref rn so I opened this site to search for recipes that has the same ingredients as I have right now. AND BRUH! I'm so busog!",
-      date: "July 03, 2025",
-      status: ["Replied"],
-      hasReply: true,
-    },
-    {
-      id: 6,
-      username: "@FoodLover",
-      avatar: "https://placehold.co/50x50",
-      title: "Love it!",
-      content: "Papara papa! LOVE KO TO!",
-      date: "August 30, 2025",
-      status: ["Replied"],
-      hasReply: true,
-    },
-  ];
+  // Fetch reports/issues from Firestore
+  useEffect(() => {
+    const fetchReports = async () => {
+      try {
+        setLoading(true);
+        
+        // Listen to supportTickets where type is "issue"
+        const unsubscribe = onSnapshot(
+          query(collection(db, "supportTickets"), where("type", "==", "issue")),
+          async (snapshot) => {
+            const reportsData = [];
+
+            for (const ticketDoc of snapshot.docs) {
+              const ticketData = ticketDoc.data();
+              
+              // Fetch user data
+              let userData = {
+                displayName: "Unknown User",
+                profileImage: "https://placehold.co/50x50"
+              };
+
+              if (ticketData.userId) {
+                try {
+                  const userDoc = await getDoc(doc(db, "users", ticketData.userId));
+                  if (userDoc.exists()) {
+                    const user = userDoc.data();
+                    userData.displayName = user.displayName || "Unknown User";
+                    userData.profileImage = user.profileImage || "https://placehold.co/50x50";
+                  }
+                } catch (error) {
+                  console.error("Error fetching user:", error);
+                }
+              }
+
+              // Format the date
+              const createdAt = ticketData.createdAt?.toDate?.() || new Date(ticketData.createdAt);
+              const formattedDate = createdAt.toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+              });
+
+              reportsData.push({
+                id: ticketDoc.id,
+                username: `@${userData.displayName}`,
+                avatar: userData.profileImage,
+                title: ticketData.issueType || "Issue Report",
+                content: ticketData.message || "",
+                date: formattedDate,
+                dateObj: createdAt,
+                status: ticketData.status === "closed" ? ["Replied"] : ["New", "Pending"],
+                hasReply: ticketData.status === "closed",
+                rawStatus: ticketData.status
+              });
+            }
+
+            // Sort by date (most recent first)
+            reportsData.sort((a, b) => b.dateObj - a.dateObj);
+            
+            // Check if currently selected report has changed
+            if (selectedReport) {
+              const updatedSelectedReport = reportsData.find(r => r.id === selectedReport.id);
+              if (updatedSelectedReport) {
+                // Compare if content changed
+                const hasChanged = 
+                  updatedSelectedReport.content !== selectedReport.content ||
+                  updatedSelectedReport.rawStatus !== selectedReport.rawStatus ||
+                  updatedSelectedReport.title !== selectedReport.title;
+                
+                if (hasChanged) {
+                  setUpdatedReport(updatedSelectedReport);
+                  setShowUpdateAlert(true);
+                  // Don't update selectedReport yet - wait for user confirmation
+                  setReports(reportsData);
+                  setLoading(false);
+                  return;
+                }
+              }
+            }
+            
+            setReports(reportsData);
+            setLoading(false);
+          },
+          (error) => {
+            console.error("Error listening to reports:", error);
+            setLoading(false);
+          }
+        );
+
+        return () => unsubscribe();
+      } catch (error) {
+        console.error("Error fetching reports:", error);
+        setLoading(false);
+      }
+    };
+
+    fetchReports();
+  }, [selectedReport]);
 
   const handleCardClick = (report) => {
     setSelectedReport(report);
     setReplyText("");
+    setShowUpdateAlert(false);
+    setUpdatedReport(null);
   };
 
   const handleCloseModal = () => {
     setSelectedReport(null);
     setReplyText("");
+    setShowUpdateAlert(false);
+    setUpdatedReport(null);
+  };
+
+  const handleRefreshReport = () => {
+    if (updatedReport) {
+      setSelectedReport(updatedReport);
+      setShowUpdateAlert(false);
+      setUpdatedReport(null);
+    }
+  };
+
+  const handleDismissAlert = () => {
+    setShowUpdateAlert(false);
+    setUpdatedReport(null);
   };
 
   const handleReplySubmit = (e) => {
@@ -195,8 +257,23 @@ export default function AdminReportReview() {
               "
               style={{marginLeft: 120}} 
             >
+              {/* Loading State */}
+              {loading && (
+                <div className="col-span-full text-center py-12">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#6BC4A6] mx-auto mb-4"></div>
+                  <p className="text-gray-600">Loading reports...</p>
+                </div>
+              )}
+
+              {/* No Results State */}
+              {!loading && filteredAndSortedReports.length === 0 && (
+                <div className="col-span-full text-center py-12">
+                  <p className="text-gray-600 text-lg">No reports found</p>
+                </div>
+              )}
+
               {/* Iterating over filteredAndSortedReports */}
-              {filteredAndSortedReports.map((report) => ( 
+              {!loading && filteredAndSortedReports.map((report) => ( 
                 <div
                   key={report.id}
                   onClick={() => handleCardClick(report)}
@@ -276,6 +353,36 @@ export default function AdminReportReview() {
               >
                 <X className="w-5 h-5 text-gray-700" />
               </button>
+
+              {/* Update Alert Banner */}
+              {showUpdateAlert && (
+                <div className="mb-4 p-4 bg-yellow-50 border-2 border-yellow-400 rounded-lg">
+                  <div className="flex items-start gap-3">
+                    <div className="flex-1">
+                      <p className="text-yellow-800 font-semibold font-['Poppins'] mb-2">
+                        ⚠️ This report has been updated
+                      </p>
+                      <p className="text-yellow-700 text-sm font-['Afacad']">
+                        The content or status of this report has changed. Would you like to refresh to see the latest version?
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex gap-3 mt-3">
+                    <button
+                      onClick={handleRefreshReport}
+                      className="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg font-['Poppins'] text-sm font-semibold transition-colors"
+                    >
+                      Refresh Now
+                    </button>
+                    <button
+                      onClick={handleDismissAlert}
+                      className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-['Poppins'] text-sm transition-colors"
+                    >
+                      Dismiss
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {/* Report Content */}
               <div className="flex flex-col gap-6 sm:gap-8 items-center pt-2">
